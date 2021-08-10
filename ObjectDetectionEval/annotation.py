@@ -123,6 +123,7 @@ class Annotation:
 
     @staticmethod
     def from_cvat(node: et.Element) -> "Annotation":
+        # TODO: Add error handling
         image_id = node.attrib["name"]
         image_size = int(node.attrib["width"]), int(node.attrib["height"])
         boxes = [BoundingBox.from_cvat(n) for n in node.iter("box")]

@@ -175,6 +175,7 @@ class BoundingBox:
 
     @staticmethod
     def from_labelme(node: dict) -> "BoundingBox":
+        # TODO: Add error handling
         label = str(node["label"])
         (xmin, ymin), (xmax, ymax) = node["points"]
         coords = (float(c) for c in (xmin, ymin, xmax, ymax))
@@ -182,6 +183,7 @@ class BoundingBox:
 
     @staticmethod
     def from_cvat(node: et.Element) -> "BoundingBox":
+        # TODO: Add error handling
         label = node.attrib["label"]
         coords = (float(node.attrib[c]) for c in ("xtl", "ytl", "xbr", "ybr"))
         return BoundingBox(label, *coords)

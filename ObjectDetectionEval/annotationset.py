@@ -86,6 +86,7 @@ class AnnotationSet:
         image_extension: str = ".jpg",
         separator: str = None
     ) -> "AnnotationSet":
+        # TODO: Add error handling
         if image_folder is None:
             image_folder = folder
 
@@ -200,6 +201,7 @@ class AnnotationSet:
 
     @staticmethod
     def parse_names_file(path: Path) -> "dict[str, str]":
+        # TODO: Add error handling
         return {str(i): v for i, v in enumerate(path.read_text().splitlines())}
 
     def __repr__(self) -> str:
