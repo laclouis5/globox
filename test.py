@@ -1,10 +1,11 @@
 from ObjectDetectionEval import *
 from pathlib import Path
+from time import perf_counter
 
 from PIL import Image
 
 
-def tests():
+def tests_bounding_box():
     try:
         b = BoundingBox(label="", xmin=10, ymin=10, xmax=5, ymax=10)
         raise ValueError
@@ -104,9 +105,9 @@ def tests():
 
     annotations = AnnotationSet((a, b, c))
     for id in annotations.image_ids:
-        print(annotations[id].image_id)
+        assert id == annotations[id].image_id
 
-def tests_2():
+def tests_parsing():
     data_path = Path("data/")
     gts_path = data_path / "gts/"
     dets_path = data_path / "dets/"
@@ -133,6 +134,8 @@ def tests_2():
     rel_ltwh = dets_path / "rel_ltwh/"
 
     # AnnotationSets
+    start = perf_counter()
+    
     coco1_set = AnnotationSet.from_coco(coco1_path)
     coco2_set = AnnotationSet.from_coco(coco2_path)
     yolo_set = AnnotationSet.from_yolo(yolo_path, image_folder, id_to_label)
@@ -146,8 +149,11 @@ def tests_2():
     rel_ltwh_set = AnnotationSet.from_txt(rel_ltwh, image_folder, box_format=BoxFormat.LTWH, relative=True, id_to_label=id_to_label)
     coco_det_set = AnnotationSet.from_coco(coco_dets_path)
 
-    gts_sets = [coco1_set, coco2_set, yolo_set, cvat_set, labelme_set, openimage_set, pascal_set]
+    elapsed = perf_counter() - start
+    print(f"Parsing took {elapsed*1_000:.2f}ms")
+
     dets_sets = [abs_ltrb_set, abs_ltwh_set, rel_ltwh_set, coco_det_set]
+    gts_sets = [coco1_set, coco2_set, yolo_set, cvat_set, labelme_set, openimage_set, pascal_set]
     all_sets = dets_sets + gts_sets
 
     for i, s in enumerate(all_sets):
@@ -179,5 +185,5 @@ def tests_2():
 
 
 if __name__ == "__main__":
-    # tests()
-    tests_2()
+    tests_bounding_box()
+    tests_parsing()
