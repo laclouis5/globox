@@ -71,6 +71,7 @@ Run tests with `python tests.py`.
 - [ ] CLI interface
 - [ ] Pip package
 - [ ] UI interface
+- [ ] Database converters
 
 ## Acknowledgement
 This repo is based on the work of [Rafael Padilla](https://github.com/rafaelpadilla/review_object_detection_metrics). The goal of this repo is to improve the performance and flexibility.
