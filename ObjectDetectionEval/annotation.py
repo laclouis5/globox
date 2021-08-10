@@ -115,7 +115,7 @@ class Annotation:
         return Annotation(image_id, (width, height), boxes)
 
     @staticmethod
-    def _from_coco_partial(node) -> "Annotation":
+    def _from_coco_partial(node: dict) -> "Annotation":
         # TODO: Add error handling
         image_id = str(node["file_name"])
         image_size = int(node["width"]), int(node["height"])

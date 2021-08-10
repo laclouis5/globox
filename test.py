@@ -135,7 +135,7 @@ def tests_2():
     # AnnotationSets
     coco1_set = AnnotationSet.from_coco(coco1_path)
     coco2_set = AnnotationSet.from_coco(coco2_path)
-    yolo_set = AnnotationSet.from_yolo(yolo_path, image_folder, names_file)
+    yolo_set = AnnotationSet.from_yolo(yolo_path, image_folder, id_to_label)
     cvat_set = AnnotationSet.from_cvat(cvat_path)
     labelme_set = AnnotationSet.from_labelme(labelme_path)
     openimage_set = AnnotationSet.from_openimage(openimage_path, image_folder)
@@ -169,7 +169,6 @@ def tests_2():
             assert b.confidence is None, f"dataset: {i}, Conf: {type(b.confidence)}"
             for c, s in zip(box.ltrb, annotation.image_size*2):
                 assert c < s, f"dataset {i}, {c}, {annotation.image_size}, {annotation.image_id}"
-
 
     # for dataset in gts_sets:
     #     for annotation in dataset:

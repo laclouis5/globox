@@ -174,7 +174,7 @@ class BoundingBox:
         return BoundingBox(label, *coords, confidence=None)
 
     @staticmethod
-    def from_labelme(node) -> "BoundingBox":
+    def from_labelme(node: dict) -> "BoundingBox":
         label = str(node["label"])
         (xmin, ymin), (xmax, ymax) = node["points"]
         coords = (float(c) for c in (xmin, ymin, xmax, ymax))

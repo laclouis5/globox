@@ -111,10 +111,9 @@ class AnnotationSet:
     def from_yolo(
         folder: Path, 
         image_folder: Path = None, 
-        names_file: Path = None,
+        id_to_label: Mapping[str, str] = None,
         image_extension = ".jpg",
     ) -> "AnnotationSet":
-        id_to_label = AnnotationSet.parse_names_file(names_file)
         return AnnotationSet.from_txt(folder, image_folder, 
             box_format=BoxFormat.XYWH, 
             relative=True, 
