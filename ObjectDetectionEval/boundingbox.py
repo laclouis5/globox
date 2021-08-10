@@ -53,6 +53,12 @@ class BoundingBox:
     def area(self) -> float:
         return self.width * self.height
 
+    @property
+    def pascal_area(self) -> int:
+        width = int(self.xmax) - int(self.xmin) + 1
+        height = int(self.ymax) - int(self.ymin) + 1
+        return width * height
+
     def iou(self, other: "BoundingBox") -> float:
         xmin = max(self.xmin, other.xmin)
         ymin = max(self.ymin, other.ymin)
@@ -66,6 +72,23 @@ class BoundingBox:
         union = self.area + other.area - intersection
 
         if union == 0.0:
+            return 1.0
+
+        return intersection / union
+
+    def pascal_iou(self, other: "BoundingBox") -> float:
+        xmin = max(int(self.xmin), int(other.xmin))
+        ymin = max(int(self.ymin), int(other.ymin))
+        xmax = min(int(self.xmax), int(other.xmax))
+        ymax = min(int(self.ymax), int(other.ymax))
+
+        if xmax < xmin or ymax < ymin:
+            return 0.0
+
+        intersection = (xmax - xmin + 1) * (ymax - ymin + 1)
+        union = self.pascal_area + other.pascal_area - intersection
+
+        if union == 0:
             return 1.0
 
         return intersection / union
