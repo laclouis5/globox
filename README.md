@@ -13,5 +13,18 @@ pip install -r requirements.txt
 ## Tests
 Run tests with `python tests.py`.
 
+## TODO
+- [x] Basic data structures and utilities
+- [x] Parsers (ImageNet, COCO, YOLO, Pascal, OpenImage, CVAT, LabelMe)
+- [x] Parser tests
+- [ ] Parsers for TFRecord and TensorFlow
+- [ ] Evalutators
+- [ ] Tests with a huge load
+- [ ] Visualization options
+- [ ] Database summary and stats
+- [ ] CLI interface
+- [ ] Pip package
+- [ ] UI interface
+
 ## Acknowledgement
 This repo is based on the work of [Rafael Padilla](https://github.com/rafaelpadilla/review_object_detection_metrics).
