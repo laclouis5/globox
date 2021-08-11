@@ -6,6 +6,7 @@ Requires Python >= 3.8.2. Best to use a virtual environment.
 
 ```shell
 python3.8 -m venv .env
+source .env/bin/activate
 pip install -U pip
 pip install -r requirements.txt
 ```
