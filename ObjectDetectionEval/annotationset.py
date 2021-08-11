@@ -44,22 +44,26 @@ class AnnotationSet:
     def add(self, annotation: Annotation, override = False):
         if not override:
             assert annotation.image_id not in self.image_ids, \
-                "image_id already in the set (set 'override' to True \
-                to remove this assertion)"
+                "image_id already in the set (set 'override' to True to remove this assertion)"
         self._annotations[annotation.image_id] = annotation
+
+    def update(self, other: "AnnotationSet", override = False) -> "AnnotationSet":
+        if not override:
+            assert self.image_ids.isdisjoint(other.image_ids), \
+                "some image ids are already in the set (set 'override' to True to remove this assertion)"
+        self._annotations.update(other._annotations)
+        return self
+
+    def __iadd__(self, other: "AnnotationSet") -> "AnnotationSet":
+        return self.update(other)
+
+    def __add__(self, other: "AnnotationSet") -> "AnnotationSet":
+        return AnnotationSet().update(self).update(other)
 
     def map_labels(self, mapping: Mapping[str, str]) -> "AnnotationSet":
         for annotation in self:
             annotation.map_labels(mapping)
         return self
-
-    def update(self, other: "AnnotationSet", override = False):
-        if not override:
-            assert self.image_ids.isdisjoint(other.image_ids), \
-                "some image ids are already in the set (set 'override' to \
-                True to remove this assertion)"
-
-        self._annotations.update(other._annotations)
 
     @property
     def image_ids(self):
@@ -109,8 +113,7 @@ class AnnotationSet:
                 image_size = get_image_size(image_path)
             except UnknownImageFormat:
                 raise FileParsingError(image_path, 
-                    reason=f"unable to read image file '{image_path}' \
-                        to get the image size")
+                    reason=f"unable to read image file '{image_path}' to get the image size")
             
             annotation = Annotation.from_txt(
                 file_path=file,

@@ -4,7 +4,7 @@ Parse all kinds of object detection databases (ImageNet, COCO, YOLO, Pascal, Ope
 ## Install
 Requires Python >= 3.8.2. Best to use a virtual environment.
 
-```console
+```shell
 python3.8 -m venv .env
 pip install -U pip
 pip install -r requirements.txt
@@ -21,15 +21,15 @@ The library has three main components:
 The `AnnotationSet` class contains static methods to read different databases:
 
 ```python
-coco_gts = AnnotationSet.from_coco(file_path: "path/to/json_file.json")
-xml_gts = AnnotationSet.from_xml(folder: "path/to/xml_files/")  # PascalVOC
-yolo_preds = AnnotationSet.from_yolo(folder: "path/to/txt_files/")
+coco_gts = AnnotationSet.from_coco(file_path="path/to/json_file.json")
+xml_gts = AnnotationSet.from_xml(folder="path/to/xml_files/")  # PascalVOC
+yolo_preds = AnnotationSet.from_yolo(folder="path/to/txt_files/")
 ```
 
 `Annotation` offers file-level granularity for compatible datasets:
 
 ```python
-one_annotation = Annotation.from_labelme(file_path: "path/to/xml_file.xml")
+one_annotation = Annotation.from_labelme(file_path="path/to/xml_file.xml")
 ```
 
 For more specific implementations the `BoundingBox` class contains lots of utilities to parse bounding boxes in different formats, like the `create()` method.
@@ -95,22 +95,22 @@ coco_gts.show_stats()
 ```
 
 ---
-### Preview (WIP)
-Evaluation will be performed via:
+### Future Features Preview (WIP)
+Evaluation:
 
 ```python
 evaluation = Evaluator.evaluate(
-    references = coco_gts,
-    predictions = yolo_preds)
+    references=coco_gts,
+    predictions=yolo_preds)
 
 print(evaluation.mAP)
 print(evaluation["cat"].cocoAP)
 ```
 
-Databases will be convertible:
+Databases conversion and creation:
 
 ```python
-coco_gts.to_yolo(save_dir: "path/to/data/")
+coco_gts.to_yolo(save_dir="path/to/data/")
 ```
 
 ## Tests

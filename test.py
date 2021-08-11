@@ -5,6 +5,33 @@ from time import perf_counter
 from PIL import Image
 
 
+data_path = Path("data/")
+gts_path = data_path / "gts/"
+dets_path = data_path / "dets/"
+image_folder = data_path / "images"
+visu_folder = data_path / "visualizations"
+names_file = gts_path / "yolo_format/obj.names"
+
+# Gts
+coco1_path = gts_path / "coco_format_v1/instances_default.json"
+coco2_path = gts_path / "coco_format_v2/instances_v2.json"
+yolo_path = gts_path / "yolo_format/obj_train_data"
+cvat_path = gts_path / "cvat_format/annotations.xml"
+imagenet_path = gts_path / "imagenet_format/Annotations/"
+labelme_path = gts_path / "labelme_format/"
+openimage_path = gts_path / "openimages_format/all_bounding_boxes.csv"
+pascal_path = gts_path / "pascalvoc_format/"
+
+# Dets
+coco_dets_path = dets_path / "coco_format/coco_dets.json"
+abs_ltrb = dets_path / "abs_ltrb/"
+abs_ltwh = dets_path / "abs_ltwh/"
+rel_ltwh = dets_path / "rel_ltwh/"
+
+id_to_label = AnnotationSet.parse_names_file(names_file)
+labels = set(id_to_label.values())
+
+
 def tests_bounding_box():
     try:
         b = BoundingBox(label="", xmin=10, ymin=10, xmax=5, ymax=10)
@@ -107,32 +134,28 @@ def tests_bounding_box():
     for id in annotations.image_ids:
         assert id == annotations[id].image_id
 
+def test_annotationset():
+    files = list(glob(pascal_path, ".xml")) 
+    set1 = AnnotationSet(Annotation.from_xml(f) for f in files[:50])
+    set2 = AnnotationSet(Annotation.from_xml(f) for f in files[50:])  
+    set3 = set1 + set2 
+    annotation = Annotation.from_xml(files[0])
+    
+    assert set3.image_ids == (set(set1.image_ids).union(set(set2.image_ids)))
+
+    try:
+        set3 += set1
+        raise ValueError
+    except AssertionError:
+        pass
+
+    try:
+        set3.add(annotation)
+        raise ValueError
+    except AssertionError:
+        pass
+
 def tests_parsing():
-    data_path = Path("data/")
-    gts_path = data_path / "gts/"
-    dets_path = data_path / "dets/"
-    image_folder = data_path / "images"
-    visu_folder = data_path / "visualizations"
-    names_file = gts_path / "yolo_format/obj.names"
-
-    id_to_label = AnnotationSet.parse_names_file(names_file)
-    labels = set(id_to_label.values())
-
-    # Gts
-    coco1_path = gts_path / "coco_format_v1/instances_default.json"
-    coco2_path = gts_path / "coco_format_v2/instances_v2.json"
-    yolo_path = gts_path / "yolo_format/obj_train_data"
-    cvat_path = gts_path / "cvat_format/annotations.xml"
-    labelme_path = gts_path / "labelme_format/"
-    openimage_path = gts_path / "openimages_format/all_bounding_boxes.csv"
-    pascal_path = gts_path / "pascalvoc_format/"
-
-    # Dets
-    coco_dets_path = dets_path / "coco_format/coco_dets.json"
-    abs_ltrb = dets_path / "abs_ltrb/"
-    abs_ltwh = dets_path / "abs_ltwh/"
-    rel_ltwh = dets_path / "rel_ltwh/"
-
     # AnnotationSets
     start = perf_counter()
 
@@ -140,6 +163,7 @@ def tests_parsing():
     coco2_set = AnnotationSet.from_coco(coco2_path)
     yolo_set = AnnotationSet.from_yolo(yolo_path, image_folder).map_labels(id_to_label)
     cvat_set = AnnotationSet.from_cvat(cvat_path)
+    imagenet_set = AnnotationSet.from_xml(folder=imagenet_path)
     labelme_set = AnnotationSet.from_labelme(labelme_path)
     openimage_set = AnnotationSet.from_openimage(openimage_path, image_folder)
     pascal_set = AnnotationSet.from_xml(pascal_path)
@@ -153,7 +177,7 @@ def tests_parsing():
     print(f"Parsing took {elapsed*1_000:.2f}ms")
 
     dets_sets = [abs_ltrb_set, abs_ltwh_set, rel_ltwh_set, coco_det_set]
-    gts_sets = [coco1_set, coco2_set, yolo_set, cvat_set, labelme_set, openimage_set, pascal_set]
+    gts_sets = [coco1_set, coco2_set, yolo_set, cvat_set, imagenet_set, labelme_set, openimage_set, pascal_set]
     all_sets = dets_sets + gts_sets
 
     assert all_equal(s.image_ids for s in gts_sets)
@@ -187,8 +211,8 @@ def tests_parsing():
             for c, s in zip(box.ltrb, annotation.image_size*2):
                 assert c < s, f"dataset {i}, {c}, {annotation.image_size}, {annotation.image_id}"
 
-    for s in all_sets:
-        s.show_stats()
+    # for s in all_sets:
+    #     s.show_stats()
 
     # for dataset in gts_sets:
     #     for annotation in dataset:
@@ -200,4 +224,5 @@ def tests_parsing():
 
 if __name__ == "__main__":
     tests_bounding_box()
+    test_annotationset()
     tests_parsing()
