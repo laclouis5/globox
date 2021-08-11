@@ -140,7 +140,7 @@ class BoundingBox:
         image_size: "tuple[int, int]" = None, 
     ) -> "BoundingBox":
         if relative:
-            assert image_size is not None
+            assert image_size is not None, "For relative coordinates image_size should be provided"
             coords = BoundingBox.rel_to_abs(coords, image_size)
 
         if box_format is BoxFormat.LTWH:
@@ -160,7 +160,7 @@ class BoundingBox:
         box_format = BoxFormat.LTRB,
         relative = False,
         image_size: "tuple[int, int]" = None,
-        separator: str = None
+        separator: str = " "
     ) -> "BoundingBox":
         values = string.split(separator)
 
@@ -180,6 +180,14 @@ class BoundingBox:
             raise ParsingError(f"{e} in line '{string}'")
 
         return BoundingBox.create(label, coords, confidence, box_format, relative, image_size)
+
+    @staticmethod
+    def from_yolo(string: str, image_size: "tuple[int, int]") -> "BoundingBox":
+        return BoundingBox.from_txt(string, 
+            box_format=BoxFormat.XYWH, 
+            relative=True, 
+            image_size=image_size, 
+            separator=" ")
 
     @staticmethod
     def from_xml(node: et.Element) -> "BoundingBox":

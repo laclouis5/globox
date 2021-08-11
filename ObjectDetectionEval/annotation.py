@@ -38,9 +38,10 @@ class Annotation:
     def add(self, box: BoundingBox):
         self.boxes.append(box)
 
-    def map_labels(self, mapping: Mapping[str, str]) -> None:
+    def map_labels(self, mapping: Mapping[str, str]) -> "Annotation":
         for box in self.boxes:
             box.label = mapping[box.label]
+        return self
 
     def _labels(self) -> "set[str]":
         return {b.label for b in self.boxes}
@@ -48,23 +49,16 @@ class Annotation:
     @staticmethod
     def from_txt(
         file_path: Path,
-        image_path: Path,    
+        image_id: str,
         box_format: BoxFormat = BoxFormat.LTRB,
         relative = False,
-        separator: str = None
+        image_size: "tuple[int, int]" = None,
+        separator: str = " "
     ) -> "Annotation":
         try:
             lines = file_path.read_text().splitlines()
         except OSError:
             raise FileParsingError(file_path, reason="cannot read file")
-
-        try:
-            image_size = get_image_size(image_path)
-        except UnknownImageFormat:
-            raise FileParsingError(
-                file_path, 
-                reason=f"unable to read image file '{image_path}' \
-                    to get the image size")
 
         try:
             boxes = [BoundingBox.from_txt(
@@ -73,7 +67,20 @@ class Annotation:
         except ParsingError as e:
             raise FileParsingError(file_path, e.reason)
 
-        return Annotation(image_path.name, image_size, boxes)
+        return Annotation(image_id, image_size, boxes)
+
+    @staticmethod
+    def from_yolo(
+        file_path: Path,
+        image_id: str,
+        image_size: "tuple[int, int]",
+    ):
+        return Annotation.from_txt(file_path, 
+            image_id=image_id,
+            box_format=BoxFormat.XYWH, 
+            relative=True, 
+            image_size=image_size, 
+            separator=" ")
 
     @staticmethod
     def from_xml(file_path: Path) -> "Annotation":

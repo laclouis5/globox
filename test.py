@@ -135,18 +135,18 @@ def tests_parsing():
 
     # AnnotationSets
     start = perf_counter()
-    
+
     coco1_set = AnnotationSet.from_coco(coco1_path)
     coco2_set = AnnotationSet.from_coco(coco2_path)
-    yolo_set = AnnotationSet.from_yolo(yolo_path, image_folder, id_to_label)
+    yolo_set = AnnotationSet.from_yolo(yolo_path, image_folder).map_labels(id_to_label)
     cvat_set = AnnotationSet.from_cvat(cvat_path)
     labelme_set = AnnotationSet.from_labelme(labelme_path)
     openimage_set = AnnotationSet.from_openimage(openimage_path, image_folder)
     pascal_set = AnnotationSet.from_xml(pascal_path)
     
-    abs_ltrb_set = AnnotationSet.from_txt(abs_ltrb, image_folder, box_format=BoxFormat.LTRB, relative=False, id_to_label=id_to_label)
-    abs_ltwh_set = AnnotationSet.from_txt(abs_ltwh, image_folder, box_format=BoxFormat.LTWH, relative=False, id_to_label=id_to_label)
-    rel_ltwh_set = AnnotationSet.from_txt(rel_ltwh, image_folder, box_format=BoxFormat.LTWH, relative=True, id_to_label=id_to_label)
+    abs_ltrb_set = AnnotationSet.from_txt(abs_ltrb, image_folder).map_labels(id_to_label)
+    abs_ltwh_set = AnnotationSet.from_txt(abs_ltwh, image_folder, box_format=BoxFormat.LTWH).map_labels(id_to_label)
+    rel_ltwh_set = AnnotationSet.from_txt(rel_ltwh, image_folder, box_format=BoxFormat.LTWH, relative=True).map_labels(id_to_label)
     coco_det_set = AnnotationSet.from_coco(coco_dets_path)
 
     elapsed = perf_counter() - start
@@ -155,6 +155,17 @@ def tests_parsing():
     dets_sets = [abs_ltrb_set, abs_ltwh_set, rel_ltwh_set, coco_det_set]
     gts_sets = [coco1_set, coco2_set, yolo_set, cvat_set, labelme_set, openimage_set, pascal_set]
     all_sets = dets_sets + gts_sets
+
+    assert all_equal(s.image_ids for s in gts_sets)
+    assert all_equal(s.image_ids for s in dets_sets)    
+    assert all_equal(len(s) for s in dets_sets)
+    assert all_equal(len(s) for s in gts_sets)
+
+    for image_id in all_sets[0].image_ids:
+        assert all_equal(len(d[image_id].boxes) for d in dets_sets)
+        assert all_equal(d[image_id].image_size for d in dets_sets)
+        assert all_equal(len(d[image_id].boxes) for d in gts_sets)
+        assert all_equal(d[image_id].image_size for d in gts_sets)
 
     for i, s in enumerate(all_sets):
         assert s._labels() == labels
@@ -175,6 +186,9 @@ def tests_parsing():
             assert b.confidence is None, f"dataset: {i}, Conf: {type(b.confidence)}"
             for c, s in zip(box.ltrb, annotation.image_size*2):
                 assert c < s, f"dataset {i}, {c}, {annotation.image_size}, {annotation.image_id}"
+
+    for s in all_sets:
+        s.show_stats()
 
     # for dataset in gts_sets:
     #     for annotation in dataset:

@@ -1,8 +1,13 @@
 from .utils import *
 from .boundingbox import *
 from .annotation import *
+
 from typing import Dict, Callable, Iterator
 from csv import DictReader
+from collections import defaultdict
+
+from rich.table import Table
+from rich import print as rprint
 
 
 class AnnotationSet:
@@ -10,7 +15,7 @@ class AnnotationSet:
     def __init__(self, annotations: Iterable[Annotation] = None, override = False):
         """TODO: Add optional addition of labels found during
         parsing, for instance COCO names and YOLO `.names`.
-        could also add a (lazy) computed accessor that 
+        Could also add a (lazy) computed accessor that 
         runs through all boxes to get labels.
         """
         self._annotations: Dict[str, Annotation] = {}
@@ -33,6 +38,9 @@ class AnnotationSet:
     def items(self):
         return self._annotations.items()
 
+    def __contains__(self, annotation: Annotation) -> bool:
+        return annotation.image_id in self._annotations.keys()
+
     def add(self, annotation: Annotation, override = False):
         if not override:
             assert annotation.image_id not in self.image_ids, \
@@ -40,9 +48,10 @@ class AnnotationSet:
                 to remove this assertion)"
         self._annotations[annotation.image_id] = annotation
 
-    def map_labels(self, mapping: Mapping[str, str]):
+    def map_labels(self, mapping: Mapping[str, str]) -> "AnnotationSet":
         for annotation in self:
             annotation.map_labels(mapping)
+        return self
 
     def update(self, other: "AnnotationSet", override = False):
         if not override:
@@ -71,8 +80,6 @@ class AnnotationSet:
         file_parser: Callable[[Path], Annotation]
     ) -> "AnnotationSet":
         assert folder.is_dir()
-        assert file_extension.startswith(".")
-
         return AnnotationSet(file_parser(p) for p in glob(folder, file_extension))
 
     @staticmethod
@@ -81,10 +88,9 @@ class AnnotationSet:
         image_folder: Path = None,
         box_format = BoxFormat.LTRB,
         relative = False,
-        id_to_label: Mapping[str, str] = None,
         file_extension: str = ".txt",
         image_extension: str = ".jpg",
-        separator: str = None
+        separator: str = " "
     ) -> "AnnotationSet":
         # TODO: Add error handling
         if image_folder is None:
@@ -94,17 +100,27 @@ class AnnotationSet:
         assert image_folder.is_dir()
         assert image_extension.startswith(".")
 
-        files = glob(folder, file_extension)
         annotations = AnnotationSet()
 
-        for file in files:
-            image_path = image_folder / (file.stem + image_extension)
-            annotation = Annotation.from_txt(
-                file, image_path, box_format, relative, separator)
-            annotations.add(annotation)
+        for file in glob(folder, file_extension):
+            image_path = image_folder / file.with_suffix(image_extension).name
 
-        if id_to_label is not None:
-            annotations.map_labels(id_to_label)
+            try:
+                image_size = get_image_size(image_path)
+            except UnknownImageFormat:
+                raise FileParsingError(image_path, 
+                    reason=f"unable to read image file '{image_path}' \
+                        to get the image size")
+            
+            annotation = Annotation.from_txt(
+                file_path=file,
+                image_id=image_path.name,
+                box_format=box_format,
+                relative=relative,
+                image_size=image_size,
+                separator=separator)
+
+            annotations.add(annotation)
 
         return annotations
 
@@ -112,19 +128,16 @@ class AnnotationSet:
     def from_yolo(
         folder: Path, 
         image_folder: Path = None, 
-        id_to_label: Mapping[str, str] = None,
         image_extension = ".jpg",
     ) -> "AnnotationSet":
         return AnnotationSet.from_txt(folder, image_folder, 
             box_format=BoxFormat.XYWH, 
             relative=True, 
-            id_to_label=id_to_label, 
             image_extension=image_extension)
 
     @staticmethod
-    def from_xml(folder: Path, file_extension: str = ".xml") -> "AnnotationSet":
-        return AnnotationSet.from_folder(
-            folder, file_extension, Annotation.from_xml)      
+    def from_xml(folder: Path) -> "AnnotationSet":
+        return AnnotationSet.from_folder(folder, ".xml", Annotation.from_xml)      
 
     @staticmethod
     def from_openimage(file_path: Path, image_folder: Path) -> "AnnotationSet":
@@ -158,12 +171,8 @@ class AnnotationSet:
         return annotations
 
     @staticmethod
-    def from_labelme(
-        folder: Path, 
-        file_extension: str = ".json"
-    ) -> "AnnotationSet":
-        return AnnotationSet.from_folder(
-            folder, file_extension, Annotation.from_labelme)
+    def from_labelme(folder: Path) -> "AnnotationSet":
+        return AnnotationSet.from_folder(folder, ".json", Annotation.from_labelme)
 
     @staticmethod
     def from_coco(file_path: Path) -> "AnnotationSet":
@@ -203,6 +212,37 @@ class AnnotationSet:
     def parse_names_file(path: Path) -> "dict[str, str]":
         # TODO: Add error handling
         return {str(i): v for i, v in enumerate(path.read_text().splitlines())}
+
+    def show_stats(self):
+        box_by_label = defaultdict(int)
+        im_by_label = defaultdict(int)
+
+        for annotation in self:
+            for box in annotation.boxes:
+                box_by_label[box.label] += 1
+            
+            labels = annotation._labels()
+
+            for label in labels:
+                im_by_label[label] += 1
+            
+            if len(labels) == 0:
+                im_by_label["<empty_image>"] += 1
+            
+        tot_box = sum(box_by_label.values())
+        tot_im = len(self)
+
+        table = Table(title="Database Stats", show_footer=True)
+        table.add_column("Label", footer="Total")
+        table.add_column("Images", footer=f"{tot_im}", justify="right")
+        table.add_column("Boxes", footer=f"{tot_box}", justify="right")
+
+        for label in sorted(im_by_label.keys()):
+            nb_im = im_by_label[label]
+            nb_box = box_by_label[label]
+            table.add_row(label, f"{nb_im}", f"{nb_box}")
+
+        rprint(table)
 
     def __repr__(self) -> str:
         return f"AnnotationSet(annotations: {self._annotations})"
