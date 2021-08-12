@@ -1,3 +1,4 @@
+from typing import ItemsView
 from ObjectDetectionEval import *
 from pathlib import Path
 from time import perf_counter
@@ -30,7 +31,7 @@ rel_ltwh = dets_path / "rel_ltwh/"
 
 id_to_label = AnnotationSet.parse_names_file(names_file)
 labels = set(id_to_label.values())
-
+label_to_id = {v: k for k, v in id_to_label.items()}
 
 def tests_bounding_box():
     try:
@@ -156,7 +157,6 @@ def test_annotationset():
         pass
 
 def tests_parsing():
-    # AnnotationSets
     start = perf_counter()
 
     coco1_set = AnnotationSet.from_coco(coco1_path)
@@ -181,7 +181,7 @@ def tests_parsing():
     all_sets = dets_sets + gts_sets
 
     assert all_equal(s.image_ids for s in gts_sets)
-    assert all_equal(s.image_ids for s in dets_sets)    
+    assert all_equal(s.image_ids for s in dets_sets)
     assert all_equal(len(s) for s in dets_sets)
     assert all_equal(len(s) for s in gts_sets)
 
@@ -221,8 +221,62 @@ def tests_parsing():
     #         annotation.draw(img)
     #         img.save(image)
 
+def test_conversion():
+    save_dir = Path("/tmp/").expanduser()
+    txt_dir = save_dir / "txt/"
+    yolo_dir = save_dir / "yolo/"
+    xml_dir = save_dir / "xml/"
+    cvat_path = save_dir / "cvat.xml"
+    coco_path = save_dir / "coco.json"
+    labelme_dir = save_dir / "labelme"
+    openimage_path = save_dir / "openimage.csv"
+
+    boxes = AnnotationSet.from_coco(file_path=coco2_path)
+
+    start = perf_counter()
+
+    boxes.save_txt(txt_dir)
+    boxes.save_yolo(yolo_dir, label_to_id=label_to_id)
+    boxes.save_xml(xml_dir)
+    boxes.save_cvat(cvat_path)
+    boxes.save_coco(coco_path)
+    boxes.save_labelme(labelme_dir)
+    boxes.save_openimage(openimage_path)
+
+    elapsed = perf_counter() - start
+    print(f"Conversion took {elapsed*1_000:.2f}ms")
+
+    dets_sets = [
+        AnnotationSet.from_txt(txt_dir, image_folder),
+        AnnotationSet.from_yolo(yolo_dir, image_folder).map_labels(id_to_label),
+        AnnotationSet.from_xml(xml_dir),
+        AnnotationSet.from_cvat(cvat_path),
+        AnnotationSet.from_coco(coco_path),
+        AnnotationSet.from_labelme(labelme_dir),
+        AnnotationSet.from_openimage(openimage_path, image_folder),
+    ]
+
+    all_sets = dets_sets
+
+    assert all_equal(s.image_ids for s in dets_sets)    
+    assert all_equal(len(s) for s in dets_sets)
+
+    for image_id in all_sets[0].image_ids:
+        assert all_equal(len(d[image_id].boxes) for d in dets_sets)
+        assert all_equal(d[image_id].image_size for d in dets_sets)
+
+    for i, s in enumerate(all_sets):
+        assert s._labels() == labels, f"{i}"
+        for annotation in s:
+            assert isinstance(annotation.image_id, str)
+            assert isinstance(annotation.boxes, list)
+            for box in annotation.boxes:
+                assert isinstance(box.label, str)
+                assert all(isinstance(c, float) for c in box.ltrb)
+                assert any(c > 1 for c in box.ltrb), f"dataset {i}, {box.ltrb}"
 
 if __name__ == "__main__":
-    tests_bounding_box()
-    test_annotationset()
+    # tests_bounding_box()
+    # test_annotationset()
     tests_parsing()
+    test_conversion()

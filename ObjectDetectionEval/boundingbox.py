@@ -1,7 +1,7 @@
-from itertools import tee
-from typing import Mapping
 from .utils import *
+
 import xml.etree.ElementTree as et
+from typing import Mapping
 
 
 class BoundingBox:
@@ -237,9 +237,9 @@ class BoundingBox:
     ) -> str:
         if box_format is BoxFormat.LTRB:
             coords = self.ltrb
-        if box_format is BoxFormat.XYWH:
+        elif box_format is BoxFormat.XYWH:
             coords = self.xywh
-        if box_format is BoxFormat.LTWH:
+        elif box_format is BoxFormat.LTWH:
             coords = self.ltwh
         else:
             raise ValueError(f"Unknown BoxFormat '{box_format}'")
@@ -278,21 +278,21 @@ class BoundingBox:
 
     def to_xml(self) -> et.Element:
         obj_node = et.Element("object")
-        et.SubElement(obj_node, "label").text = self.label
+        et.SubElement(obj_node, "name").text = self.label
         box_node = et.SubElement(obj_node, "bndbox")
         for tag, coord in zip(("xmin", "ymin", "xmax", "ymax"), self.ltrb):
             et.SubElement(box_node, tag).text = f"{coord}"
         return obj_node
 
     def to_cvat(self) -> et.Element:
-        box_node = et.Element(tag="box")
-        box_node["label"] = self.label
+        box_node = et.Element("box")
+        box_node.attrib["label"] = self.label
 
         xtl, ytl, xbr, ybr = self.ltrb
-        box_node["xtl"] = f"{xtl}"
-        box_node["ytl"] = f"{ytl}"
-        box_node["xbr"] = f"{xbr}"
-        box_node["ybr"] = f"{ybr}"
+        box_node.attrib["xtl"] = f"{xtl}"
+        box_node.attrib["ytl"] = f"{ytl}"
+        box_node.attrib["xbr"] = f"{xbr}"
+        box_node.attrib["ybr"] = f"{ybr}"
 
         return box_node
 

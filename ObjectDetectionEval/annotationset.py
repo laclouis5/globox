@@ -1,5 +1,3 @@
-from dataclasses import field
-from os import path
 from .utils import *
 from .boundingbox import *
 from .annotation import *
@@ -221,7 +219,7 @@ class AnnotationSet:
         relative: bool = False, 
         separator: str = " ",
         file_extension: str = ".txt"
-    ) -> str:
+    ):
         save_dir.mkdir(exist_ok=True)
 
         def _save(annotation: Annotation):
@@ -261,7 +259,7 @@ class AnnotationSet:
     def to_coco(self) -> dict:
         labels = sorted(self._labels())
         label_to_id = {l: i for i, l in enumerate(labels)}
-        imageid_to_id = {n: i for i, n in self.image_ids}
+        imageid_to_id = {n: i for i, n in enumerate(self.image_ids)}
         
         annotations = []
         for annotation in self:
@@ -288,11 +286,18 @@ class AnnotationSet:
 
         return {"images": images, "annotations": annotations, "categories": categories}
 
-    def save_json(self, path: Path):
+    def save_coco(self, path: Path):
+        if path.suffix == "":
+            path = path.with_suffix(".json")
         assert path.suffix == ".json"
-        path.write_text(json.dumps(self.to_coco(), allow_nan=False))
+        content = json.dumps(self.to_coco(), allow_nan=False)
+        path.write_text(content)
+        import xml
 
     def save_openimage(self, path: Path):
+        if path.suffix == "":
+            path = path.with_suffix(".csv")
+        assert path.suffix == ".csv"
         with path.open("w", newline="") as f:
             fields = (
                 "ImageID", "Source", "LabelName", "Confidence", 
@@ -316,13 +321,16 @@ class AnnotationSet:
                     writer.writerow(row)
 
     def to_cvat(self) -> et.Element:
-        ann_node = et.Element(tag="annotations")
+        ann_node = et.Element("annotations")
         for annotation in self:
             ann_node.append(annotation.to_cvat())
         return ann_node
 
     def save_cvat(self, path: Path):
-        content = et.tostring(self.to_cvat())
+        if path.suffix == "":
+            path = path.with_suffix(".xml")
+        assert path.suffix == ".xml"
+        content = et.tostring(self.to_cvat(), encoding="unicode")
         path.write_text(content)
 
     @staticmethod

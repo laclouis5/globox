@@ -1,4 +1,5 @@
 from .errors import *
+
 import os, struct
 from pathlib import Path
 

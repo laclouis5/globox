@@ -1,5 +1,6 @@
 from .utils import *
 from .boundingbox import *
+
 from typing import Mapping
 import json
 
@@ -146,7 +147,8 @@ class Annotation:
             for b in self.boxes)
 
     def to_yolo(self, label_to_id: Mapping[str, Union[float, str]] = None) -> str:
-        return "\n".join(b.to_yolo(self.image_size, label_to_id) for b in self.boxes)
+        return "\n".join(b.to_yolo(self.image_size, label_to_id) 
+            for b in self.boxes)
 
     def save_txt(self, 
         path: Path,
@@ -155,11 +157,11 @@ class Annotation:
         relative = False, 
         separator: str = " "
     ):
-        content = self.to_txt(label_to_id, box_format, relative, self.image_size, separator)
+        content = self.to_txt(label_to_id, box_format, relative, separator)
         path.write_text(content)
 
     def save_yolo(self, path: Path, label_to_id: Mapping[str, Union[float, str]] = None):
-        content = self.to_yolo(self.image_size, label_to_id)
+        content = self.to_yolo(label_to_id)
         path.write_text(content)
 
     def to_labelme(self) -> dict:
@@ -176,15 +178,15 @@ class Annotation:
 
     def to_xml(self) -> et.Element:
         ann_node = et.Element("annotation")
-        et.SubElement(ann_node, tag="filename").text = self.image_id
-        et.SubElement(ann_node, tag="segmented").text = "0"
+        et.SubElement(ann_node, "filename").text = self.image_id
+        et.SubElement(ann_node, "segmented").text = "0"
 
         size_node = et.SubElement(ann_node, "size")
         et.SubElement(size_node, "width").text = f"{self.image_width}"
         et.SubElement(size_node, "height").text = f"{self.image_height}"
 
         for box in self.boxes:
-            ann_node.append(box.to_xml)
+            ann_node.append(box.to_xml())
 
         return ann_node
 
@@ -193,13 +195,13 @@ class Annotation:
         path.write_text(content)
 
     def to_cvat(self) -> et.Element:
-        img_node = et.Element(tag="image")
-        img_node["name"] = self.image_id
-        img_node["width"] = f"{self.image_width}"
-        img_node["height"] = f"{self.image_height}"
+        img_node = et.Element("image")
+        img_node.attrib["name"] = self.image_id
+        img_node.attrib["width"] = f"{self.image_width}"
+        img_node.attrib["height"] = f"{self.image_height}"
 
         for box in self.boxes:
-            img_node.append(box.to_cvat)
+            img_node.append(box.to_cvat())
 
         return img_node
 
