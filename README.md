@@ -35,7 +35,7 @@ one_annotation = Annotation.from_labelme(file_path="path/to/xml_file.xml")
 
 For more specific implementations the `BoundingBox` class contains lots of utilities to parse bounding boxes in different formats, like the `create()` method.
 
-`AnnotationsSet`s can be combined and annotations can be added:
+`AnnotationsSets` can be combined and annotations can be added:
 
 ```python
 gts = coco_gts + xml_gts
@@ -55,6 +55,16 @@ for annotation in gts:
     print(f"{annotation.image_id}: {len(annotation.boxes)} boxes")
 
 print(gts.image_ids == yolo_preds.image_ids)
+```
+
+Datasets can be converted to other formats easily:
+
+```python
+coco_gts.save_xml(save_dir="pascalVOC_db/")
+coco_gts.save_cvat(path="train.xml")
+coco_gts.save_yolo(
+    save_dir="yolo_train", 
+    label_to_id={"cat": 0, "dog": 1, "racoon": 2})
 ```
 
 ### Visualization
@@ -106,12 +116,6 @@ evaluation = Evaluator.evaluate(
 
 print(evaluation.mAP)
 print(evaluation["cat"].cocoAP)
-```
-
-Databases conversion and creation:
-
-```python
-coco_gts.to_yolo(save_dir="path/to/data/")
 ```
 
 ## Tests
