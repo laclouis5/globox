@@ -1,10 +1,11 @@
 from .utils import *
-from .boundingbox import *
+from .boundingbox import BoundingBox
 
 from typing import Mapping
 import json
 
 from PIL import Image, ImageDraw
+import lxml.etree as et
 
 
 class Annotation: 
@@ -112,7 +113,8 @@ class Annotation:
         # TODO: Add error handling.
         with file_path.open() as f:
             content = json.load(f)
-            del content["imageData"]
+            if "imageData" in content: 
+                del content["imageData"]
 
         image_id = str(content["imagePath"])
         width = int(content["imageWidth"])
@@ -179,7 +181,6 @@ class Annotation:
     def to_xml(self) -> et.Element:
         ann_node = et.Element("annotation")
         et.SubElement(ann_node, "filename").text = self.image_id
-        et.SubElement(ann_node, "segmented").text = "0"
 
         size_node = et.SubElement(ann_node, "size")
         et.SubElement(size_node, "width").text = f"{self.image_width}"
@@ -191,7 +192,7 @@ class Annotation:
         return ann_node
 
     def save_xml(self, path: Path):
-        content = et.tostring(self.to_xml(), encoding="unicode")
+        content = et.tostring(self.to_xml(), encoding="unicode", pretty_print=True)
         path.write_text(content)
 
     def to_cvat(self) -> et.Element:

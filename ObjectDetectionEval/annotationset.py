@@ -1,13 +1,14 @@
 from .utils import *
-from .boundingbox import *
-from .annotation import *
+from .boundingbox import BoundingBox
+from .annotation import Annotation
 
-from typing import Dict, Callable, Iterator
+from typing import Dict, Callable, Iterator, Mapping
+import json
 from csv import DictReader, DictWriter
-import xml.etree.ElementTree as et
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 
+import lxml.etree as et
 from rich.table import Table
 from rich import print as rprint
 
@@ -330,7 +331,7 @@ class AnnotationSet:
         if path.suffix == "":
             path = path.with_suffix(".xml")
         assert path.suffix == ".xml"
-        content = et.tostring(self.to_cvat(), encoding="unicode")
+        content = et.tostring(self.to_cvat(), encoding="unicode", pretty_print=True)
         path.write_text(content)
 
     @staticmethod

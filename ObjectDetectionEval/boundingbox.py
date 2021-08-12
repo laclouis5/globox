@@ -1,7 +1,6 @@
 from .utils import *
-
-import xml.etree.ElementTree as et
 from typing import Mapping
+import lxml.etree as et
 
 
 class BoundingBox:
@@ -273,8 +272,7 @@ class BoundingBox:
         return {
             "label": self.label, 
             "points": [[xmin, ymin], [xmax, ymax]], 
-            "shape_type": "rectangle", 
-            "group_id": None}
+            "shape_type": "rectangle"}
 
     def to_xml(self) -> et.Element:
         obj_node = et.Element("object")
