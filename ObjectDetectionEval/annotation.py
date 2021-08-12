@@ -4,7 +4,7 @@ from .boundingbox import BoundingBox
 from typing import Mapping
 import json
 
-from PIL import Image, ImageDraw
+# from PIL import Image, ImageDraw
 import lxml.etree as et
 
 
@@ -206,10 +206,10 @@ class Annotation:
 
         return img_node
 
-    def draw(self, img: Image):
-        draw = ImageDraw.Draw(img)
-        for box in self.boxes:
-            draw.rectangle(box.ltrb, outline="black", width=5)
+    # def draw(self, img: Image):
+    #     draw = ImageDraw.Draw(img)
+    #     for box in self.boxes:
+    #         draw.rectangle(box.ltrb, outline="black", width=5)
 
     def __repr__(self) -> str:
         return f"Annotation(image_id: {self.image_id}, image_size: {self.image_size}, boxes: {self.boxes})"
