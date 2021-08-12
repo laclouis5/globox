@@ -2,7 +2,7 @@ from .utils import *
 from .boundingbox import BoundingBox
 from .annotation import Annotation
 
-from typing import Dict, Callable, Iterator, Mapping
+from typing import Dict, Callable, Iterator, Mapping, TypeVar
 import json
 from csv import DictReader, DictWriter
 from collections import defaultdict
@@ -11,6 +11,9 @@ from concurrent.futures import ThreadPoolExecutor
 import lxml.etree as et
 from rich.table import Table
 from rich import print as rprint
+
+
+T = TypeVar("T")
 
 
 class AnnotationSet:
@@ -81,13 +84,22 @@ class AnnotationSet:
         return {b.label for b in self.all_boxes}
 
     @staticmethod
+    def from_iter(
+        parser: Callable[[T], Annotation],
+        it: Iterable[T],
+    ) -> "AnnotationSet":
+        annotations = ThreadPoolExecutor().map(parser, it)
+        return AnnotationSet(annotations)
+
+    @staticmethod
     def from_folder(
         folder: Path, 
         file_extension: str,
         file_parser: Callable[[Path], Annotation]
     ) -> "AnnotationSet":
         assert folder.is_dir()
-        return AnnotationSet(file_parser(p) for p in glob(folder, file_extension))
+        annotations = AnnotationSet.from_iter(file_parser, glob(folder, file_extension))
+        return AnnotationSet(annotations)
 
     @staticmethod
     def from_txt(
@@ -107,9 +119,7 @@ class AnnotationSet:
         assert image_folder.is_dir()
         assert image_extension.startswith(".")
 
-        annotations = AnnotationSet()
-
-        for file in glob(folder, file_extension):
+        def _get_annotation(file: Path) -> Annotation:
             image_path = image_folder / file.with_suffix(image_extension).name
 
             try:
@@ -118,7 +128,7 @@ class AnnotationSet:
                 raise FileParsingError(image_path, 
                     reason=f"unable to read image file '{image_path}' to get the image size")
             
-            annotation = Annotation.from_txt(
+            return Annotation.from_txt(
                 file_path=file,
                 image_id=image_path.name,
                 box_format=box_format,
@@ -126,9 +136,7 @@ class AnnotationSet:
                 image_size=image_size,
                 separator=separator)
 
-            annotations.add(annotation)
-
-        return annotations
+        return AnnotationSet.from_folder(folder, file_extension, _get_annotation)
 
     @staticmethod
     def from_yolo(
@@ -208,10 +216,8 @@ class AnnotationSet:
     def from_cvat(file_path: Path) -> "AnnotationSet":
         # TODO: Add error handling.
         with file_path.open() as f:
-            root = et.parse(f).getroot()
-        
-        return AnnotationSet(Annotation.from_cvat(n) 
-            for n in root.iter("image"))
+            root = et.parse(f).getroot()  
+        return AnnotationSet.from_iter(Annotation.from_cvat, root.iter("image"))
 
     def save_txt(self, 
         save_dir: Path,
@@ -293,7 +299,6 @@ class AnnotationSet:
         assert path.suffix == ".json"
         content = json.dumps(self.to_coco(), allow_nan=False)
         path.write_text(content)
-        import xml
 
     def save_openimage(self, path: Path):
         if path.suffix == "":
