@@ -1,7 +1,7 @@
 from typing import ItemsView
 from ObjectDetectionEval import *
 from pathlib import Path
-from time import perf_counter
+from time import perf_counter, time
 
 from PIL import Image
 
@@ -278,5 +278,15 @@ def test_conversion():
 if __name__ == "__main__":
     # tests_bounding_box()
     # test_annotationset()
-    tests_parsing()
-    test_conversion()
+    # tests_parsing()
+    # test_conversion()
+
+    base = Path("/Users/louislac/Downloads/train/")
+    path = base / "coco.json"
+
+    t = perf_counter()
+    gts = AnnotationSet.from_coco(path)
+    t = perf_counter() - t
+    print(f"Parsing: {t*1_000:.2f}ms")
+
+    gts.show_stats()

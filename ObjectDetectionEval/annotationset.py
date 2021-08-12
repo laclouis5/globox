@@ -1,3 +1,8 @@
+from os import read
+from threading import Thread
+from time import perf_counter
+from tqdm import tqdm
+
 from .utils import *
 from .boundingbox import BoundingBox
 from .annotation import Annotation
@@ -98,7 +103,8 @@ class AnnotationSet:
         file_parser: Callable[[Path], Annotation]
     ) -> "AnnotationSet":
         assert folder.is_dir()
-        annotations = AnnotationSet.from_iter(file_parser, glob(folder, file_extension))
+        files = list(glob(folder, file_extension))
+        annotations = AnnotationSet.from_iter(file_parser, tqdm(files))
         return AnnotationSet(annotations)
 
     @staticmethod
@@ -197,8 +203,7 @@ class AnnotationSet:
             for d in content["categories"]}
         id_to_annotation = {int(d["id"]): Annotation._from_coco_partial(d)
                 for d in content["images"]}
-
-        for element in content["annotations"]:
+        for element in tqdm(content["annotations"]):
             annotation = id_to_annotation[int(element["image_id"])]
             label = id_to_label[int(element["category_id"])]
             coords = (float(c) for c in element["bbox"])
@@ -234,7 +239,7 @@ class AnnotationSet:
             path = save_dir / image_id.with_suffix(file_extension)
             annotation.save_txt(path, label_to_id, box_format, relative, separator)
 
-        ThreadPoolExecutor().map(_save, self)
+        ThreadPoolExecutor().map(_save, tqdm(self))
 
     def save_yolo(self, save_dir: Path, label_to_id: Mapping[str, Union[float, str]] = None):
         save_dir.mkdir(exist_ok=True)
@@ -243,7 +248,7 @@ class AnnotationSet:
             path = save_dir / Path(annotation.image_id).with_suffix(".txt")
             annotation.save_yolo(path, label_to_id)
 
-        ThreadPoolExecutor().map(_save, self)
+        ThreadPoolExecutor().map(_save, tqdm(self))
 
     def save_labelme(self, save_dir: Path):
         save_dir.mkdir(exist_ok=True)
@@ -252,7 +257,7 @@ class AnnotationSet:
             path = save_dir / Path(annotation.image_id).with_suffix(".json")
             annotation.save_labelme(path)
 
-        ThreadPoolExecutor().map(_save, self)
+        ThreadPoolExecutor().map(_save, tqdm(self))
 
     def save_xml(self, save_dir: Path):
         save_dir.mkdir(exist_ok=True)
@@ -261,7 +266,7 @@ class AnnotationSet:
             path = save_dir / Path(annotation.image_id).with_suffix(".xml")
             annotation.save_xml(path)
 
-        ThreadPoolExecutor().map(_save, self)
+        ThreadPoolExecutor().map(_save, tqdm(self))
 
     def to_coco(self) -> dict:
         labels = sorted(self._labels())
@@ -269,7 +274,7 @@ class AnnotationSet:
         imageid_to_id = {n: i for i, n in enumerate(self.image_ids)}
         
         annotations = []
-        for annotation in self:
+        for annotation in tqdm(self):
             for idx, box in enumerate(annotation.boxes):
                 box_annotation = {
                     "iscrowd": 0, "ignore": 0,
@@ -312,7 +317,7 @@ class AnnotationSet:
             writer = DictWriter(f, fieldnames=fields, restval="")
             writer.writeheader()
 
-            for annotation in self:
+            for annotation in tqdm(self):
                 for box in annotation.boxes:
                     xmin, ymin, xmax, ymax = BoundingBox.abs_to_rel(box.ltrb, annotation.image_size)
                     
@@ -328,7 +333,7 @@ class AnnotationSet:
 
     def to_cvat(self) -> et.Element:
         ann_node = et.Element("annotations")
-        for annotation in self:
+        for annotation in tqdm(self):
             ann_node.append(annotation.to_cvat())
         return ann_node
 
@@ -344,11 +349,17 @@ class AnnotationSet:
         # TODO: Add error handling
         return {str(i): v for i, v in enumerate(path.read_text().splitlines())}
 
+    @staticmethod
+    def _parse_mid_file(path: Path) -> "dict[str, str]":
+        with path.open() as f:
+            reader = DictReader(f, fieldnames=("LabelName", "DisplayName"))
+            return {l["LabelName"]: l["DisplayName"] for l in reader}
+
     def show_stats(self):
         box_by_label = defaultdict(int)
         im_by_label = defaultdict(int)
 
-        for annotation in self:
+        for annotation in tqdm(self):
             for box in annotation.boxes:
                 box_by_label[box.label] += 1
             
