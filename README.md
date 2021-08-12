@@ -1,5 +1,9 @@
-# Object Detection Evaluation Library (WIP)
-Parse all kinds of object detection databases (ImageNet, COCO, YOLO, PascalVOC, OpenImage, CVAT, LabelMe, etc.) and evaluate predictions with standard object detection metrics (AP@[.5:.05:.95], AP@50, mAP, AR<sub>1</sub>, AR<sub>10</sub>, AR<sub>100</sub>, etc.).
+# Object Detection Evaluation Library
+Parse all kinds of object detection databases (ImageNet, COCO, YOLO, PascalVOC, OpenImage, CVAT, LabelMe, etc.).
+
+Save databases to other formats (ImageNet, COCO, YOLO, PascalVOC, OpenImage, CVAT, LabelMe, etc.).
+
+Evaluate predictions with standard object detection metrics (AP@[.5:.05:.95], AP@50, mAP, AR<sub>1</sub>, AR<sub>10</sub>, AR<sub>100</sub>, etc.) (Work in Progress).
 
 ## Install
 Requires Python >= 3.8.2. Best to use a virtual environment.
@@ -13,7 +17,7 @@ pip install -r requirements.txt
 
 ## Use
 
-### APIs
+### Parse Annotations
 The library has three main components:
 - `BoundingBox`: represents a bounding box with a label and an optional confidence score
 - `Annotation`: represent the bounding boxes annotations for one image
@@ -42,6 +46,7 @@ gts = coco_gts + xml_gts
 gts.add(one_annotation)
 ```
 
+### Inspect Databases
 Iterators and efficient `image_id` lookup are easy to use:
 
 ```python
@@ -56,18 +61,6 @@ for annotation in gts:
 
 print(gts.image_ids == yolo_preds.image_ids)
 ```
-
-Datasets can be converted to other formats easily:
-
-```python
-coco_gts.save_xml(save_dir="pascalVOC_db/")
-coco_gts.save_cvat(path="train.xml")
-coco_gts.save_yolo(
-    save_dir="yolo_train", 
-    label_to_id={"cat": 0, "dog": 1, "racoon": 2})
-```
-
-### Visualization
 
 Database stats can printed to the console:
 
@@ -105,8 +98,18 @@ coco_gts.show_stats()
 └─────────────┴────────┴───────┘
 ```
 
----
-### Future Features Preview (WIP)
+### Convert and Save to many Formats
+Datasets can be converted to other formats easily:
+
+```python
+coco_gts.save_xml(save_dir="pascalVOC_db/")
+coco_gts.save_cvat(path="train.xml")
+coco_gts.save_yolo(
+    save_dir="yolo_train", 
+    label_to_id={"cat": 0, "dog": 1, "racoon": 2})
+```
+
+### Future Directions (WIP)
 Evaluation:
 
 ```python
@@ -126,14 +129,15 @@ Run tests with `python tests.py`.
 - [x] Parsers (ImageNet, COCO, YOLO, Pascal, OpenImage, CVAT, LabelMe)
 - [x] Parser tests
 - [x] Database summary and stats
+- [x] Database converters
+- [x] Visualization options
+- [ ] Visualization options ++ (graphs, figures, ...)
 - [ ] Parsers for TFRecord and TensorFlow
 - [ ] Evalutators
 - [ ] Tests with a huge load
-- [ ] Visualization options
 - [ ] CLI interface
 - [ ] Pip package
 - [ ] UI interface
-- [ ] Database converters
 
 ## Acknowledgement
 This repo is based on the work of [Rafael Padilla](https://github.com/rafaelpadilla/review_object_detection_metrics). The goal of this repo is to improve the performance and flexibility.
