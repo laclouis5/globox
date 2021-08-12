@@ -1,10 +1,14 @@
+from dataclasses import field
+from os import path
 from .utils import *
 from .boundingbox import *
 from .annotation import *
 
 from typing import Dict, Callable, Iterator
-from csv import DictReader
+from csv import DictReader, DictWriter
+import xml.etree.ElementTree as et
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 
 from rich.table import Table
 from rich import print as rprint
@@ -153,8 +157,7 @@ class AnnotationSet:
             for row in reader:
                 image_id = row["ImageID"]
                 label = row["LabelName"]
-                coords = (row[r] for r in ("XMin", "YMin", "XMax", "YMax"))
-                coords = [float(r.replace(",", ".")) for r in coords]
+                coords = [float(row[r]) for r in ("XMin", "YMin", "XMax", "YMax")]
                 confidence = row.get("Confidence")
                 
                 if confidence is not None and confidence != "":
@@ -210,6 +213,117 @@ class AnnotationSet:
         
         return AnnotationSet(Annotation.from_cvat(n) 
             for n in root.iter("image"))
+
+    def save_txt(self, 
+        save_dir: Path,
+        label_to_id: Mapping[str, Union[float, str]] = None,
+        box_format: BoxFormat = BoxFormat.LTRB, 
+        relative: bool = False, 
+        separator: str = " ",
+        file_extension: str = ".txt"
+    ) -> str:
+        save_dir.mkdir(exist_ok=True)
+
+        def _save(annotation: Annotation):
+            image_id = Path(annotation.image_id)
+            path = save_dir / image_id.with_suffix(file_extension)
+            annotation.save_txt(path, label_to_id, box_format, relative, separator)
+
+        ThreadPoolExecutor().map(_save, self)
+
+    def save_yolo(self, save_dir: Path, label_to_id: Mapping[str, Union[float, str]] = None):
+        save_dir.mkdir(exist_ok=True)
+
+        def _save(annotation: Annotation):
+            path = save_dir / Path(annotation.image_id).with_suffix(".txt")
+            annotation.save_yolo(path, label_to_id)
+
+        ThreadPoolExecutor().map(_save, self)
+
+    def save_labelme(self, save_dir: Path):
+        save_dir.mkdir(exist_ok=True)
+        
+        def _save(annotation: Annotation):
+            path = save_dir / Path(annotation.image_id).with_suffix(".json")
+            annotation.save_labelme(path)
+
+        ThreadPoolExecutor().map(_save, self)
+
+    def save_xml(self, save_dir: Path):
+        save_dir.mkdir(exist_ok=True)
+        
+        def _save(annotation: Annotation):
+            path = save_dir / Path(annotation.image_id).with_suffix(".xml")
+            annotation.save_xml(path)
+
+        ThreadPoolExecutor().map(_save, self)
+
+    def to_coco(self) -> dict:
+        labels = sorted(self._labels())
+        label_to_id = {l: i for i, l in enumerate(labels)}
+        imageid_to_id = {n: i for i, n in self.image_ids}
+        
+        annotations = []
+        for annotation in self:
+            for idx, box in enumerate(annotation.boxes):
+                box_annotation = {
+                    "iscrowd": 0, "ignore": 0,
+                    "image_id": imageid_to_id[annotation.image_id],
+                    "bbox": box.ltwh,
+                    "category_id": label_to_id[box.label],
+                    "id": idx}
+
+                if box.is_detection:
+                    box_annotation["score"] = box.confidence
+
+                annotations.append(box_annotation)
+
+        images = [{
+            "id": imageid_to_id[a.image_id], 
+            "file_name": a.image_id, 
+            "width": a.image_width, 
+            "height": a.image_height} for a in self]
+
+        categories = [{"supercategory": "none", "id": label_to_id[l], "name": l} for l in labels]
+
+        return {"images": images, "annotations": annotations, "categories": categories}
+
+    def save_json(self, path: Path):
+        assert path.suffix == ".json"
+        path.write_text(json.dumps(self.to_coco(), allow_nan=False))
+
+    def save_openimage(self, path: Path):
+        with path.open("w", newline="") as f:
+            fields = (
+                "ImageID", "Source", "LabelName", "Confidence", 
+                "XMin", "XMax", "YMin", "YMax", "IsOccluded", 
+                "IsTruncated", "IsGroupOf", "IsDepiction", "IsInside")
+            writer = DictWriter(f, fieldnames=fields, restval="")
+            writer.writeheader()
+
+            for annotation in self:
+                for box in annotation.boxes:
+                    xmin, ymin, xmax, ymax = BoundingBox.abs_to_rel(box.ltrb, annotation.image_size)
+                    
+                    row = {
+                        "ImageID": annotation.image_id,
+                        "LabelName": box.label,
+                        "XMin": xmin, "XMax": xmax, "YMin": ymin, "YMax": ymax}
+                    
+                    if box.is_detection:
+                        row["Confidence"] = box.confidence
+                    
+                    writer.writerow(row)
+
+    def to_cvat(self) -> et.Element:
+        ann_node = et.Element(tag="annotations")
+        for annotation in self:
+            ann_node.append(annotation.to_cvat())
+        return ann_node
+
+    def save_cvat(self, path: Path):
+        content = et.tostring(self.to_cvat())
+        path.write_text(content)
 
     @staticmethod
     def parse_names_file(path: Path) -> "dict[str, str]":

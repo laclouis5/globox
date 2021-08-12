@@ -136,10 +136,77 @@ class Annotation:
         boxes = [BoundingBox.from_cvat(n) for n in node.iter("box")]
         return Annotation(image_id, image_size, boxes)
 
-    def __repr__(self) -> str:
-        return f"Annotation(image_id: {self.image_id}, image_size: {self.image_size}, boxes: {self.boxes})"
+    def to_txt(self, 
+        label_to_id: Mapping[str, Union[float, str]] = None,
+        box_format: BoxFormat = BoxFormat.LTRB, 
+        relative = False, 
+        separator: str = " "
+    ) -> str:
+        return "\n".join(b.to_txt(label_to_id, box_format, relative, self.image_size, separator)
+            for b in self.boxes)
 
-    def draw(self, img: Image) -> None:
+    def to_yolo(self, label_to_id: Mapping[str, Union[float, str]] = None) -> str:
+        return "\n".join(b.to_yolo(self.image_size, label_to_id) for b in self.boxes)
+
+    def save_txt(self, 
+        path: Path,
+        label_to_id: Mapping[str, Union[float, str]] = None,
+        box_format: BoxFormat = BoxFormat.LTRB, 
+        relative = False, 
+        separator: str = " "
+    ):
+        content = self.to_txt(label_to_id, box_format, relative, self.image_size, separator)
+        path.write_text(content)
+
+    def save_yolo(self, path: Path, label_to_id: Mapping[str, Union[float, str]] = None):
+        content = self.to_yolo(self.image_size, label_to_id)
+        path.write_text(content)
+
+    def to_labelme(self) -> dict:
+        return {
+            "imagePath": self.image_id,
+            "imageWidth": self.image_width,
+            "imageHeight": self.image_height,
+            "imageData": None,
+            "shapes": [b.to_labelme() for b in self.boxes]}
+
+    def save_labelme(self, path: Path):
+        content = self.to_labelme()
+        path.write_text(json.dumps(content, allow_nan=False, indent=2))
+
+    def to_xml(self) -> et.Element:
+        ann_node = et.Element("annotation")
+        et.SubElement(ann_node, tag="filename").text = self.image_id
+        et.SubElement(ann_node, tag="segmented").text = "0"
+
+        size_node = et.SubElement(ann_node, "size")
+        et.SubElement(size_node, "width").text = f"{self.image_width}"
+        et.SubElement(size_node, "height").text = f"{self.image_height}"
+
+        for box in self.boxes:
+            ann_node.append(box.to_xml)
+
+        return ann_node
+
+    def save_xml(self, path: Path):
+        content = et.tostring(self.to_xml(), encoding="unicode")
+        path.write_text(content)
+
+    def to_cvat(self) -> et.Element:
+        img_node = et.Element(tag="image")
+        img_node["name"] = self.image_id
+        img_node["width"] = f"{self.image_width}"
+        img_node["height"] = f"{self.image_height}"
+
+        for box in self.boxes:
+            img_node.append(box.to_cvat)
+
+        return img_node
+
+    def draw(self, img: Image):
         draw = ImageDraw.Draw(img)
         for box in self.boxes:
             draw.rectangle(box.ltrb, outline="black", width=5)
+
+    def __repr__(self) -> str:
+        return f"Annotation(image_id: {self.image_id}, image_size: {self.image_size}, boxes: {self.boxes})"

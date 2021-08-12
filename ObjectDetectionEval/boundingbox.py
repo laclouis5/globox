@@ -1,3 +1,5 @@
+from itertools import tee
+from typing import Mapping
 from .utils import *
 import xml.etree.ElementTree as et
 
@@ -106,6 +108,12 @@ class BoundingBox:
         a, b, c, d = coords
         w, h = size
         return a*w, b*h, c*w, d*h
+    
+    @staticmethod
+    def abs_to_rel(coords: Coordinates, size: "tuple[int, int]") -> Coordinates:
+        a, b, c, d = coords
+        w, h = size
+        return a/w, b/h, c/w, d/h
 
     @staticmethod
     def ltwh_to_ltrb(coords: Coordinates) -> Coordinates:
@@ -207,6 +215,7 @@ class BoundingBox:
     @staticmethod
     def from_labelme(node: dict) -> "BoundingBox":
         # TODO: Add error handling
+        # TODO: Handle if 'shape_type' is not rectangle
         label = str(node["label"])
         (xmin, ymin), (xmax, ymax) = node["points"]
         coords = (float(c) for c in (xmin, ymin, xmax, ymax))
@@ -218,6 +227,74 @@ class BoundingBox:
         label = node.attrib["label"]
         coords = (float(node.attrib[c]) for c in ("xtl", "ytl", "xbr", "ybr"))
         return BoundingBox(label, *coords)
+
+    def to_txt(self, 
+        label_to_id: Mapping[str, Union[float, str]] = None,
+        box_format: BoxFormat = BoxFormat.LTRB, 
+        relative = False, 
+        image_size: "tuple[int, int]" = None,
+        separator: str = " "
+    ) -> str:
+        if box_format is BoxFormat.LTRB:
+            coords = self.ltrb
+        if box_format is BoxFormat.XYWH:
+            coords = self.xywh
+        if box_format is BoxFormat.LTWH:
+            coords = self.ltwh
+        else:
+            raise ValueError(f"Unknown BoxFormat '{box_format}'")
+        
+        if relative:
+            assert image_size is not None, "For relative coordinates image_size should be provided"
+            coords = BoundingBox.abs_to_rel(coords, image_size)
+
+        label = self.label
+        if label_to_id is not None:
+            label = label_to_id[label]
+
+        if self.is_ground_truth:
+            return separator.join(f"{v}" for v in (label, *coords))
+        else:
+            return separator.join(f"{v}" for v in (label, self.confidence, *coords))
+
+    def to_yolo(self,
+        image_size: "tuple[int, int]",
+        label_to_id: Mapping[str, Union[float, str]] = None
+    ) -> str:
+        return self.to_txt(
+            label_to_id=label_to_id, 
+            box_format=BoxFormat.XYWH, 
+            relative=True, 
+            image_size=image_size, 
+            separator=" ")
+
+    def to_labelme(self) -> dict:
+        xmin, ymin, xmax, ymax = self.ltrb
+        return {
+            "label": self.label, 
+            "points": [[xmin, ymin], [xmax, ymax]], 
+            "shape_type": "rectangle", 
+            "group_id": None}
+
+    def to_xml(self) -> et.Element:
+        obj_node = et.Element("object")
+        et.SubElement(obj_node, "label").text = self.label
+        box_node = et.SubElement(obj_node, "bndbox")
+        for tag, coord in zip(("xmin", "ymin", "xmax", "ymax"), self.ltrb):
+            et.SubElement(box_node, tag).text = f"{coord}"
+        return obj_node
+
+    def to_cvat(self) -> et.Element:
+        box_node = et.Element(tag="box")
+        box_node["label"] = self.label
+
+        xtl, ytl, xbr, ybr = self.ltrb
+        box_node["xtl"] = f"{xtl}"
+        box_node["ytl"] = f"{ytl}"
+        box_node["xbr"] = f"{xbr}"
+        box_node["ybr"] = f"{ybr}"
+
+        return box_node
 
     def __repr__(self) -> str:
         return f"BoundingBox(xmin: {self.xmin}, ymin: {self.ymin}, xmax: {self.xmax}, ymax: {self.ymax}, confidence: {self.confidence})"
