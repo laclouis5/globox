@@ -140,7 +140,7 @@ Run tests with `python tests.py`.
 - [ ] UI interface
 
 ## Acknowledgement
-This repo is based on the work of [Rafael Padilla](https://github.com/rafaelpadilla/review_object_detection_metrics). The goal of this repo is to improve the performance and flexibility.
+This repo is based on the work of [Rafael Padilla](https://github.com/rafaelpadilla/review_object_detection_metrics). The goal of this repo is to improve the performance and flexibility and to provide additional tools.
 
 ## Contribution
 Feel free to contribute, any help you can offer with this project is most welcome. Some suggestions where help is needed:
