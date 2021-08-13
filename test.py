@@ -282,11 +282,16 @@ if __name__ == "__main__":
     # test_conversion()
 
     base = Path("/Users/louislac/Downloads/train/")
-    path = base / "coco.json"
+    path = base / "cvat.xml"
 
     t = perf_counter()
-    gts = AnnotationSet.from_coco(path)
+    gts = AnnotationSet.from_cvat(path)
     t = perf_counter() - t
     print(f"Parsing: {t*1_000:.2f}ms")
 
-    gts.show_stats()
+    t = perf_counter()
+    gts.save_txt(base / "txt/")
+    t = perf_counter() - t
+    print(f"Saving: {t*1_000:.2f}ms")
+
+    # gts.show_stats()
