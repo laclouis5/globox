@@ -90,9 +90,9 @@ class AnnotationSet:
         parser: Callable[[T], Annotation],
         it: Iterable[T],
     ) -> "AnnotationSet":
-        try:
+        if hasattr(it, "__len__"):
             annotations = thread_map(parser, it, desc="Parsing")
-        except TypeError:
+        else:
             print("Parsing...")
             annotations = ThreadPoolExecutor().map(parser, it)
         return AnnotationSet(annotations)
