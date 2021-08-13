@@ -124,6 +124,21 @@ print(evaluation["cat"].cocoAP)
 ## Tests
 Run tests with `python tests.py`.
 
+## Speed
+<details>
+<summary>Click to expand</summary>
+
+Speed test is done using `timeit` with 3 iterations on an early 2015 MacBook Air (8 GB RAM Dual-Core 1.6 GHz). The database is COCO 2017 Validation which comprises 5k images and 36 781 bounding boxes.
+
+Task|COCO|CVAT|OpenImage|LabelMe|PascalVOC|YOLO|TXT
+----|----|----|---------|-------|---------|----|---
+Parsing|1.19s|2.65s|8.51s|13.41s|12.21s|11.81s|15.44s
+Saving|1.27s|3.68s|1.78s|14.80s|13.88s|9.07s|8.41s
+
+`AnnotationSet.show_stats()`: 0.43s
+
+</details>
+
 ## TODO
 - [x] Basic data structures and utilities
 - [x] Parsers (ImageNet, COCO, YOLO, Pascal, OpenImage, CVAT, LabelMe)

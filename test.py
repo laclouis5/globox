@@ -1,7 +1,8 @@
-from typing import ItemsView
 from ObjectDetectionEval import *
+
 from pathlib import Path
-from time import perf_counter, time
+from time import perf_counter
+from timeit import timeit
 
 from PIL import Image
 
@@ -275,23 +276,48 @@ def test_conversion():
                 assert all(isinstance(c, float) for c in box.ltrb)
                 assert any(c > 1 for c in box.ltrb), f"dataset {i}, {box.ltrb}"
 
+def test_speed():
+    base = Path("/Users/louislac/Downloads/val/")
+    images = base / "images"
+
+    coco = base / "coco.json"
+    cvat = base / "cvat.xml"
+    oi = base / "openimage.csv"
+    labelme = base / "labelme"
+    xml = base / "xml"
+    yolo = base / "yolo"
+    txt = base / "txt"
+
+    gts = AnnotationSet.from_coco(coco)
+    labels = gts._labels()
+    label_to_id = {str(l): i for i, l in enumerate(labels)}
+    
+    coco_s = timeit(lambda: gts.save_coco(coco), number=3)
+    cvat_s = timeit(lambda: gts.save_cvat(cvat), number=3)
+    oi_s = timeit(lambda: gts.save_openimage(oi), number=3)
+    labelme_s = timeit(lambda: gts.save_labelme(labelme), number=3)
+    xml_s = timeit(lambda: gts.save_xml(xml), number=3)
+    yolo_s = timeit(lambda: gts.save_yolo(yolo, label_to_id), number=3)
+    txt_s = timeit(lambda: gts.save_txt(txt, label_to_id), number=3)
+
+    coco_p = timeit(lambda: AnnotationSet.from_coco(coco), number=3)
+    cvat_p = timeit(lambda: AnnotationSet.from_cvat(cvat), number=3)
+    oi_p = timeit(lambda: AnnotationSet.from_openimage(oi, images), number=3)
+    labelme_p = timeit(lambda: AnnotationSet.from_labelme(labelme), number=3)
+    xml_p = timeit(lambda: AnnotationSet.from_xml(xml), number=3)
+    yolo_p = timeit(lambda: AnnotationSet.from_yolo(yolo, images), number=3)
+    txt_p = timeit(lambda: AnnotationSet.from_txt(txt, images), number=3)
+
+    stats_t = timeit(lambda: gts.show_stats(), number=3)
+
+    print(coco_p, cvat_p, oi_p, labelme_p, xml_p, yolo_p, txt_p)
+    print(coco_s, cvat_s, oi_s, labelme_s, xml_s, yolo_s, txt_s)
+    print(stats_t)
+    
+
 if __name__ == "__main__":
     # tests_bounding_box()
     # test_annotationset()
     # tests_parsing()
     # test_conversion()
-
-    base = Path("/Users/louislac/Downloads/train/")
-    path = base / "cvat.xml"
-
-    t = perf_counter()
-    gts = AnnotationSet.from_cvat(path)
-    t = perf_counter() - t
-    print(f"Parsing: {t*1_000:.2f}ms")
-
-    t = perf_counter()
-    gts.save_txt(base / "txt/")
-    t = perf_counter() - t
-    print(f"Saving: {t*1_000:.2f}ms")
-
-    # gts.show_stats()
+    test_speed()

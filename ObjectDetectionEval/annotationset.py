@@ -161,6 +161,7 @@ class AnnotationSet:
 
     @staticmethod
     def from_openimage(file_path: Path, image_folder: Path) -> "AnnotationSet":
+        print("Parsing...")
         # TODO: Add error handling.
         annotations = AnnotationSet()
 
@@ -240,10 +241,10 @@ class AnnotationSet:
             path = save_dir / image_id.with_suffix(file_extension)
             annotation.save_txt(path, label_to_id, box_format, relative, separator)
 
-        ThreadPoolExecutor().map(_save, tqdm(self))
+        self.save_from_it(_save)
 
     def save_from_it(self, save_fn: Callable[[Annotation], None]):
-        ThreadPoolExecutor().map(save_fn, tqdm(self, desc="Saving"))
+        thread_map(save_fn, self, desc="Saving")
 
     def save_yolo(self, save_dir: Path, label_to_id: Mapping[str, Union[float, str]] = None):
         save_dir.mkdir(exist_ok=True)
