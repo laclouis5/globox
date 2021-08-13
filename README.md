@@ -128,14 +128,18 @@ Run tests with `python tests.py`.
 <details>
 <summary>Click to expand</summary>
 
-Speed test is done using `timeit` with 3 iterations on an early 2015 MacBook Air (8 GB RAM Dual-Core 1.6 GHz). The database is COCO 2017 Validation which comprises 5k images and 36 781 bounding boxes.
+Speed test is done using `timeit` with 1 iteration on an early 2015 MacBook Air (8 GB RAM Dual-Core 1.6 GHz). The database is COCO 2017 Validation which comprises 5k images and 36 781 bounding boxes. 
 
 Task|COCO|CVAT|OpenImage|LabelMe|PascalVOC|YOLO|TXT
 ----|----|----|---------|-------|---------|----|---
-Parsing|1.19s|2.65s|8.51s|13.41s|12.21s|11.81s|15.44s
-Saving|1.27s|3.68s|1.78s|14.80s|13.88s|9.07s|8.41s
+Parsing|0.34s|0.84s|24.32s|9.64s|4.12s|20.55s|20.55s
+Saving |0.33s|0.71s|0.44s |4.53s|4.30s|2.50s |2.31s
 
-`AnnotationSet.show_stats()`: 0.43s
+OpenImage, YOLO and TXT are slower because they store bounding box coordinates in relative coordinates and do not provide the image size, so reading it from the image file is required.
+
+The fastest format is COCO and LabelMe (for individual annotation files).
+
+`AnnotationSet.show_stats()`: 0.12 s
 
 </details>
 
@@ -146,10 +150,10 @@ Saving|1.27s|3.68s|1.78s|14.80s|13.88s|9.07s|8.41s
 - [x] Database summary and stats
 - [x] Database converters
 - [x] Visualization options
+- [x] Tests with a huge load (5k images)
 - [ ] Visualization options ++ (graphs, figures, ...)
 - [ ] Parsers for TFRecord and TensorFlow
 - [ ] Evalutators
-- [ ] Tests with a huge load
 - [ ] CLI interface
 - [ ] Pip package
 - [ ] UI interface

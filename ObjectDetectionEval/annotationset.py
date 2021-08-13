@@ -90,11 +90,8 @@ class AnnotationSet:
         parser: Callable[[T], Annotation],
         it: Iterable[T],
     ) -> "AnnotationSet":
-        if hasattr(it, "__len__"):
-            annotations = thread_map(parser, it, desc="Parsing")
-        else:
-            print("Parsing...")
-            annotations = ThreadPoolExecutor().map(parser, it)
+        total = len(it) if hasattr(it, "__len__") else None
+        annotations = thread_map(parser, it, desc="Parsing", total=total)
         return AnnotationSet(annotations)
 
     @staticmethod
@@ -161,14 +158,13 @@ class AnnotationSet:
 
     @staticmethod
     def from_openimage(file_path: Path, image_folder: Path) -> "AnnotationSet":
-        print("Parsing...")
         # TODO: Add error handling.
         annotations = AnnotationSet()
 
         with file_path.open(newline="") as f:
             reader = DictReader(f)
 
-            for row in reader:
+            for row in tqdm(reader, desc="Parsing"):
                 image_id = row["ImageID"]
                 label = row["LabelName"]
                 coords = [float(row[r]) for r in ("XMin", "YMin", "XMax", "YMax")]
@@ -243,7 +239,7 @@ class AnnotationSet:
 
         self.save_from_it(_save)
 
-    def save_from_it(self, save_fn: Callable[[Annotation], None]):
+    def save_from_it(self, save_fn: Callable[[Annotation], None]):        
         thread_map(save_fn, self, desc="Saving")
 
     def save_yolo(self, save_dir: Path, label_to_id: Mapping[str, Union[float, str]] = None):

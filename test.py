@@ -4,7 +4,7 @@ from pathlib import Path
 from time import perf_counter
 from timeit import timeit
 
-from PIL import Image
+# from PIL import Image
 
 
 data_path = Path("data/")
@@ -277,6 +277,7 @@ def test_conversion():
                 assert any(c > 1 for c in box.ltrb), f"dataset {i}, {box.ltrb}"
 
 def test_speed():
+    iterations = 1
     base = Path("/Users/louislac/Downloads/val/")
     images = base / "images"
 
@@ -292,23 +293,23 @@ def test_speed():
     labels = gts._labels()
     label_to_id = {str(l): i for i, l in enumerate(labels)}
     
-    coco_s = timeit(lambda: gts.save_coco(coco), number=3)
-    cvat_s = timeit(lambda: gts.save_cvat(cvat), number=3)
-    oi_s = timeit(lambda: gts.save_openimage(oi), number=3)
-    labelme_s = timeit(lambda: gts.save_labelme(labelme), number=3)
-    xml_s = timeit(lambda: gts.save_xml(xml), number=3)
-    yolo_s = timeit(lambda: gts.save_yolo(yolo, label_to_id), number=3)
-    txt_s = timeit(lambda: gts.save_txt(txt, label_to_id), number=3)
+    coco_s = timeit(lambda: gts.save_coco(coco), number=iterations) / iterations
+    cvat_s = timeit(lambda: gts.save_cvat(cvat), number=iterations) / iterations
+    oi_s = timeit(lambda: gts.save_openimage(oi), number=iterations) / iterations
+    labelme_s = timeit(lambda: gts.save_labelme(labelme), number=iterations) / iterations
+    xml_s = timeit(lambda: gts.save_xml(xml), number=iterations) / iterations
+    yolo_s = timeit(lambda: gts.save_yolo(yolo, label_to_id), number=iterations) / iterations
+    txt_s = timeit(lambda: gts.save_txt(txt, label_to_id), number=iterations) / iterations
 
-    coco_p = timeit(lambda: AnnotationSet.from_coco(coco), number=3)
-    cvat_p = timeit(lambda: AnnotationSet.from_cvat(cvat), number=3)
-    oi_p = timeit(lambda: AnnotationSet.from_openimage(oi, images), number=3)
-    labelme_p = timeit(lambda: AnnotationSet.from_labelme(labelme), number=3)
-    xml_p = timeit(lambda: AnnotationSet.from_xml(xml), number=3)
-    yolo_p = timeit(lambda: AnnotationSet.from_yolo(yolo, images), number=3)
-    txt_p = timeit(lambda: AnnotationSet.from_txt(txt, images), number=3)
+    coco_p = timeit(lambda: AnnotationSet.from_coco(coco), number=iterations) / iterations
+    cvat_p = timeit(lambda: AnnotationSet.from_cvat(cvat), number=iterations) / iterations
+    oi_p = timeit(lambda: AnnotationSet.from_openimage(oi, images), number=iterations) / iterations
+    labelme_p = timeit(lambda: AnnotationSet.from_labelme(labelme), number=iterations) / iterations
+    xml_p = timeit(lambda: AnnotationSet.from_xml(xml), number=iterations) / iterations
+    yolo_p = timeit(lambda: AnnotationSet.from_yolo(yolo, images), number=iterations) / iterations
+    txt_p = timeit(lambda: AnnotationSet.from_txt(txt, images), number=iterations) / iterations
 
-    stats_t = timeit(lambda: gts.show_stats(), number=3)
+    stats_t = timeit(lambda: gts.show_stats(), number=iterations) / iterations
 
     print(coco_p, cvat_p, oi_p, labelme_p, xml_p, yolo_p, txt_p)
     print(coco_s, cvat_s, oi_s, labelme_s, xml_s, yolo_s, txt_s)
