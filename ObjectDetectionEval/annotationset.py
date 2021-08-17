@@ -167,7 +167,7 @@ class AnnotationSet:
             for row in tqdm(reader, desc="Parsing"):
                 image_id = row["ImageID"]
                 label = row["LabelName"]
-                coords = [float(row[r]) for r in ("XMin", "YMin", "XMax", "YMax")]
+                coords = (float(row[r]) for r in ("XMin", "YMin", "XMax", "YMax"))
                 confidence = row.get("Confidence")
                 
                 if confidence is not None and confidence != "":
