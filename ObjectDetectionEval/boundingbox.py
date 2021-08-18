@@ -1,6 +1,6 @@
 from .utils import *
 from typing import Mapping
-import lxml.etree as et
+import xml.etree.ElementTree as et
 
 
 class BoundingBox:

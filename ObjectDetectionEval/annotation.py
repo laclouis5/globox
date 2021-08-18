@@ -2,11 +2,10 @@ from .utils import *
 from .boundingbox import BoundingBox
 
 from typing import Mapping
+import xml.etree.ElementTree as et
 import json
 
 # from PIL import Image, ImageDraw
-import lxml.etree as et
-
 
 class Annotation: 
     """
@@ -192,7 +191,9 @@ class Annotation:
         return ann_node
 
     def save_xml(self, path: Path):
-        content = et.tostring(self.to_xml(), encoding="unicode", pretty_print=True)
+        content = self.to_xml()
+        et.indent(content)
+        content = et.tostring(content, encoding="unicode")
         path.write_text(content)
 
     def to_cvat(self) -> et.Element:

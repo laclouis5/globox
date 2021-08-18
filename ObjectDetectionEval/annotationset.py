@@ -3,14 +3,13 @@ from .boundingbox import BoundingBox
 from .annotation import Annotation
 
 from typing import Dict, Callable, Iterator, Mapping, TypeVar
-import json
 from csv import DictReader, DictWriter
+import xml.etree.ElementTree as et
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
+import json
 
 from tqdm.contrib.concurrent import thread_map
 from tqdm import tqdm
-import lxml.etree as et
 from rich.table import Table
 from rich import print as rprint
 
@@ -98,10 +97,11 @@ class AnnotationSet:
     def from_folder(
         folder: Path, 
         file_extension: str,
-        file_parser: Callable[[Path], Annotation]
+        file_parser: Callable[[Path], Annotation],
+        recursive=False
     ) -> "AnnotationSet":
         assert folder.is_dir()
-        files = list(glob(folder, file_extension))
+        files = list(glob(folder, file_extension, recursive=recursive))
         return AnnotationSet.from_iter(file_parser, files)
 
     @staticmethod
@@ -342,7 +342,9 @@ class AnnotationSet:
         if path.suffix == "":
             path = path.with_suffix(".xml")
         assert path.suffix == ".xml"
-        content = et.tostring(self.to_cvat(), encoding="unicode", pretty_print=True)
+        content = self.to_cvat()
+        et.indent(content)
+        content = et.tostring(content, encoding="unicode")
         path.write_text(content)
 
     @staticmethod
