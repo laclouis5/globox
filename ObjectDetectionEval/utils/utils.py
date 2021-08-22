@@ -1,5 +1,17 @@
+from collections import defaultdict
 from itertools import groupby
-from typing import Iterable
+from typing import Callable, Hashable, Iterable, TypeVar
+
+
+U = TypeVar("U")
+V = TypeVar("V", bound=Hashable)
+
+
+def grouping(it: Iterable[U], by_key: Callable[[U], V]) -> dict[V, list[U]]:
+    result = defaultdict(list)
+    for item in it:
+        result[by_key(item)].append(item)
+    return result
 
 
 def all_equal(iterable: Iterable) -> bool:

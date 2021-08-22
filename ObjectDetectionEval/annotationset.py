@@ -2,7 +2,7 @@ from .utils import *
 from .boundingbox import BoundingBox
 from .annotation import Annotation
 
-from typing import Dict, Callable, Iterator, Mapping, TypeVar
+from typing import Dict, Callable, Iterator, Mapping, Optional, TypeVar
 from csv import DictReader, DictWriter
 import xml.etree.ElementTree as et
 from collections import defaultdict
@@ -15,6 +15,7 @@ from rich import print as rprint
 
 
 T = TypeVar("T")
+D = TypeVar("D")
 
 
 class AnnotationSet:
@@ -33,8 +34,11 @@ class AnnotationSet:
         for annotation in annotations:
             self.add(annotation, override)
 
-    def __getitem__(self, image_id) -> Annotation:
+    def __getitem__(self, image_id: str) -> Annotation:
         return self._annotations[image_id]
+
+    def get(self, image_id: str, default: D) -> Union[Annotation, D]:
+        return self._annotations.get(image_id, default)
 
     def __len__(self) -> int:
         return len(self._annotations)

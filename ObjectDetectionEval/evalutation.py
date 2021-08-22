@@ -1,69 +1,335 @@
+import operator
+from .annotation import Annotation
+from .annotationset import AnnotationSet
+from .boundingbox import BoundingBox
+from .utils import grouping, all_equal
+
+from functools import cache, cached_property, reduce
 from collections import defaultdict
+from typing import Mapping, Optional
 from copy import copy
-from dataclasses import dataclass
-from typing import Mapping
-from functools import reduce
+
+import numpy as np
 
 
-@dataclass(frozen=True)
 class EvaluationItem:
 
-    tp: int = 0
-    ndet: int = 0
-    npos: int = 0
+    def __init__(self, 
+        tps: list[bool] = None,
+        scores: list[float] = None,
+        npos: int = 0
+    ) -> None:
+        assert npos >= 0
+        assert len(tps) == len(scores)
+        assert len(tps) <= npos
 
-    def __post_init__(self):
-        assert 0 <= self.tp
-        assert self.tp <= self.ndet
-        assert self.tp <= self.npos
+        self._tps = tps or []
+        self._scores = scores or []
+        self._npos = npos
 
     def __iadd__(self, other: "EvaluationItem") -> "EvaluationItem":
-        self.tp += other.tp
-        self.ndet += other.ndet
-        self.npos += other.npos
-        return self
+        self._tps += other._tps
+        self._scores += other._scores
+        self._npos += other._npos
+        self._get_tp.cache_clear()
+        self.ap.cache_clear()
 
     def __add__(self, other: "EvaluationItem") -> "EvaluationItem":
         copy_ = copy(self)
         copy_ += other
         return copy_
+    
+    @property
+    def ndet(self) -> int:
+        return len(self._tps)
 
     @property
-    def fp(self) -> int:
-        return self.ndet - self.tp
+    def npos(self) -> int:
+        return self._npos
+
+    @cache
+    def _get_tp(self) -> int:
+        return sum(self._tps)
 
     @property
-    def fn(self) -> int:
-        return self.npos - self.tp
+    def tp(self) -> int:
+        return self._get_tp
 
-    @property
-    def precision(self) -> float:
-        return self.tp / self.ndet if self.ndet != 0 else 1.0 if self.npos == 0 else 0.0
+    @cache
+    def ap(self) -> Optional[float]:
+        return _compute_ap(self._scores, self._tps, self._npos)
 
-    @property
-    def recall(self) -> float:
-        return self.tp / self.npos if self.npos != 0 else 1.0 if self.ndet == 0 else 0.0
-
-    @property
-    def f1_score(self) -> float:
-        s = self.npos + self.ndet
-        return 2.0 * self.tp / s if s != 0 else 1.0
+    def ar(self) -> Optional[float]:
+        return self.tp / self.npos if (self._npos != 0 and self.tp is not None) else None
 
 
-class Evaluation(defaultdict):
+class Evaluation(defaultdict[str, EvaluationItem]):
+
+    """Do not mutate this excepted with defined methods."""
 
     def __init__(self, items: Mapping[str, EvaluationItem] = None):
         super().__init__(lambda: EvaluationItem(), map=items or {})
 
-    def total(self) -> EvaluationItem:
-        return reduce(EvaluationItem.__iadd__, self.values(), EvaluationItem())
-
     def __iadd__(self, other: "Evaluation") -> "Evaluation":
         for key, value in other.items():
             self[key] += value
+        self.ap.cache_clear()
+        self.ar.cache_clear()
         return self
 
     def __add__(self, other: "Evaluation") -> "Evaluation":
         copy_ = copy(self)
         copy_ += other
         return copy_
+
+    @cache
+    def ap(self) -> float:
+        return np.mean([ap for ev in self.values() if (ap := ev.ap()) is not None])
+
+    @cache
+    def ar(self) -> float:
+        return np.mean([ar for ev in self.values() if (ar := ev.ar()) is not None])
+
+    
+class COCOEvaluator:
+
+    AP_THRESHOLDS = (0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95)
+    
+    SMALL_RANGE = (0.0, 32.0**2)
+    MEDIUM_RANGE = (32.0**2, 96.0**2)
+    LARGE_RANGE = (96.0**2, float("inf"))
+
+    def __init__(self, 
+        predictions: AnnotationSet, 
+        ground_truths: AnnotationSet
+    ) -> None:
+        self._predictions = predictions
+        self._ground_truths = ground_truths
+        self.evaluations: dict[(float, int, tuple[float, float]), Evaluation] = {}
+
+    def clear_cache(self):
+        self.evaluations = {}
+
+    def evaluate(self,
+        iou_threshold: float,
+        max_detections: int = None, 
+        size_range: tuple[int, int] = None
+    ) -> Evaluation:
+        key = (iou_threshold, max_detections, size_range)
+        evaluation = self.evaluations.get(key)
+
+        if evaluation is not None:
+            return evaluation
+        
+        evaluation = self.evaluate_annotations(
+            self._predictions, 
+            self._ground_truths, 
+            iou_threshold, 
+            max_detections, 
+            size_range)
+        
+        self.evaluations[key] = evaluation
+
+        return evaluation
+
+    def ap(self) -> float:
+        ap = 0.0
+        for iou_threshold in self.AP_THRESHOLDS:
+            ap += self.evaluate(iou_threshold, 100).ap()
+        return ap / len(self.AP_THRESHOLDS)
+
+    def ap_50(self) -> float:
+        return self.evaluate(0.5, 100).ap()
+
+    def ap_75(self) -> float:
+        return self.evaluate(0.75, 100).ap()
+
+    def _ap_range(self, range_: tuple[float, float]) -> float:
+        ap = 0.0
+        for iou_threshold in self.AP_THRESHOLDS:
+            ap += self.evaluate(iou_threshold, 100, range_).ap()
+        return ap / len(self.AP_THRESHOLDS)
+
+    def _ar_range(self, range_: tuple[float, float]) -> float:
+        ar = 0.0
+        for iou_threshold in self.AP_THRESHOLDS:
+            ar += self.evaluate(iou_threshold, 100, range_).ar()
+        return ar / len(self.AP_THRESHOLDS)
+
+    def _ar_ndets(self, max_dets: int) -> float:
+        ar = 0.0
+        for iou_threshold in self.AP_THRESHOLDS:
+            ar += self.evaluate(iou_threshold, max_dets).ar()
+        return ar / len(self.AP_THRESHOLDS)
+
+    def ap_small(self) -> float:
+        return self._ap_range(self.SMALL_RANGE)
+
+    def ap_medium(self) -> float:
+        return self._ap_range(self.MEDIUM_RANGE)
+
+    def ap_large(self) -> float:
+        return self._ap_range(self.LARGE_RANGE)
+
+    def ar_100(self) -> float:
+        return self._ar_ndets(100)
+    
+    def ar_10(self) -> float:
+        return self._ar_ndets(10)
+
+    def ar_1(self) -> float:
+        return self._ar_ndets(1)
+
+    def ar_small(self) -> float:
+        return self._ar_range(self.SMALL_RANGE)
+
+    def ar_medium(self) -> float:
+        return self._ar_range(self.MEDIUM_RANGE)
+
+    def ar_large(self) -> float:
+        return self._ar_range(self.LARGE_RANGE)
+
+    @classmethod
+    def evaluate_annotations(cls,
+        predictions: AnnotationSet, 
+        ground_truths: AnnotationSet,
+        iou_threshold: float,
+        max_detections: int = None,
+        size_range: tuple[float, float] = None
+    ) -> Evaluation:
+        evaluation = Evaluation()
+        image_ids = set(predictions.image_ids).union(ground_truths.image_ids)
+
+        for image_id in image_ids:
+            pred = predictions.get(image_id, Annotation())
+            ref = ground_truths.get(image_id, Annotation())
+
+            evaluation += cls.evaluate(
+                pred, ref, iou_threshold, max_detections, size_range)
+
+        return evaluation
+
+    @classmethod
+    def evaluate_annotation(cls,
+        prediction: Annotation, 
+        ground_truth: Annotation,
+        iou_threshold: float,
+        max_detections: int = None,
+        size_range: tuple[float, float] = None
+    ) -> Evaluation:
+        # TODO: Benchmark this redundant computation perf penalty
+        # Those two can be hoisted up if slow
+        preds = grouping(prediction.boxes, lambda box: box.label)
+        refs = grouping(ground_truth.boxes, lambda box: box.label)
+        
+        labels = set(preds.keys()).union(refs.keys())
+        evaluation = Evaluation()
+
+        for label in labels:
+            dets = preds.get(label, [])
+            gts = refs.get(label, [])
+            
+            evaluation[label] += cls.evaluate(
+                dets, gts, iou_threshold, max_detections, size_range)
+        
+        return evaluation
+
+    @classmethod
+    def evaluate_boxes(cls,
+        predictions: list[BoundingBox],
+        ground_truths: list[BoundingBox],
+        iou_threshold: float,
+        max_detections: int = None,
+        size_range: tuple[float, float] = None
+    ) -> EvaluationItem:
+        # TODO: Optimize a little bit this
+        # TODO: Benchmark asserts perf penalty
+        assert 0.0 <= iou_threshold <= 1.0
+        assert max_detections >= 0
+        assert all(p.is_detection for p in predictions)
+        assert all(g.is_ground_truth for g in ground_truths)
+        assert all_equal(p.label for p in predictions)
+        assert all_equal(g.label for g in ground_truths)
+
+        size_range = size_range or (0.0, float("inf"))
+        assert size_range[0] >= 0.0 and size_range[1] >= 0.0
+
+        dets = sorted(predictions, key=lambda box: box.confidence, reverse=True)
+        if max_detections is not None:
+            dets = dets[:max_detections]
+
+        gts = sorted(ground_truths, key=lambda box: not box.area_in(size_range))
+
+        gt_matches = set()
+        dt_matches = {}
+        gt_ignore = [not g.area_in(size_range) for g in gts]  # Redundant `area_in`
+
+        for idx_dt, det in enumerate(dets):
+            best_iou = iou_threshold
+            idx_best = -1
+
+            for idx_gt, gt in enumerate(gts):
+                if idx_gt in gt_matches:
+                    continue
+                if idx_best != -1 and not gt_ignore[idx_best] and gt_ignore[idx_gt]:
+                    break 
+                if (iou := det.iou(gt)) < best_iou:
+                    continue
+
+                best_iou = iou
+                idx_best = idx_gt
+            
+            if idx_best == -1:
+                continue
+
+            gt_matches.add(idx_best)
+            dt_matches[idx_dt] = idx_dt
+        
+        # This is overly complicted
+        dt_ignore = [gt_ignore[dt_matches[i]] if i in dt_matches else not d.area_in(size_range)
+            for i, d in enumerate(dets)]
+
+        scores = [d.confidence
+            for i, d in enumerate(dets) if not dt_ignore[i]]
+        matches = [d in dt_matches
+            for i, d in enumerate(dets) if not dt_ignore[i]]
+        npos = len(i for i in range(len(gt)) if not gt_ignore[i])
+
+        return EvaluationItem(matches, scores, npos)
+
+
+def _compute_ap(scores: list[float], matched: list[bool], NP: int) -> float:
+    """ This curve tracing method has some quirks that do not appear when only unique confidence thresholds
+    are used (i.e. Scikit-learn's implementation), however, in order to be consistent, the COCO's method is reproduced. 
+    
+    Copyrights: https://github.com/rafaelpadilla/review_object_detection_metrics
+    """
+    if NP == 0:
+        return None
+
+    # by default evaluate on 101 recall levels
+    recall_thresholds = np.linspace(0.0,
+                                    1.00,
+                                    int(np.round((1.00 - 0.0) / 0.01)) + 1,
+                                    endpoint=True)
+
+    # sort in descending score order
+    inds = np.argsort(-scores, kind="stable")
+
+    scores = scores[inds]
+    matched = matched[inds]
+
+    tp = np.cumsum(matched)
+    fp = np.cumsum(~matched)
+
+    rc = tp / NP
+    pr = tp / (tp + fp)
+
+    # make precision monotonically decreasing
+    i_pr = np.maximum.accumulate(pr[::-1])[::-1]
+    rec_idx = np.searchsorted(rc, recall_thresholds, side="left")
+
+    # get interpolated precision values at the evaluation thresholds
+    i_pr = np.array([i_pr[r] if r < len(i_pr) else 0 for r in rec_idx])
+
+    return np.mean(i_pr)
