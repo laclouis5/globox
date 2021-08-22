@@ -3,6 +3,7 @@ from ObjectDetectionEval import *
 from pathlib import Path
 from time import perf_counter
 from timeit import timeit
+from math import isclose
 
 # from PIL import Image
 
@@ -315,10 +316,37 @@ def test_speed():
     print(coco_s, cvat_s, oi_s, labelme_s, xml_s, yolo_s, txt_s)
     print(stats_t)
     
+def test_evaluation():
+    coco_test_path = Path("data/test_coco_eval")
+
+    coco_gt = AnnotationSet.from_coco(
+        coco_test_path / "gts/sampled_gts_bbox_area.json")
+    coco_det = AnnotationSet.from_coco(
+        coco_test_path / "dets/sampled_bbox_results.json")
+
+    evaluator = COCOEvaluator(coco_det, coco_gt)
+    evaluator.show_summary()
+
+    assert isclose(evaluator.ap(), 0.503647, rel_tol=1e-4)
+    assert isclose(evaluator.ap_50(), 0.696973, rel_tol=1e-4)
+    assert isclose(evaluator.ap_75(), 0.571667, rel_tol=1e-4)
+
+    assert isclose(evaluator.ap_small(), 0.593252, rel_tol=1e-4)
+    assert isclose(evaluator.ap_medium(), 0.557991, rel_tol=1e-4)
+    assert isclose(evaluator.ap_large(), 0.489363, rel_tol=1e-4)
+
+    assert isclose(evaluator.ar_1(), 0.386813, rel_tol=1e-4)
+    assert isclose(evaluator.ar_10(), 0.593680, rel_tol=1e-4)
+    assert isclose(evaluator.ar_100(), 0.595353, rel_tol=1e-4)
+
+    assert isclose(evaluator.ar_small(), 0.654764, rel_tol=1e-4)
+    assert isclose(evaluator.ar_medium(), 0.603130, rel_tol=1e-4)
+    assert isclose(evaluator.ar_large(), 0.553744, rel_tol=1e-4)
 
 if __name__ == "__main__":
     # tests_bounding_box()
     # test_annotationset()
     # tests_parsing()
     # test_conversion()
-    test_speed()
+    # test_speed()
+    test_evaluation()

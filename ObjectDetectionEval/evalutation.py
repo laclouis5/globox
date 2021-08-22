@@ -1,9 +1,9 @@
+from re import A
 from .annotation import Annotation
 from .annotationset import AnnotationSet
 from .boundingbox import BoundingBox
 from .utils import grouping, all_equal
 
-from functools import cache
 from collections import defaultdict
 from typing import Mapping, Optional
 from copy import copy
@@ -11,6 +11,7 @@ from copy import copy
 import numpy as np
 from rich.table import Table
 from rich import print as pprint
+from tqdm import tqdm
 
 
 class EvaluationItem:
@@ -20,20 +21,20 @@ class EvaluationItem:
         scores: list[float] = None,
         npos: int = 0
     ) -> None:
-        assert npos >= 0
-        assert len(tps) == len(scores)
-        assert len(tps) <= npos
-
         self._tps = tps or []
         self._scores = scores or []
         self._npos = npos
+        self._cache = {}
+
+        assert self._npos >= 0
+        assert len(self._tps) == len(self._scores)
 
     def __iadd__(self, other: "EvaluationItem") -> "EvaluationItem":
         self._tps += other._tps
         self._scores += other._scores
         self._npos += other._npos
-        self._get_tp.cache_clear()
-        self.ap.cache_clear()
+        self.clear_cache()
+        return self
 
     def __add__(self, other: "EvaluationItem") -> "EvaluationItem":
         copy_ = copy(self)
@@ -48,20 +49,29 @@ class EvaluationItem:
     def npos(self) -> int:
         return self._npos
 
-    @cache
-    def _get_tp(self) -> int:
-        return sum(self._tps)
-
-    @property
     def tp(self) -> int:
-        return self._get_tp
+        tp = self._cache.get("tp", sum(self._tps))
+        self._cache["tp"] = tp
+        assert tp <= self.npos
+        return tp
 
-    @cache
     def ap(self) -> Optional[float]:
-        return _compute_ap(self._scores, self._tps, self._npos)
+        if (ap := self._cache.get("ap")) is not None:
+            return ap
+        ap = _compute_ap(self._scores, self._tps, self._npos)
+        self._cache["ap"] = ap
+        return ap
 
     def ar(self) -> Optional[float]:
-        return self.tp / self.npos if (self._npos != 0 and self.tp is not None) else None
+        if (ar :=self._cache.get("ar")) is not None:
+            return ar
+        tp = self.tp()
+        ar = tp / self.npos if (self._npos != 0 and tp is not None) else None
+        self._cache["ar"] = ar
+        return ar
+
+    def clear_cache(self):
+        self._cache.clear()
 
 
 class Evaluation(defaultdict[str, EvaluationItem]):
@@ -69,13 +79,16 @@ class Evaluation(defaultdict[str, EvaluationItem]):
     """Do not mutate this excepted with defined methods."""
 
     def __init__(self, items: Mapping[str, EvaluationItem] = None):
-        super().__init__(lambda: EvaluationItem(), map=items or {})
+        if items is not None:
+            super().__init__(lambda: EvaluationItem(), map=items)
+        else:
+            super().__init__(lambda: EvaluationItem())
+        self._cache = {}
 
     def __iadd__(self, other: "Evaluation") -> "Evaluation":
         for key, value in other.items():
             self[key] += value
-        self.ap.cache_clear()
-        self.ar.cache_clear()
+        self.clear_cache()
         return self
 
     def __add__(self, other: "Evaluation") -> "Evaluation":
@@ -83,15 +96,24 @@ class Evaluation(defaultdict[str, EvaluationItem]):
         copy_ += other
         return copy_
 
-    @cache
     def ap(self) -> float:
-        return np.mean([ap for ev in self.values() if (ap := ev.ap()) is not None])
+        if (ap := self._cache.get("ap")) is not None:
+            return ap
+        ap = np.mean([ap for ev in self.values() if (ap := ev.ap()) is not None])
+        self._cache["ap"] = ap
+        return ap
 
-    @cache
     def ar(self) -> float:
-        return np.mean([ar for ev in self.values() if (ar := ev.ar()) is not None])
+        if (ar := self._cache.get("ar")) is not None:
+            return ar
+        ar = np.mean([ar for ev in self.values() if (ar := ev.ar()) is not None])
+        self._cache["ar"] = ar
+        return ar
 
+    def clear_cache(self):
+        self._cache.clear()
     
+
 class COCOEvaluator:
 
     AP_THRESHOLDS = (0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95)
@@ -202,10 +224,11 @@ class COCOEvaluator:
         image_ids = set(predictions.image_ids).union(ground_truths.image_ids)
 
         for image_id in image_ids:
-            pred = predictions.get(image_id, Annotation())
-            ref = ground_truths.get(image_id, Annotation())
+            # Empty annotation is ugly
+            pred = predictions.get(image_id, Annotation.empty())
+            ref = ground_truths.get(image_id, Annotation.empty())
 
-            evaluation += cls.evaluate(
+            evaluation += cls.evaluate_annotation(
                 pred, ref, iou_threshold, max_detections, size_range)
 
         return evaluation
@@ -230,9 +253,9 @@ class COCOEvaluator:
             dets = preds.get(label, [])
             gts = refs.get(label, [])
             
-            evaluation[label] += cls.evaluate(
+            evaluation[label] += cls.evaluate_boxes(
                 dets, gts, iou_threshold, max_detections, size_range)
-        
+
         return evaluation
 
     @classmethod
@@ -260,10 +283,10 @@ class COCOEvaluator:
             dets = dets[:max_detections]
 
         gts = sorted(ground_truths, key=lambda box: not box.area_in(size_range))
-
-        gt_matches = set()
-        dt_matches = {}
         gt_ignore = [not g.area_in(size_range) for g in gts]  # Redundant `area_in`
+        
+        gt_matches = {}
+        dt_matches = {}
 
         for idx_dt, det in enumerate(dets):
             best_iou = iou_threshold
@@ -272,7 +295,7 @@ class COCOEvaluator:
             for idx_gt, gt in enumerate(gts):
                 if idx_gt in gt_matches:
                     continue
-                if idx_best != -1 and not gt_ignore[idx_best] and gt_ignore[idx_gt]:
+                if idx_best > -1 and not gt_ignore[idx_best] and gt_ignore[idx_gt]:
                     break 
                 if (iou := det.iou(gt)) < best_iou:
                     continue
@@ -283,18 +306,19 @@ class COCOEvaluator:
             if idx_best == -1:
                 continue
 
-            gt_matches.add(idx_best)
-            dt_matches[idx_dt] = idx_dt
+            # gt_matches.add(idx_best)
+            dt_matches[idx_dt] = idx_best
+            gt_matches[idx_best] = idx_dt
         
-        # This is overly complicted
+        # This is overly complicated
         dt_ignore = [gt_ignore[dt_matches[i]] if i in dt_matches else not d.area_in(size_range)
             for i, d in enumerate(dets)]
 
         scores = [d.confidence
             for i, d in enumerate(dets) if not dt_ignore[i]]
-        matches = [d in dt_matches
-            for i, d in enumerate(dets) if not dt_ignore[i]]
-        npos = len(i for i in range(len(gt)) if not gt_ignore[i])
+        matches = [i in dt_matches
+            for i in range(len(dets)) if not dt_ignore[i]]
+        npos = sum(1 for i in range(len(gts)) if not gt_ignore[i])
 
         return EvaluationItem(matches, scores, npos)
 
@@ -303,21 +327,34 @@ class COCOEvaluator:
         table.add_column("Metric")
         table.add_column("Value", justify="right")
 
-        table.add_row("AP", f"{self.ap():.2%}")
-        table.add_row("AP 50", f"{self.ap_50():.2%}")
-        table.add_row("AP 75", f"{self.ap_75():.2%}")
+        with tqdm(desc="COCO Evaluation", total=12) as pbar:
+            table.add_row("AP", f"{self.ap():.2%}")
+            pbar.update()
+            table.add_row("AP 50", f"{self.ap_50():.2%}")
+            pbar.update()
+            table.add_row("AP 75", f"{self.ap_75():.2%}")
+            pbar.update()
 
-        table.add_row("AP S", f"{self.ap_small():.2%}")
-        table.add_row("AP M", f"{self.ap_medium():.2%}")
-        table.add_row("AP L", f"{self.ap_large():.2%}")
+            table.add_row("AP S", f"{self.ap_small():.2%}")
+            pbar.update()
+            table.add_row("AP M", f"{self.ap_medium():.2%}")
+            pbar.update()
+            table.add_row("AP L", f"{self.ap_large():.2%}")
+            pbar.update()
 
-        table.add_row("AR 1", f"{self.ar_1():.2%}")
-        table.add_row("AR 10", f"{self.ar_10():.2%}")
-        table.add_row("AR 100", f"{self.ar_100():.2%}")
-        
-        table.add_row("AR S", f"{self.ar_small():.2%}")
-        table.add_row("AR M", f"{self.ar_medium():.2%}")
-        table.add_row("AR L", f"{self.ar_large():.2%}")
+            table.add_row("AR 1", f"{self.ar_1():.2%}")
+            pbar.update()
+            table.add_row("AR 10", f"{self.ar_10():.2%}")
+            pbar.update()
+            table.add_row("AR 100", f"{self.ar_100():.2%}")
+            pbar.update()
+            
+            table.add_row("AR S", f"{self.ar_small():.2%}")
+            pbar.update()
+            table.add_row("AR M", f"{self.ar_medium():.2%}")
+            pbar.update()
+            table.add_row("AR L", f"{self.ar_large():.2%}")
+            pbar.update()
 
         pprint(table)
 
@@ -338,6 +375,8 @@ def _compute_ap(scores: list[float], matched: list[bool], NP: int) -> float:
                                     endpoint=True)
 
     # sort in descending score order
+    scores = np.array(scores, dtype=float)
+    matched = np.array(matched, dtype=bool)
     inds = np.argsort(-scores, kind="stable")
 
     scores = scores[inds]
