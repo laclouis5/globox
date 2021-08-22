@@ -1,15 +1,16 @@
-import operator
 from .annotation import Annotation
 from .annotationset import AnnotationSet
 from .boundingbox import BoundingBox
 from .utils import grouping, all_equal
 
-from functools import cache, cached_property, reduce
+from functools import cache
 from collections import defaultdict
 from typing import Mapping, Optional
 from copy import copy
 
 import numpy as np
+from rich.table import Table
+from rich import print as pprint
 
 
 class EvaluationItem:
@@ -296,6 +297,30 @@ class COCOEvaluator:
         npos = len(i for i in range(len(gt)) if not gt_ignore[i])
 
         return EvaluationItem(matches, scores, npos)
+
+
+    def show_summary(self):
+        table = Table(title="COCO Evaluation")
+        table.add_column("Metric")
+        table.add_column("Value", justify="right")
+
+        table.add_row("AP", f"{self.ap():.2%}")
+        table.add_row("AP 50", f"{self.ap_50():.2%}")
+        table.add_row("AP 75", f"{self.ap_75():.2%}")
+
+        table.add_row("AP S", f"{self.ap_small():.2%}")
+        table.add_row("AP M", f"{self.ap_medium():.2%}")
+        table.add_row("AP L", f"{self.ap_large():.2%}")
+
+        table.add_row("AR 1", f"{self.ar_1():.2%}")
+        table.add_row("AR 10", f"{self.ar_10():.2%}")
+        table.add_row("AR 100", f"{self.ar_100():.2%}")
+        
+        table.add_row("AR S", f"{self.ar_small():.2%}")
+        table.add_row("AR M", f"{self.ar_medium():.2%}")
+        table.add_row("AR L", f"{self.ar_large():.2%}")
+
+        pprint(table)
 
 
 def _compute_ap(scores: list[float], matched: list[bool], NP: int) -> float:
