@@ -298,7 +298,6 @@ class COCOEvaluator:
 
         return EvaluationItem(matches, scores, npos)
 
-
     def show_summary(self):
         table = Table(title="COCO Evaluation")
         table.add_column("Metric")
