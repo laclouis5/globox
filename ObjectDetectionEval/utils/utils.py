@@ -7,7 +7,7 @@ U = TypeVar("U")
 V = TypeVar("V", bound=Hashable)
 
 
-def grouping(it: Iterable[U], by_key: Callable[[U], V]) -> dict[V, list[U]]:
+def grouping(it: Iterable[U], by_key: Callable[[U], V]) -> "dict[V, list[U]]":
     result = defaultdict(list)
     for item in it:
         result[by_key(item)].append(item)

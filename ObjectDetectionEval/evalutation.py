@@ -4,8 +4,7 @@ from .annotationset import AnnotationSet
 from .boundingbox import BoundingBox
 from .utils import grouping, all_equal
 
-from collections import defaultdict
-from typing import Mapping, Optional
+from typing import DefaultDict, Mapping, Optional
 from copy import copy
 
 import numpy as np
@@ -17,8 +16,8 @@ from tqdm import tqdm
 class EvaluationItem:
 
     def __init__(self, 
-        tps: list[bool] = None,
-        scores: list[float] = None,
+        tps: "list[bool]" = None,
+        scores: "list[float]" = None,
         npos: int = 0
     ) -> None:
         self._tps = tps or []
@@ -74,7 +73,7 @@ class EvaluationItem:
         self._cache.clear()
 
 
-class Evaluation(defaultdict[str, EvaluationItem]):
+class Evaluation(DefaultDict[str, EvaluationItem]):
 
     """Do not mutate this excepted with defined methods."""
 
@@ -128,7 +127,7 @@ class COCOEvaluator:
     ) -> None:
         self._predictions = predictions
         self._ground_truths = ground_truths
-        self.evaluations: dict[(float, int, tuple[float, float]), Evaluation] = {}
+        self.evaluations: dict[(float, int, "tuple[float, float]"), Evaluation] = {}
 
     def clear_cache(self):
         self.evaluations = {}
@@ -136,7 +135,7 @@ class COCOEvaluator:
     def evaluate(self,
         iou_threshold: float,
         max_detections: int = None, 
-        size_range: tuple[int, int] = None
+        size_range: "tuple[int, int]" = None
     ) -> Evaluation:
         key = (iou_threshold, max_detections, size_range)
         evaluation = self.evaluations.get(key)
@@ -167,13 +166,13 @@ class COCOEvaluator:
     def ap_75(self) -> float:
         return self.evaluate(0.75, 100).ap()
 
-    def _ap_range(self, range_: tuple[float, float]) -> float:
+    def _ap_range(self, range_: "tuple[float, float]") -> float:
         ap = 0.0
         for iou_threshold in self.AP_THRESHOLDS:
             ap += self.evaluate(iou_threshold, 100, range_).ap()
         return ap / len(self.AP_THRESHOLDS)
 
-    def _ar_range(self, range_: tuple[float, float]) -> float:
+    def _ar_range(self, range_: "tuple[float, float]") -> float:
         ar = 0.0
         for iou_threshold in self.AP_THRESHOLDS:
             ar += self.evaluate(iou_threshold, 100, range_).ar()
@@ -218,7 +217,7 @@ class COCOEvaluator:
         ground_truths: AnnotationSet,
         iou_threshold: float,
         max_detections: int = None,
-        size_range: tuple[float, float] = None
+        size_range: "tuple[float, float]" = None
     ) -> Evaluation:
         evaluation = Evaluation()
         image_ids = set(predictions.image_ids).union(ground_truths.image_ids)
@@ -239,7 +238,7 @@ class COCOEvaluator:
         ground_truth: Annotation,
         iou_threshold: float,
         max_detections: int = None,
-        size_range: tuple[float, float] = None
+        size_range: "tuple[float, float]" = None
     ) -> Evaluation:
         # TODO: Benchmark this redundant computation perf penalty
         # Those two can be hoisted up if slow
@@ -260,11 +259,11 @@ class COCOEvaluator:
 
     @classmethod
     def evaluate_boxes(cls,
-        predictions: list[BoundingBox],
-        ground_truths: list[BoundingBox],
+        predictions: "list[BoundingBox]",
+        ground_truths: "list[BoundingBox]",
         iou_threshold: float,
         max_detections: int = None,
-        size_range: tuple[float, float] = None
+        size_range: "tuple[float, float]" = None
     ) -> EvaluationItem:
         # TODO: Optimize a little bit this
         # TODO: Benchmark asserts perf penalty
@@ -359,7 +358,7 @@ class COCOEvaluator:
         pprint(table)
 
 
-def _compute_ap(scores: list[float], matched: list[bool], NP: int) -> float:
+def _compute_ap(scores: "list[float]", matched: "list[bool]", NP: int) -> float:
     """ This curve tracing method has some quirks that do not appear when only unique confidence thresholds
     are used (i.e. Scikit-learn's implementation), however, in order to be consistent, the COCO's method is reproduced. 
     

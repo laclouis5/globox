@@ -54,7 +54,7 @@ class BoundingBox:
     def area(self) -> float:
         return self.width * self.height
 
-    def area_in(self, range_: tuple[float, float]) -> bool:
+    def area_in(self, range_: "tuple[float, float]") -> bool:
         lower_bound, upper_bound = range_
         return lower_bound <= self.area <= upper_bound
 
