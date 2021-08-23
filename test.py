@@ -324,7 +324,7 @@ def test_evaluation():
     coco_det = AnnotationSet.from_coco(
         coco_test_path / "dets/sampled_bbox_results.json")
 
-    evaluator = COCOEvaluator(coco_det, coco_gt)
+    evaluator = COCOEvaluator(coco_gt, coco_det)
     evaluator.show_summary()
 
     assert isclose(evaluator.ap(), 0.503647, rel_tol=1e-4)

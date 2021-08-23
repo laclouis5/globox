@@ -122,8 +122,8 @@ class COCOEvaluator:
     LARGE_RANGE = (96.0**2, float("inf"))
 
     def __init__(self, 
-        predictions: AnnotationSet, 
-        ground_truths: AnnotationSet
+        ground_truths: AnnotationSet,
+        predictions: AnnotationSet 
     ) -> None:
         self._predictions = predictions
         self._ground_truths = ground_truths

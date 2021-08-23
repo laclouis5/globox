@@ -1,4 +1,5 @@
 # Object Detection Evaluation Library
+
 Parse all kinds of object detection databases (ImageNet, COCO, YOLO, PascalVOC, OpenImage, CVAT, LabelMe, etc.).
 
 Save databases to other formats (ImageNet, COCO, YOLO, PascalVOC, OpenImage, CVAT, LabelMe, etc.).
@@ -6,6 +7,7 @@ Save databases to other formats (ImageNet, COCO, YOLO, PascalVOC, OpenImage, CVA
 Evaluate predictions with standard object detection metrics (AP@[.5:.05:.95], AP@50, mAP, AR<sub>1</sub>, AR<sub>10</sub>, AR<sub>100</sub>, etc.) (Work in Progress).
 
 ## Install
+
 Requires Python >= 3.8.2. Best to use a virtual environment.
 
 ```shell
@@ -18,6 +20,7 @@ pip install -r requirements.txt
 ## Use
 
 ### Parse Annotations
+
 The library has three main components:
 - `BoundingBox`: represents a bounding box with a label and an optional confidence score
 - `Annotation`: represent the bounding boxes annotations for one image
@@ -47,6 +50,7 @@ gts.add(one_annotation)
 ```
 
 ### Inspect Databases
+
 Iterators and efficient `image_id` lookup are easy to use:
 
 ```python
@@ -99,6 +103,7 @@ coco_gts.show_stats()
 ```
 
 ### Convert and Save to many Formats
+
 Datasets can be converted to other formats easily:
 
 ```python
@@ -109,22 +114,79 @@ coco_gts.save_yolo(
     label_to_id={"cat": 0, "dog": 1, "racoon": 2})
 ```
 
-### Future Directions (WIP)
-Evaluation:
+### COCO Evaluation
+
+Evaluating is as easy as:
 
 ```python
-evaluation = Evaluator.evaluate(
-    references=coco_gts,
-    predictions=yolo_preds)
+evaluator = COCOEvaluator(coco_gts, yolo_preds)
+ap = evaluator.ap()
+```
 
-print(evaluation.mAP)
-print(evaluation["cat"].cocoAP)
+All COCO metrics are available:
+
+```python
+ar_100 = evaluator.ar_100()
+ap_75 = evaluator.ap_75()
+ap_small = evaluator.ap_small()
+...
+```
+
+All COCO standard metrics can be displayed in a pretty printed table with:
+
+```python
+evaluator.show_summary()
+````
+
+which outputs:
+
+```bash
+  COCO Evaluation  
+┏━━━━━━━━┳━━━━━━━━┓
+┃ Metric ┃  Value ┃
+┡━━━━━━━━╇━━━━━━━━┩
+│ AP     │ 50.36% │
+│ AP 50  │ 69.70% │
+│ AP 75  │ 57.17% │
+│ AP S   │ 59.33% │
+│ AP M   │ 55.80% │
+│ AP L   │ 48.94% │
+│ AR 1   │ 38.68% │
+│ AR 10  │ 59.37% │
+│ AR 100 │ 59.54% │
+│ AR S   │ 65.48% │
+│ AR M   │ 60.31% │
+│ AR L   │ 55.37% │
+└────────┴────────┘
+```
+
+Custom evaluation policy can be done with:
+
+```python
+evaluation = evaluator.evaluate(
+    iou_threshold=0.33,
+    max_detections=1_000,
+    size_range=(0.0, 10_000))
+
+print(evaluation.ap(), evaluation.ar())
+```
+
+Evaluations are cached by `(iou_threshold, max_detections, size_range)` key for performance reasons. This avoids re-computations, for instance querying `.ap_50()` after `.ap()` has been called will not incur a re-computation. When dealing with large datasets the cache can grow very large, thus `.clear_cache()` method can be called to empty it.
+
+Evaluations can be queried by class label:
+
+```python
+key = (0.5, 100, None)  # AP_50
+cat_eval = evaluator.evaluations[key]["cat"]
+cat_ap = cat_eval.ap()
 ```
 
 ## Tests
+
 Run tests with `python tests.py`.
 
 ## Speed
+
 <details>
 <summary>Click to expand</summary>
 
@@ -144,24 +206,28 @@ The fastest format is COCO and LabelMe (for individual annotation files).
 </details>
 
 ## TODO
+
 - [x] Basic data structures and utilities
 - [x] Parsers (ImageNet, COCO, YOLO, Pascal, OpenImage, CVAT, LabelMe)
 - [x] Parser tests
 - [x] Database summary and stats
 - [x] Database converters
 - [x] Visualization options
+- [x] COCO Evaluation
 - [x] Tests with a huge load (5k images)
 - [ ] Visualization options ++ (graphs, figures, ...)
 - [ ] Parsers for TFRecord and TensorFlow
-- [ ] Evalutators
+- [ ] PascalVOC Evaluation
 - [ ] CLI interface
 - [ ] Pip package
 - [ ] UI interface
 
 ## Acknowledgement
+
 This repo is based on the work of [Rafael Padilla](https://github.com/rafaelpadilla/review_object_detection_metrics). The goal of this repo is to improve the performance and flexibility and to provide additional tools.
 
 ## Contribution
+
 Feel free to contribute, any help you can offer with this project is most welcome. Some suggestions where help is needed:
 * CLI tools and scripts
 * Building a PIP package
