@@ -159,6 +159,7 @@ which outputs:
 │ AR L   │ 55.37% │
 └────────┴────────┘
 ```
+This can be slow because it requires 90 iterations of the COCO evaluation metric on the validation set, thus a progress bar is shown.
 
 Custom evaluation policy can be done with:
 
