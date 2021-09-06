@@ -243,10 +243,13 @@ class COCOEvaluator:
 
     def __init__(self, 
         ground_truths: AnnotationSet,
-        predictions: AnnotationSet 
+        predictions: AnnotationSet ,
+        labels: "list[str]" = None,
     ) -> None:
         self._predictions = predictions
         self._ground_truths = ground_truths
+        self.labels = labels
+        
         self.evaluations: dict[EvaluationParams, Evaluation] = {}
 
     def clear_cache(self):
@@ -263,8 +266,9 @@ class COCOEvaluator:
         
         evaluation = self.evaluate_annotations(
             self._predictions, 
-            self._ground_truths, 
+            self._ground_truths,
             iou_threshold, 
+            self.labels,
             max_detections, 
             size_range).evaluate()
 
@@ -334,6 +338,7 @@ class COCOEvaluator:
         predictions: AnnotationSet, 
         ground_truths: AnnotationSet,
         iou_threshold: float,
+        labels: "list[str]" = None,
         max_detections: int = None,
         size_range: "tuple[float, float]" = None
     ) -> PartialEvaluation:
@@ -342,7 +347,7 @@ class COCOEvaluator:
         evaluation = PartialEvaluation()
         for image_id in ground_truths.image_ids:
             evaluation += cls.evaluate_annotation(
-                predictions[image_id], ground_truths[image_id], iou_threshold, max_detections, size_range)
+                predictions[image_id], ground_truths[image_id], iou_threshold, labels, max_detections, size_range)
         return evaluation
 
     @classmethod
@@ -350,6 +355,7 @@ class COCOEvaluator:
         prediction: Annotation, 
         ground_truth: Annotation,
         iou_threshold: float,
+        labels: "list[str]" = None,
         max_detections: int = None,
         size_range: "tuple[float, float]" = None
     ) -> PartialEvaluation:
@@ -358,8 +364,7 @@ class COCOEvaluator:
         # Those two can be hoisted up if slow
         preds = grouping(prediction.boxes, lambda box: box.label)
         refs = grouping(ground_truth.boxes, lambda box: box.label)
-
-        labels = set(preds.keys()).union(refs.keys())
+        labels = labels or set(preds.keys()).union(refs.keys())
         evaluation = PartialEvaluation()
 
         for label in labels:
