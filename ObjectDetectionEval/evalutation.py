@@ -1,12 +1,11 @@
-from ObjectDetectionEval.utils.types import RecallSteps
 from dataclasses import dataclass
 import dataclasses
 from .annotation import Annotation
-from .annotationset import AnnotationSet
+from .annotationset import T, AnnotationSet
 from .boundingbox import BoundingBox
 from .utils import grouping, all_equal, mean
 
-from typing import DefaultDict, Mapping, Optional, Union
+from typing import DefaultDict, Mapping, Optional, Union, Iterable
 from copy import copy
 
 import numpy as np
@@ -206,7 +205,7 @@ class Evaluation:
 class EvaluationParams:
     iou_threshold: float
     max_detections: Optional[int]
-    size_range: Optional[tuple[float, float]]
+    size_range: Optional["tuple[float, float]"]
     # recall_steps: RecallSteps
 
     def __post_init__(self):
@@ -228,8 +227,8 @@ class EvaluationParams:
     def format(cls,
         iou_threshold: float, 
         max_detections: Optional[int], 
-        size_range: Optional[tuple[float, float]]
-    ) -> tuple[float, Optional[int], tuple[float, float]]:
+        size_range: Optional["tuple[float, float]"]
+    ) -> "tuple[float, Optional[int], tuple[float, float]]":
         return dataclasses.astuple(cls(iou_threshold, max_detections, size_range))
 
 
@@ -244,7 +243,7 @@ class COCOEvaluator:
     def __init__(self, 
         ground_truths: AnnotationSet,
         predictions: AnnotationSet ,
-        labels: "list[str]" = None,
+        labels: Iterable[str] = None,
     ) -> None:
         self._predictions = predictions
         self._ground_truths = ground_truths
@@ -338,16 +337,19 @@ class COCOEvaluator:
         predictions: AnnotationSet, 
         ground_truths: AnnotationSet,
         iou_threshold: float,
-        labels: "list[str]" = None,
+        labels: Iterable[str] = None,
         max_detections: int = None,
         size_range: "tuple[float, float]" = None
     ) -> PartialEvaluation:
-        assert predictions.image_ids == ground_truths.image_ids
-
+        image_ids = ground_truths.image_ids | predictions.image_ids
         evaluation = PartialEvaluation()
-        for image_id in ground_truths.image_ids:
+
+        for image_id in image_ids:
+            gt = ground_truths.get(image_id) or Annotation.empty_like(predictions[image_id])
+            pred = predictions.get(image_id) or Annotation.empty_like(ground_truths[image_id])
+
             evaluation += cls.evaluate_annotation(
-                predictions[image_id], ground_truths[image_id], iou_threshold, labels, max_detections, size_range)
+                pred, gt, iou_threshold, labels, max_detections, size_range)
         return evaluation
 
     @classmethod
@@ -355,7 +357,7 @@ class COCOEvaluator:
         prediction: Annotation, 
         ground_truth: Annotation,
         iou_threshold: float,
-        labels: "list[str]" = None,
+        labels: Iterable[str] = None,
         max_detections: int = None,
         size_range: "tuple[float, float]" = None
     ) -> PartialEvaluation:
@@ -472,6 +474,22 @@ class COCOEvaluator:
             pbar.update()
 
         pprint(table)
+
+    def show_extended_summary(self) -> None:
+        assert self.labels is not None, "Provide labels to evaluate for the extended summary"
+        labels = sorted(self.labels)
+
+        table = Table(title="COCO Evaluation", show_footer=True)
+        table.add_column("Label")
+
+        
+        
+        for metric_name in ("AP", "AP 50", "AP 75", "AP S", "AP M", "AP L", "AR 1", "AR 10", "AR 100", "AR S" "AR M", "AR L"):
+            table.add_column(metric_name, justify="right")
+
+
+
+
 
 
 def _compute_ap(scores: "list[float]", matched: "list[bool]", NP: int) -> float:
