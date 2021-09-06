@@ -123,10 +123,13 @@ class COCOEvaluator:
 
     def __init__(self, 
         ground_truths: AnnotationSet,
-        predictions: AnnotationSet 
+        predictions: AnnotationSet ,
+        labels: "list[str]" = None,
     ) -> None:
         self._predictions = predictions
         self._ground_truths = ground_truths
+        self.labels = labels
+
         self.evaluations: dict[(float, int, "tuple[float, float]"), Evaluation] = {}
 
     def clear_cache(self):
@@ -145,8 +148,9 @@ class COCOEvaluator:
         
         evaluation = self.evaluate_annotations(
             self._predictions, 
-            self._ground_truths, 
+            self._ground_truths,
             iou_threshold, 
+            self.labels,
             max_detections, 
             size_range)
         
@@ -216,6 +220,7 @@ class COCOEvaluator:
         predictions: AnnotationSet, 
         ground_truths: AnnotationSet,
         iou_threshold: float,
+        labels: "list[str]" = None,
         max_detections: int = None,
         size_range: "tuple[float, float]" = None
     ) -> Evaluation:
@@ -228,7 +233,7 @@ class COCOEvaluator:
             ref = ground_truths.get(image_id, Annotation.empty())
 
             evaluation += cls.evaluate_annotation(
-                pred, ref, iou_threshold, max_detections, size_range)
+                pred, ref, iou_threshold, labels, max_detections, size_range)
 
         return evaluation
 
@@ -237,15 +242,14 @@ class COCOEvaluator:
         prediction: Annotation, 
         ground_truth: Annotation,
         iou_threshold: float,
+        labels: "list[str]" = None,
         max_detections: int = None,
         size_range: "tuple[float, float]" = None
     ) -> Evaluation:
-        # TODO: Benchmark this redundant computation perf penalty
-        # Those two can be hoisted up if slow
         preds = grouping(prediction.boxes, lambda box: box.label)
         refs = grouping(ground_truth.boxes, lambda box: box.label)
         
-        labels = set(preds.keys()).union(refs.keys())
+        labels = labels or set(preds.keys()).union(refs.keys())
         evaluation = Evaluation()
 
         for label in labels:
