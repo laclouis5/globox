@@ -18,3 +18,14 @@ def all_equal(iterable: Iterable) -> bool:
     """https://stackoverflow.com/a/3844948/6324055"""
     g = groupby(iterable)
     return next(g, True) and not next(g, False)
+
+
+def mean(it: Iterable[float]) -> float:
+    sum_ = 0.0
+    count = 0
+    for value in it:
+        sum_ += value
+        count += 1
+    if count == 0:
+        return float("nan")
+    return sum_ / count

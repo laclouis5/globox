@@ -4,7 +4,6 @@ import xml.etree.ElementTree as et
 
 
 class BoundingBox:
-
     """
     You are responsible for ensuring that xmin <= xmax and ymin <= ymax
     at every moment.
@@ -32,7 +31,7 @@ class BoundingBox:
         self.ymin = ymin
         self.xmax = xmax
         self.ymax = ymax
-        self.confidence = confidence    
+        self.confidence = confidence
 
     @property
     def xmid(self) -> float: 

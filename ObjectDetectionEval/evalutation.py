@@ -1,19 +1,65 @@
-from re import A
+from ObjectDetectionEval.utils.types import RecallSteps
+from dataclasses import dataclass
+import dataclasses
 from .annotation import Annotation
 from .annotationset import AnnotationSet
 from .boundingbox import BoundingBox
-from .utils import grouping, all_equal
+from .utils import grouping, all_equal, mean
 
-from typing import DefaultDict, Mapping, Optional
+from typing import DefaultDict, Mapping, Optional, Union
 from copy import copy
 
 import numpy as np
-from rich.table import Table
+from rich.table import Column, Table
 from rich import print as pprint
 from tqdm import tqdm
 
 
-class EvaluationItem:
+class Evaluatable:
+
+    """Interface for evaluating and displaying results."""
+
+    def tp(self) -> int: 
+        raise NotImplementedError
+
+    def npos(self) -> int: 
+        raise NotImplementedError
+
+    def ndet(self) -> int: 
+        raise NotImplementedError
+
+    def ap(self) -> float: 
+        raise NotImplementedError
+
+    def ar(self) -> float: 
+        raise NotImplementedError
+
+    def fp(self) -> int:
+        return self.ndet() - self.tp()
+
+    def fn(self) -> int:
+        return self.npos() - self.ndet()
+
+    def precision(self) -> float:
+        return self.tp() / self.ndet() if self.ndet() != 0 else 1.0 if self.npos() == 0 else 0.0
+
+    def recall(self) -> float:
+        return self.tp() / self.npos() if self.npos() != 0 else 1.0 if self.ndet() == 0 else 0.0
+
+    def f1_score(self) -> float:
+        s = self.npos() + self.ndet()
+        return 2.0 * self.tp / s if s != 0 else 1.0
+
+    def show_summary(self):
+        headers = ("Gts", "Dets", "TP", "FP", "FN", "Recall", "Precision", "F1-score", "AP", "AR")
+        table = Table(*(Column(h, justify="right") for h in headers))
+        metrics_q = self.npos(), self.ndet(), self.tp(), self.fp(), self.fn()
+        metrics_p = self.recall(), self.precision(), self.f1_score(), self.ap(), self.ar()
+        table.add_row(*(f"{q}" for q in metrics_q), *(f"{p:.2%}" for p in metrics_p))
+        pprint(table)
+
+
+class PartialEvaluationItem:
 
     def __init__(self, 
         tps: "list[bool]" = None,
@@ -28,14 +74,14 @@ class EvaluationItem:
         assert self._npos >= 0
         assert len(self._tps) == len(self._scores)
 
-    def __iadd__(self, other: "EvaluationItem") -> "EvaluationItem":
+    def __iadd__(self, other: "PartialEvaluationItem") -> "PartialEvaluationItem":
         self._tps += other._tps
         self._scores += other._scores
         self._npos += other._npos
         self.clear_cache()
         return self
 
-    def __add__(self, other: "EvaluationItem") -> "EvaluationItem":
+    def __add__(self, other: "PartialEvaluationItem") -> "PartialEvaluationItem":
         copy_ = copy(self)
         copy_ += other
         return copy_
@@ -51,7 +97,7 @@ class EvaluationItem:
     def tp(self) -> int:
         tp = self._cache.get("tp", sum(self._tps))
         self._cache["tp"] = tp
-        assert tp <= self.npos
+        assert tp <= self._npos
         return tp
 
     def ap(self) -> Optional[float]:
@@ -65,32 +111,48 @@ class EvaluationItem:
         if (ar :=self._cache.get("ar")) is not None:
             return ar
         tp = self.tp()
-        ar = tp / self.npos if (self._npos != 0 and tp is not None) else None
+        ar = tp / self._npos if self._npos != 0 else None
         self._cache["ar"] = ar
         return ar
 
     def clear_cache(self):
         self._cache.clear()
 
+    def evaluate(self) -> "EvaluationItem":
+        return EvaluationItem(self.tp(), self.ndet, self._npos, self.ap(), self.ar())
 
-class Evaluation(DefaultDict[str, EvaluationItem]):
+
+class EvaluationItem:
+
+    __slots__ = ("tp", "ndet", "npos", "ap", "ar")
+    
+    def __init__(self, tp: int, ndet: int, npos: int, ap: Union[float, None], ar: Union[float, None]) -> None:
+        self.tp = tp
+        self.ndet = ndet
+        self.npos = npos
+        self.ap = ap
+        self.ar = ar
+
+
+# TODO: This inheriting DefaultDict is overkill
+class PartialEvaluation(DefaultDict[str, PartialEvaluationItem]):
 
     """Do not mutate this excepted with defined methods."""
 
-    def __init__(self, items: Mapping[str, EvaluationItem] = None):
+    def __init__(self, items: Mapping[str, PartialEvaluationItem] = None):
         if items is not None:
-            super().__init__(lambda: EvaluationItem(), map=items)
+            super().__init__(lambda: PartialEvaluationItem(), map=items)
         else:
-            super().__init__(lambda: EvaluationItem())
+            super().__init__(lambda: PartialEvaluationItem())
         self._cache = {}
 
-    def __iadd__(self, other: "Evaluation") -> "Evaluation":
+    def __iadd__(self, other: "PartialEvaluation") -> "PartialEvaluation":
         for key, value in other.items():
             self[key] += value
         self.clear_cache()
         return self
 
-    def __add__(self, other: "Evaluation") -> "Evaluation":
+    def __add__(self, other: "PartialEvaluation") -> "PartialEvaluation":
         copy_ = copy(self)
         copy_ += other
         return copy_
@@ -98,20 +160,78 @@ class Evaluation(DefaultDict[str, EvaluationItem]):
     def ap(self) -> float:
         if (ap := self._cache.get("ap")) is not None:
             return ap
-        ap = np.mean([ap for ev in self.values() if (ap := ev.ap()) is not None])
+        ap = mean(ap for ev in self.values() if (ap := ev.ap()) is not None)
         self._cache["ap"] = ap
         return ap
 
     def ar(self) -> float:
         if (ar := self._cache.get("ar")) is not None:
             return ar
-        ar = np.mean([ar for ev in self.values() if (ar := ev.ar()) is not None])
+        ar = mean(ar for ev in self.values() if (ar := ev.ar()) is not None)
         self._cache["ar"] = ar
         return ar
 
     def clear_cache(self):
         self._cache.clear()
     
+    def evaluate(self) -> "Evaluation":
+        return Evaluation(self)
+
+
+class Evaluation:
+    
+    def __init__(self, evaluation: PartialEvaluation) -> None:
+        self.evaluations = {label: ev.evaluate() for label, ev in evaluation.items()}
+        self._cache = {"ap": evaluation.ap(), "ar": evaluation.ar()}
+
+    def ap(self) -> float:
+        if (ap := self._cache.get("ap")) is not None:
+            return ap
+        ap = mean(ev.ap for ev in self.evaluations.values() if ev.ap is not None)
+        self._cache["ap"] = ap
+        return ap
+
+    def ar(self) -> float:
+        if (ar := self._cache.get("ar")) is not None:
+            return ar
+        ar = mean(ev.ar for ev in self.evaluations.values() if ev.ar is not None)
+        self._cache["ar"] = ar
+        return ar
+
+    def clear_cache(self):
+        self._cache.clear()
+
+
+@dataclass(unsafe_hash=True)
+class EvaluationParams:
+    iou_threshold: float
+    max_detections: Optional[int]
+    size_range: Optional[tuple[float, float]]
+    # recall_steps: RecallSteps
+
+    def __post_init__(self):
+        assert 0.0 <= self.iou_threshold <= 1.0
+
+        if self.max_detections is not None:
+            assert self.max_detections >= 0
+
+        if self.size_range is None:
+            self.size_range = (0.0, float("inf"))
+            return
+
+        low, high = self.size_range
+        assert low >= 0 and high >= low
+
+        # assert self.recall_steps in RecallSteps
+
+    @classmethod
+    def format(cls,
+        iou_threshold: float, 
+        max_detections: Optional[int], 
+        size_range: Optional[tuple[float, float]]
+    ) -> tuple[float, Optional[int], tuple[float, float]]:
+        return dataclasses.astuple(cls(iou_threshold, max_detections, size_range))
+
 
 class COCOEvaluator:
 
@@ -127,7 +247,7 @@ class COCOEvaluator:
     ) -> None:
         self._predictions = predictions
         self._ground_truths = ground_truths
-        self.evaluations: dict[(float, int, "tuple[float, float]"), Evaluation] = {}
+        self.evaluations: dict[EvaluationParams, Evaluation] = {}
 
     def clear_cache(self):
         self.evaluations = {}
@@ -137,10 +257,8 @@ class COCOEvaluator:
         max_detections: int = None, 
         size_range: "tuple[int, int]" = None
     ) -> Evaluation:
-        key = (iou_threshold, max_detections, size_range)
-        evaluation = self.evaluations.get(key)
-
-        if evaluation is not None:
+        key = EvaluationParams(iou_threshold, max_detections, size_range)
+        if (evaluation := self.evaluations.get(key)) is not None:
             return evaluation
         
         evaluation = self.evaluate_annotations(
@@ -148,8 +266,8 @@ class COCOEvaluator:
             self._ground_truths, 
             iou_threshold, 
             max_detections, 
-            size_range)
-        
+            size_range).evaluate()
+
         self.evaluations[key] = evaluation
 
         return evaluation
@@ -218,18 +336,13 @@ class COCOEvaluator:
         iou_threshold: float,
         max_detections: int = None,
         size_range: "tuple[float, float]" = None
-    ) -> Evaluation:
-        evaluation = Evaluation()
-        image_ids = set(predictions.image_ids).union(ground_truths.image_ids)
+    ) -> PartialEvaluation:
+        assert predictions.image_ids == ground_truths.image_ids
 
-        for image_id in image_ids:
-            # Empty annotation is ugly
-            pred = predictions.get(image_id, Annotation.empty())
-            ref = ground_truths.get(image_id, Annotation.empty())
-
+        evaluation = PartialEvaluation()
+        for image_id in ground_truths.image_ids:
             evaluation += cls.evaluate_annotation(
-                pred, ref, iou_threshold, max_detections, size_range)
-
+                predictions[image_id], ground_truths[image_id], iou_threshold, max_detections, size_range)
         return evaluation
 
     @classmethod
@@ -239,14 +352,15 @@ class COCOEvaluator:
         iou_threshold: float,
         max_detections: int = None,
         size_range: "tuple[float, float]" = None
-    ) -> Evaluation:
+    ) -> PartialEvaluation:
+        assert prediction.image_id == ground_truth.image_id
         # TODO: Benchmark this redundant computation perf penalty
         # Those two can be hoisted up if slow
         preds = grouping(prediction.boxes, lambda box: box.label)
         refs = grouping(ground_truth.boxes, lambda box: box.label)
-        
+
         labels = set(preds.keys()).union(refs.keys())
-        evaluation = Evaluation()
+        evaluation = PartialEvaluation()
 
         for label in labels:
             dets = preds.get(label, [])
@@ -258,24 +372,21 @@ class COCOEvaluator:
         return evaluation
 
     @classmethod
-    def evaluate_boxes(cls,
+    def evaluate_boxes(self,
         predictions: "list[BoundingBox]",
         ground_truths: "list[BoundingBox]",
         iou_threshold: float,
         max_detections: int = None,
         size_range: "tuple[float, float]" = None
-    ) -> EvaluationItem:
+    ) -> PartialEvaluationItem:
         # TODO: Optimize a little bit this
-        # TODO: Benchmark asserts perf penalty
-        assert 0.0 <= iou_threshold <= 1.0
-        assert max_detections >= 0
         assert all(p.is_detection for p in predictions)
         assert all(g.is_ground_truth for g in ground_truths)
         assert all_equal(p.label for p in predictions)
         assert all_equal(g.label for g in ground_truths)
 
-        size_range = size_range or (0.0, float("inf"))
-        assert size_range[0] >= 0.0 and size_range[1] >= 0.0
+        iou_threshold, max_detections, size_range = EvaluationParams.format(
+            iou_threshold, max_detections, size_range)
 
         dets = sorted(predictions, key=lambda box: box.confidence, reverse=True)
         if max_detections is not None:
@@ -319,7 +430,7 @@ class COCOEvaluator:
             for i in range(len(dets)) if not dt_ignore[i]]
         npos = sum(1 for i in range(len(gts)) if not gt_ignore[i])
 
-        return EvaluationItem(matches, scores, npos)
+        return PartialEvaluationItem(matches, scores, npos)
 
     def show_summary(self):
         table = Table(title="COCO Evaluation")
@@ -367,11 +478,7 @@ def _compute_ap(scores: "list[float]", matched: "list[bool]", NP: int) -> float:
     if NP == 0:
         return None
 
-    # by default evaluate on 101 recall levels
-    recall_thresholds = np.linspace(0.0,
-                                    1.00,
-                                    int(np.round((1.00 - 0.0) / 0.01)) + 1,
-                                    endpoint=True)
+    recall_steps = np.linspace(0.0, 1.0, 101, endpoint=True)
 
     # sort in descending score order
     scores = np.array(scores, dtype=float)
@@ -382,16 +489,13 @@ def _compute_ap(scores: "list[float]", matched: "list[bool]", NP: int) -> float:
     matched = matched[inds]
 
     tp = np.cumsum(matched)
-    fp = np.cumsum(~matched)
 
     rc = tp / NP
-    pr = tp / (tp + fp)
-
+    pr = tp / np.arange(1, len(matched)+1)
     # make precision monotonically decreasing
     i_pr = np.maximum.accumulate(pr[::-1])[::-1]
-    rec_idx = np.searchsorted(rc, recall_thresholds, side="left")
+    rec_idx = np.searchsorted(rc, recall_steps, side="left")
 
-    # get interpolated precision values at the evaluation thresholds
-    i_pr = np.array([i_pr[r] if r < len(i_pr) else 0 for r in rec_idx])
+    sum_ = i_pr[rec_idx[rec_idx < len(i_pr)]].sum()
 
-    return np.mean(i_pr)
+    return sum_ / len(rec_idx)

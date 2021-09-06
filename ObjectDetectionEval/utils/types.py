@@ -15,3 +15,8 @@ class BoxFormat(Enum):
     LTWH = auto()
     XYWH = auto()
 
+
+class RecallSteps(Enum):
+
+    ELEVEN = auto()
+    ALL = auto()
