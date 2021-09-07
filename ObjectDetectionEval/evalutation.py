@@ -1,19 +1,24 @@
-from re import A
+import rich
+from rich.style import Style
 from .annotation import Annotation
-from .annotationset import AnnotationSet
+from .annotationset import T, AnnotationSet
 from .boundingbox import BoundingBox
-from .utils import grouping, all_equal
+from .utils import grouping, all_equal, mean
 
-from typing import DefaultDict, Mapping, Optional
-from copy import copy
-
+from typing import DefaultDict, Dict, Mapping, Optional, Union, Iterable
+from collections import defaultdict
+from dataclasses import dataclass
+import dataclasses
 import numpy as np
+from copy import copy
+from math import isnan
+
 from rich.table import Table
 from rich import print as pprint
 from tqdm import tqdm
 
 
-class EvaluationItem:
+class PartialEvaluationItem:
 
     def __init__(self, 
         tps: "list[bool]" = None,
@@ -28,14 +33,14 @@ class EvaluationItem:
         assert self._npos >= 0
         assert len(self._tps) == len(self._scores)
 
-    def __iadd__(self, other: "EvaluationItem") -> "EvaluationItem":
+    def __iadd__(self, other: "PartialEvaluationItem") -> "PartialEvaluationItem":
         self._tps += other._tps
         self._scores += other._scores
         self._npos += other._npos
         self.clear_cache()
         return self
 
-    def __add__(self, other: "EvaluationItem") -> "EvaluationItem":
+    def __add__(self, other: "PartialEvaluationItem") -> "PartialEvaluationItem":
         copy_ = copy(self)
         copy_ += other
         return copy_
@@ -51,10 +56,10 @@ class EvaluationItem:
     def tp(self) -> int:
         tp = self._cache.get("tp", sum(self._tps))
         self._cache["tp"] = tp
-        assert tp <= self.npos
+        assert tp <= self._npos
         return tp
 
-    def ap(self) -> Optional[float]:
+    def ap(self) -> float:
         if (ap := self._cache.get("ap")) is not None:
             return ap
         ap = _compute_ap(self._scores, self._tps, self._npos)
@@ -65,32 +70,46 @@ class EvaluationItem:
         if (ar :=self._cache.get("ar")) is not None:
             return ar
         tp = self.tp()
-        ar = tp / self.npos if (self._npos != 0 and tp is not None) else None
+        ar = tp / self._npos if self._npos != 0 else float("nan")
         self._cache["ar"] = ar
         return ar
 
     def clear_cache(self):
         self._cache.clear()
 
+    def evaluate(self) -> "EvaluationItem":
+        return EvaluationItem(self.tp(), self.ndet, self._npos, self.ap(), self.ar())
 
-class Evaluation(DefaultDict[str, EvaluationItem]):
+
+class EvaluationItem:
+
+    __slots__ = ("tp", "ndet", "npos", "ap", "ar")
+    
+    def __init__(self, tp: int, ndet: int, npos: int, ap: Union[float, None], ar: Union[float, None]) -> None:
+        self.tp = tp
+        self.ndet = ndet
+        self.npos = npos
+        self.ap = ap
+        self.ar = ar
+
+
+class PartialEvaluation(DefaultDict[str, PartialEvaluationItem]):
 
     """Do not mutate this excepted with defined methods."""
 
-    def __init__(self, items: Mapping[str, EvaluationItem] = None):
+    def __init__(self, items: Mapping[str, PartialEvaluationItem] = None):
+        super().__init__(lambda: PartialEvaluationItem())
         if items is not None:
-            super().__init__(lambda: EvaluationItem(), map=items)
-        else:
-            super().__init__(lambda: EvaluationItem())
+            self.update(items)
         self._cache = {}
 
-    def __iadd__(self, other: "Evaluation") -> "Evaluation":
+    def __iadd__(self, other: "PartialEvaluation") -> "PartialEvaluation":
         for key, value in other.items():
             self[key] += value
         self.clear_cache()
         return self
 
-    def __add__(self, other: "Evaluation") -> "Evaluation":
+    def __add__(self, other: "PartialEvaluation") -> "PartialEvaluation":
         copy_ = copy(self)
         copy_ += other
         return copy_
@@ -98,20 +117,89 @@ class Evaluation(DefaultDict[str, EvaluationItem]):
     def ap(self) -> float:
         if (ap := self._cache.get("ap")) is not None:
             return ap
-        ap = np.mean([ap for ev in self.values() if (ap := ev.ap()) is not None])
+        ap = mean(ap for ev in self.values() if not isnan(ap := ev.ap()))
         self._cache["ap"] = ap
         return ap
 
     def ar(self) -> float:
         if (ar := self._cache.get("ar")) is not None:
             return ar
-        ar = np.mean([ar for ev in self.values() if (ar := ev.ar()) is not None])
+        ar = mean(ar for ev in self.values() if not isnan(ar := ev.ar()))
         self._cache["ar"] = ar
         return ar
 
     def clear_cache(self):
         self._cache.clear()
     
+    def evaluate(self) -> "Evaluation":
+        return Evaluation(self)
+
+
+class Evaluation(DefaultDict[str, EvaluationItem]):
+    
+    def __init__(self, evaluation: PartialEvaluation) -> None:
+        super().__init__(lambda: PartialEvaluation())
+        self.update({label: ev.evaluate() for label, ev in evaluation.items()})
+        
+        self._ap = evaluation.ap()
+        self._ar = evaluation.ar()
+
+    def ap(self) -> float:
+        return self._ap
+
+    def ar(self) -> float:
+        return self._ar
+
+
+class MultiThresholdEvaluation(Dict[str, Dict[str, float]]):
+
+    def __init__(self, evaluations: "list[Evaluation]") -> None:
+        result = defaultdict(list)
+        for evaluation in evaluations:
+            for label, ev_item in evaluation.items():
+                result[label].append(ev_item)
+
+        super().__init__({
+            label: {"ap": mean(ev.ap for ev in evs if not isnan(ev.ap)), "ar": mean(ev.ar for ev in evs if not isnan(ev.ar))} 
+                for label, evs in result.items()})
+
+    def ap(self) -> float:
+        return mean(ev["ap"] for ev in self.values() if not isnan(ev["ap"]))
+    
+    def ar(self) -> float:
+        return mean(ev["ar"] for ev in self.values() if not isnan(ev["ar"]))
+    
+
+@dataclass(unsafe_hash=True)
+class EvaluationParams:
+    iou_threshold: float
+    max_detections: Optional[int]
+    size_range: Optional["tuple[float, float]"]
+    # recall_steps: RecallSteps
+
+    def __post_init__(self):
+        assert 0.0 <= self.iou_threshold <= 1.0
+
+        if self.max_detections is not None:
+            assert self.max_detections >= 0
+
+        if self.size_range is None:
+            self.size_range = (0.0, float("inf"))
+            return
+
+        low, high = self.size_range
+        assert low >= 0 and high >= low
+
+        # assert self.recall_steps in RecallSteps
+
+    @classmethod
+    def format(cls,
+        iou_threshold: float, 
+        max_detections: Optional[int], 
+        size_range: Optional["tuple[float, float]"]
+    ) -> "tuple[float, Optional[int], tuple[float, float]]":
+        return dataclasses.astuple(cls(iou_threshold, max_detections, size_range))
+
 
 class COCOEvaluator:
 
@@ -123,11 +211,14 @@ class COCOEvaluator:
 
     def __init__(self, 
         ground_truths: AnnotationSet,
-        predictions: AnnotationSet 
+        predictions: AnnotationSet ,
+        labels: Iterable[str] = None,
     ) -> None:
         self._predictions = predictions
         self._ground_truths = ground_truths
-        self.evaluations: dict[(float, int, "tuple[float, float]"), Evaluation] = {}
+        self.labels = labels
+        
+        self.evaluations: dict[EvaluationParams, Evaluation] = {}
 
     def clear_cache(self):
         self.evaluations = {}
@@ -137,99 +228,112 @@ class COCOEvaluator:
         max_detections: int = None, 
         size_range: "tuple[int, int]" = None
     ) -> Evaluation:
-        key = (iou_threshold, max_detections, size_range)
-        evaluation = self.evaluations.get(key)
-
-        if evaluation is not None:
+        key = EvaluationParams(iou_threshold, max_detections, size_range)
+        if (evaluation := self.evaluations.get(key)) is not None:
             return evaluation
         
         evaluation = self.evaluate_annotations(
             self._predictions, 
-            self._ground_truths, 
+            self._ground_truths,
             iou_threshold, 
+            self.labels,
             max_detections, 
-            size_range)
-        
+            size_range).evaluate()
+
         self.evaluations[key] = evaluation
 
         return evaluation
 
+    def ap_evaluation(self) -> MultiThresholdEvaluation:
+        evaluations = [self.evaluate(t, 100) for t in self.AP_THRESHOLDS]
+        return MultiThresholdEvaluation(evaluations)
+
     def ap(self) -> float:
-        ap = 0.0
-        for iou_threshold in self.AP_THRESHOLDS:
-            ap += self.evaluate(iou_threshold, 100).ap()
-        return ap / len(self.AP_THRESHOLDS)
+        return self.ap_evaluation().ap()
+
+    def ap_50_evaluation(self) -> Evaluation:
+        return self.evaluate(0.5, 100)
 
     def ap_50(self) -> float:
-        return self.evaluate(0.5, 100).ap()
+        return self.ap_50_evaluation().ap()
+
+    def ap_75_evaluation(self) -> Evaluation:
+        return self.evaluate(0.75, 100)
 
     def ap_75(self) -> float:
-        return self.evaluate(0.75, 100).ap()
+        return self.ap_75_evaluation().ap()
 
-    def _ap_range(self, range_: "tuple[float, float]") -> float:
-        ap = 0.0
-        for iou_threshold in self.AP_THRESHOLDS:
-            ap += self.evaluate(iou_threshold, 100, range_).ap()
-        return ap / len(self.AP_THRESHOLDS)
+    def _range_evalation(self, range_: "tuple[float, float]") -> MultiThresholdEvaluation:
+        evaluations = [self.evaluate(t, 100, range_) for t in self.AP_THRESHOLDS]
+        return MultiThresholdEvaluation(evaluations)
 
-    def _ar_range(self, range_: "tuple[float, float]") -> float:
-        ar = 0.0
-        for iou_threshold in self.AP_THRESHOLDS:
-            ar += self.evaluate(iou_threshold, 100, range_).ar()
-        return ar / len(self.AP_THRESHOLDS)
+    def _ndets_evaluation(self, max_dets: int) -> MultiThresholdEvaluation:
+        evaluations = [self.evaluate(t, max_dets) for t in self.AP_THRESHOLDS]
+        return MultiThresholdEvaluation(evaluations)
 
-    def _ar_ndets(self, max_dets: int) -> float:
-        ar = 0.0
-        for iou_threshold in self.AP_THRESHOLDS:
-            ar += self.evaluate(iou_threshold, max_dets).ar()
-        return ar / len(self.AP_THRESHOLDS)
+    def small_evaluation(self) -> MultiThresholdEvaluation:
+        return self._range_evalation(self.SMALL_RANGE)
 
     def ap_small(self) -> float:
-        return self._ap_range(self.SMALL_RANGE)
+        return self.small_evaluation().ap()
+
+    def medium_evaluation(self) -> MultiThresholdEvaluation:
+        return self._range_evalation(self.MEDIUM_RANGE)
 
     def ap_medium(self) -> float:
-        return self._ap_range(self.MEDIUM_RANGE)
+        return self.medium_evaluation().ap()
+
+    def large_evaluation(self) -> MultiThresholdEvaluation:
+        return self._range_evalation(self.LARGE_RANGE)
 
     def ap_large(self) -> float:
-        return self._ap_range(self.LARGE_RANGE)
+        return self.large_evaluation().ap()
+
+    def ar_100_evaluation(self) -> MultiThresholdEvaluation:
+        return self._ndets_evaluation(100)
 
     def ar_100(self) -> float:
-        return self._ar_ndets(100)
+        return self.ar_100_evaluation().ar()
     
+    def ar_10_evaluation(self) -> MultiThresholdEvaluation:
+        return self._ndets_evaluation(10)
+
     def ar_10(self) -> float:
-        return self._ar_ndets(10)
+        return self.ar_10_evaluation().ar()
+
+    def ar_1_evaluation(self) -> MultiThresholdEvaluation:
+        return self._ndets_evaluation(1)
 
     def ar_1(self) -> float:
-        return self._ar_ndets(1)
+        return self.ar_1_evaluation().ar()
 
     def ar_small(self) -> float:
-        return self._ar_range(self.SMALL_RANGE)
+        return self.small_evaluation().ar()
 
     def ar_medium(self) -> float:
-        return self._ar_range(self.MEDIUM_RANGE)
+        return self.medium_evaluation().ar()
 
     def ar_large(self) -> float:
-        return self._ar_range(self.LARGE_RANGE)
+        return self.large_evaluation().ar()
 
     @classmethod
     def evaluate_annotations(cls,
         predictions: AnnotationSet, 
         ground_truths: AnnotationSet,
         iou_threshold: float,
+        labels: Iterable[str] = None,
         max_detections: int = None,
         size_range: "tuple[float, float]" = None
-    ) -> Evaluation:
-        evaluation = Evaluation()
-        image_ids = set(predictions.image_ids).union(ground_truths.image_ids)
+    ) -> PartialEvaluation:
+        image_ids = ground_truths.image_ids | predictions.image_ids
+        evaluation = PartialEvaluation()
 
         for image_id in image_ids:
-            # Empty annotation is ugly
-            pred = predictions.get(image_id, Annotation.empty())
-            ref = ground_truths.get(image_id, Annotation.empty())
+            gt = ground_truths.get(image_id) or Annotation.empty_like(predictions[image_id])
+            pred = predictions.get(image_id) or Annotation.empty_like(ground_truths[image_id])
 
             evaluation += cls.evaluate_annotation(
-                pred, ref, iou_threshold, max_detections, size_range)
-
+                pred, gt, iou_threshold, labels, max_detections, size_range)
         return evaluation
 
     @classmethod
@@ -237,16 +341,17 @@ class COCOEvaluator:
         prediction: Annotation, 
         ground_truth: Annotation,
         iou_threshold: float,
+        labels: Iterable[str] = None,
         max_detections: int = None,
         size_range: "tuple[float, float]" = None
-    ) -> Evaluation:
+    ) -> PartialEvaluation:
+        assert prediction.image_id == ground_truth.image_id
         # TODO: Benchmark this redundant computation perf penalty
         # Those two can be hoisted up if slow
         preds = grouping(prediction.boxes, lambda box: box.label)
         refs = grouping(ground_truth.boxes, lambda box: box.label)
-        
-        labels = set(preds.keys()).union(refs.keys())
-        evaluation = Evaluation()
+        labels = labels or set(preds.keys()).union(refs.keys())
+        evaluation = PartialEvaluation()
 
         for label in labels:
             dets = preds.get(label, [])
@@ -258,24 +363,21 @@ class COCOEvaluator:
         return evaluation
 
     @classmethod
-    def evaluate_boxes(cls,
+    def evaluate_boxes(self,
         predictions: "list[BoundingBox]",
         ground_truths: "list[BoundingBox]",
         iou_threshold: float,
         max_detections: int = None,
         size_range: "tuple[float, float]" = None
-    ) -> EvaluationItem:
+    ) -> PartialEvaluationItem:
         # TODO: Optimize a little bit this
-        # TODO: Benchmark asserts perf penalty
-        assert 0.0 <= iou_threshold <= 1.0
-        assert max_detections >= 0
         assert all(p.is_detection for p in predictions)
         assert all(g.is_ground_truth for g in ground_truths)
         assert all_equal(p.label for p in predictions)
         assert all_equal(g.label for g in ground_truths)
 
-        size_range = size_range or (0.0, float("inf"))
-        assert size_range[0] >= 0.0 and size_range[1] >= 0.0
+        iou_threshold, max_detections, size_range = EvaluationParams.format(
+            iou_threshold, max_detections, size_range)
 
         dets = sorted(predictions, key=lambda box: box.confidence, reverse=True)
         if max_detections is not None:
@@ -319,41 +421,66 @@ class COCOEvaluator:
             for i in range(len(dets)) if not dt_ignore[i]]
         npos = sum(1 for i in range(len(gts)) if not gt_ignore[i])
 
-        return EvaluationItem(matches, scores, npos)
+        return PartialEvaluationItem(matches, scores, npos)
 
     def show_summary(self):
-        table = Table(title="COCO Evaluation")
-        table.add_column("Metric")
-        table.add_column("Value", justify="right")
+        table = Table(title="COCO Evaluation", show_footer=True)
+        table.add_column("Label", footer="Total")
 
-        with tqdm(desc="COCO Evaluation", total=12) as pbar:
-            table.add_row("AP", f"{self.ap():.2%}")
-            pbar.update()
-            table.add_row("AP 50", f"{self.ap_50():.2%}")
-            pbar.update()
-            table.add_row("AP 75", f"{self.ap_75():.2%}")
-            pbar.update()
+        metrics = {
+            "AP 50:95": self.ap, "AP 50": self.ap_50, "AP 75": self.ap_75, 
+            "AP S": self.ap_small, "AP M": self.ap_medium, "AP L": self.ap_large, 
+            "AR 1": self.ar_1, "AR 10": self.ar_10, "AR 100": self.ar_100, 
+            "AR S": self.ar_small, "AR M": self.ar_medium, "AR L": self.ar_large}
 
-            table.add_row("AP S", f"{self.ap_small():.2%}")
-            pbar.update()
-            table.add_row("AP M", f"{self.ap_medium():.2%}")
-            pbar.update()
-            table.add_row("AP L", f"{self.ap_large():.2%}")
-            pbar.update()
+        for metric_name, metric in tqdm(metrics.items(), desc="Evaluation"):
+            table.add_column(metric_name, justify="right", footer=f"{metric():.2%}")
 
-            table.add_row("AR 1", f"{self.ar_1():.2%}")
-            pbar.update()
-            table.add_row("AR 10", f"{self.ar_10():.2%}")
-            pbar.update()
-            table.add_row("AR 100", f"{self.ar_100():.2%}")
-            pbar.update()
-            
-            table.add_row("AR S", f"{self.ar_small():.2%}")
-            pbar.update()
-            table.add_row("AR M", f"{self.ar_medium():.2%}")
-            pbar.update()
-            table.add_row("AR L", f"{self.ar_large():.2%}")
-            pbar.update()
+        labels = sorted(self.ap_evaluation().keys())
+
+        for label in labels:
+            ap = self.ap_evaluation()[label]["ap"]
+            ap_50 = self.ap_50_evaluation()[label].ap
+            ap_75 = self.ap_75_evaluation()[label].ap
+
+            ap_s = self.small_evaluation()[label]["ap"]
+            ap_m = self.medium_evaluation()[label]["ap"]
+            ap_l = self.large_evaluation()[label]["ap"]
+
+            ar_1 = self.ar_1_evaluation()[label]["ap"]
+            ar_10 = self.ar_10_evaluation()[label]["ap"]
+            ar_100 = self.ar_100_evaluation()[label]["ap"]
+
+            ar_s = self.small_evaluation()[label]["ar"]
+            ar_m = self.medium_evaluation()[label]["ar"]
+            ar_l = self.large_evaluation()[label]["ar"]
+
+            table.add_row(label, 
+                f"{ap:.2%}", f"{ap_50:.2%}", f"{ap_75:.2%}", 
+                f"{ap_s:.2%}", f"{ap_m:.2%}", f"{ap_l:.2%}", 
+                f"{ar_1:.2%}", f"{ar_10:.2%}", f"{ar_100:.2%}", 
+                f"{ar_s:.2%}", f"{ar_m:.2%}", f"{ar_l:.2%}")
+
+        table.header_style = "bold"
+        table.footer_style = "bold"
+        table.row_styles = ["none", "dim"]
+        
+        for c in table.columns[1:4]: 
+            c.style = "red"
+            c.header_style = "red"
+            c.footer_style = "red"
+        for c in table.columns[4:7]: 
+            c.style = "magenta"
+            c.header_style = "magenta"
+            c.footer_style = "magenta"
+        for c in table.columns[7:10]: 
+            c.style = "blue"
+            c.header_style = "blue"
+            c.footer_style = "blue"
+        for c in table.columns[10:13]: 
+            c.style = "green"
+            c.header_style = "green"
+            c.footer_style = "green"
 
         pprint(table)
 
@@ -365,13 +492,9 @@ def _compute_ap(scores: "list[float]", matched: "list[bool]", NP: int) -> float:
     Copyrights: https://github.com/rafaelpadilla/review_object_detection_metrics
     """
     if NP == 0:
-        return None
+        return float("nan")
 
-    # by default evaluate on 101 recall levels
-    recall_thresholds = np.linspace(0.0,
-                                    1.00,
-                                    int(np.round((1.00 - 0.0) / 0.01)) + 1,
-                                    endpoint=True)
+    recall_steps = np.linspace(0.0, 1.0, 101, endpoint=True)
 
     # sort in descending score order
     scores = np.array(scores, dtype=float)
@@ -382,16 +505,13 @@ def _compute_ap(scores: "list[float]", matched: "list[bool]", NP: int) -> float:
     matched = matched[inds]
 
     tp = np.cumsum(matched)
-    fp = np.cumsum(~matched)
 
     rc = tp / NP
-    pr = tp / (tp + fp)
-
+    pr = tp / np.arange(1, len(matched)+1)
     # make precision monotonically decreasing
     i_pr = np.maximum.accumulate(pr[::-1])[::-1]
-    rec_idx = np.searchsorted(rc, recall_thresholds, side="left")
+    rec_idx = np.searchsorted(rc, recall_steps, side="left")
 
-    # get interpolated precision values at the evaluation thresholds
-    i_pr = np.array([i_pr[r] if r < len(i_pr) else 0 for r in rec_idx])
+    sum_ = i_pr[rec_idx[rec_idx < len(i_pr)]].sum()
 
-    return np.mean(i_pr)
+    return sum_ / len(rec_idx)

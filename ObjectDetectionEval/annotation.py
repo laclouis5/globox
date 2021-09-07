@@ -48,8 +48,8 @@ class Annotation:
         return {b.label for b in self.boxes}
 
     @staticmethod
-    def empty() -> "Annotation":
-        return Annotation(image_id="", image_size=(0, 0))
+    def empty_like(annotation: "Annotation") -> "Annotation":
+        return Annotation(image_id=annotation.image_id, image_size=annotation.image_size)
 
     @staticmethod
     def from_txt(

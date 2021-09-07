@@ -37,7 +37,7 @@ class AnnotationSet:
     def __getitem__(self, image_id: str) -> Annotation:
         return self._annotations[image_id]
 
-    def get(self, image_id: str, default: D) -> Union[Annotation, D]:
+    def get(self, image_id: str, default: D = None) -> Union[Annotation, D]:
         return self._annotations.get(image_id, default)
 
     def __len__(self) -> int:
