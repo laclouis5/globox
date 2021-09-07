@@ -1,3 +1,5 @@
+import rich
+from rich.style import Style
 from .annotation import Annotation
 from .annotationset import T, AnnotationSet
 from .boundingbox import BoundingBox
@@ -421,42 +423,6 @@ class COCOEvaluator:
 
         return PartialEvaluationItem(matches, scores, npos)
 
-    # def show_summary(self):
-    #     table = Table(title="COCO Evaluation")
-    #     table.add_column("Metric")
-    #     table.add_column("Value", justify="right")
-
-    #     with tqdm(desc="COCO Evaluation", total=12) as pbar:
-    #         table.add_row("AP", f"{self.ap():.2%}")
-    #         pbar.update()
-    #         table.add_row("AP 50", f"{self.ap_50():.2%}")
-    #         pbar.update()
-    #         table.add_row("AP 75", f"{self.ap_75():.2%}")
-    #         pbar.update()
-
-    #         table.add_row("AP S", f"{self.ap_small():.2%}")
-    #         pbar.update()
-    #         table.add_row("AP M", f"{self.ap_medium():.2%}")
-    #         pbar.update()
-    #         table.add_row("AP L", f"{self.ap_large():.2%}")
-    #         pbar.update()
-
-    #         table.add_row("AR 1", f"{self.ar_1():.2%}")
-    #         pbar.update()
-    #         table.add_row("AR 10", f"{self.ar_10():.2%}")
-    #         pbar.update()
-    #         table.add_row("AR 100", f"{self.ar_100():.2%}")
-    #         pbar.update()
-            
-    #         table.add_row("AR S", f"{self.ar_small():.2%}")
-    #         pbar.update()
-    #         table.add_row("AR M", f"{self.ar_medium():.2%}")
-    #         pbar.update()
-    #         table.add_row("AR L", f"{self.ar_large():.2%}")
-    #         pbar.update()
-
-    #     pprint(table)
-
     def show_summary(self):
         table = Table(title="COCO Evaluation", show_footer=True)
         table.add_column("Label", footer="Total")
@@ -494,6 +460,27 @@ class COCOEvaluator:
                 f"{ap_s:.2%}", f"{ap_m:.2%}", f"{ap_l:.2%}", 
                 f"{ar_1:.2%}", f"{ar_10:.2%}", f"{ar_100:.2%}", 
                 f"{ar_s:.2%}", f"{ar_m:.2%}", f"{ar_l:.2%}")
+
+        table.header_style = "bold"
+        table.footer_style = "bold"
+        table.row_styles = ["none", "dim"]
+        
+        for c in table.columns[1:4]: 
+            c.style = "red"
+            c.header_style = "red"
+            c.footer_style = "red"
+        for c in table.columns[4:7]: 
+            c.style = "magenta"
+            c.header_style = "magenta"
+            c.footer_style = "magenta"
+        for c in table.columns[7:10]: 
+            c.style = "blue"
+            c.header_style = "blue"
+            c.footer_style = "blue"
+        for c in table.columns[10:13]: 
+            c.style = "green"
+            c.header_style = "green"
+            c.footer_style = "green"
 
         pprint(table)
 
