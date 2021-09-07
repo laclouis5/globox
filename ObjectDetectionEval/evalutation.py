@@ -428,7 +428,7 @@ class COCOEvaluator:
         table.add_column("Label", footer="Total")
 
         metrics = {
-            "AP": self.ap, "AP 50": self.ap_50, "AP 75": self.ap_75, 
+            "AP 50:95": self.ap, "AP 50": self.ap_50, "AP 75": self.ap_75, 
             "AP S": self.ap_small, "AP M": self.ap_medium, "AP L": self.ap_large, 
             "AR 1": self.ar_1, "AR 10": self.ar_10, "AR 100": self.ar_100, 
             "AR S": self.ar_small, "AR M": self.ar_medium, "AR L": self.ar_large}
