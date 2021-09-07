@@ -1,12 +1,10 @@
-from ObjectDetectionEval.evalutation import Evaluation
-import enum
 from ObjectDetectionEval import *
 from pathlib import Path
 
 
 def main() -> None:
     gts_path = Path("~/Documents/darknet/data/database_8.2_norm/val/").expanduser()
-    dets_path = Path("~/Documents/darknet/results/yolov3-tiny_3l_15/predictions/").expanduser()
+    dets_path = Path("~/Documents/darknet/results/yolov4_7/predictions/").expanduser()
 
     names = {str(i): n for i, n in enumerate(["maize", "bean", "leek", "stem_maize", "stem_bean", "stem_leek"])}
 

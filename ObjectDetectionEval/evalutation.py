@@ -1,61 +1,19 @@
-from dataclasses import dataclass
-import dataclasses
 from .annotation import Annotation
 from .annotationset import T, AnnotationSet
 from .boundingbox import BoundingBox
 from .utils import grouping, all_equal, mean
 
-from typing import DefaultDict, Mapping, Optional, Union, Iterable
-from copy import copy
-
+from typing import DefaultDict, Dict, Mapping, Optional, Union, Iterable
+from collections import defaultdict
+from dataclasses import dataclass
+import dataclasses
 import numpy as np
-from rich.table import Column, Table
+from copy import copy
+from math import isnan
+
+from rich.table import Table
 from rich import print as pprint
 from tqdm import tqdm
-
-
-class Evaluatable:
-
-    """Interface for evaluating and displaying results."""
-
-    def tp(self) -> int: 
-        raise NotImplementedError
-
-    def npos(self) -> int: 
-        raise NotImplementedError
-
-    def ndet(self) -> int: 
-        raise NotImplementedError
-
-    def ap(self) -> float: 
-        raise NotImplementedError
-
-    def ar(self) -> float: 
-        raise NotImplementedError
-
-    def fp(self) -> int:
-        return self.ndet() - self.tp()
-
-    def fn(self) -> int:
-        return self.npos() - self.ndet()
-
-    def precision(self) -> float:
-        return self.tp() / self.ndet() if self.ndet() != 0 else 1.0 if self.npos() == 0 else 0.0
-
-    def recall(self) -> float:
-        return self.tp() / self.npos() if self.npos() != 0 else 1.0 if self.ndet() == 0 else 0.0
-
-    def f1_score(self) -> float:
-        s = self.npos() + self.ndet()
-        return 2.0 * self.tp / s if s != 0 else 1.0
-
-    def show_summary(self):
-        headers = ("Gts", "Dets", "TP", "FP", "FN", "Recall", "Precision", "F1-score", "AP", "AR")
-        table = Table(*(Column(h, justify="right") for h in headers))
-        metrics_q = self.npos(), self.ndet(), self.tp(), self.fp(), self.fn()
-        metrics_p = self.recall(), self.precision(), self.f1_score(), self.ap(), self.ar()
-        table.add_row(*(f"{q}" for q in metrics_q), *(f"{p:.2%}" for p in metrics_p))
-        pprint(table)
 
 
 class PartialEvaluationItem:
@@ -99,7 +57,7 @@ class PartialEvaluationItem:
         assert tp <= self._npos
         return tp
 
-    def ap(self) -> Optional[float]:
+    def ap(self) -> float:
         if (ap := self._cache.get("ap")) is not None:
             return ap
         ap = _compute_ap(self._scores, self._tps, self._npos)
@@ -110,7 +68,7 @@ class PartialEvaluationItem:
         if (ar :=self._cache.get("ar")) is not None:
             return ar
         tp = self.tp()
-        ar = tp / self._npos if self._npos != 0 else None
+        ar = tp / self._npos if self._npos != 0 else float("nan")
         self._cache["ar"] = ar
         return ar
 
@@ -133,16 +91,14 @@ class EvaluationItem:
         self.ar = ar
 
 
-# TODO: This inheriting DefaultDict is overkill
 class PartialEvaluation(DefaultDict[str, PartialEvaluationItem]):
 
     """Do not mutate this excepted with defined methods."""
 
     def __init__(self, items: Mapping[str, PartialEvaluationItem] = None):
+        super().__init__(lambda: PartialEvaluationItem())
         if items is not None:
-            super().__init__(lambda: PartialEvaluationItem(), map=items)
-        else:
-            super().__init__(lambda: PartialEvaluationItem())
+            self.update(items)
         self._cache = {}
 
     def __iadd__(self, other: "PartialEvaluation") -> "PartialEvaluation":
@@ -159,14 +115,14 @@ class PartialEvaluation(DefaultDict[str, PartialEvaluationItem]):
     def ap(self) -> float:
         if (ap := self._cache.get("ap")) is not None:
             return ap
-        ap = mean(ap for ev in self.values() if (ap := ev.ap()) is not None)
+        ap = mean(ap for ev in self.values() if not isnan(ap := ev.ap()))
         self._cache["ap"] = ap
         return ap
 
     def ar(self) -> float:
         if (ar := self._cache.get("ar")) is not None:
             return ar
-        ar = mean(ar for ev in self.values() if (ar := ev.ar()) is not None)
+        ar = mean(ar for ev in self.values() if not isnan(ar := ev.ar()))
         self._cache["ar"] = ar
         return ar
 
@@ -177,29 +133,40 @@ class PartialEvaluation(DefaultDict[str, PartialEvaluationItem]):
         return Evaluation(self)
 
 
-class Evaluation:
+class Evaluation(DefaultDict[str, EvaluationItem]):
     
     def __init__(self, evaluation: PartialEvaluation) -> None:
-        self.evaluations = {label: ev.evaluate() for label, ev in evaluation.items()}
-        self._cache = {"ap": evaluation.ap(), "ar": evaluation.ar()}
+        super().__init__(lambda: PartialEvaluation())
+        self.update({label: ev.evaluate() for label, ev in evaluation.items()})
+        
+        self._ap = evaluation.ap()
+        self._ar = evaluation.ar()
 
     def ap(self) -> float:
-        if (ap := self._cache.get("ap")) is not None:
-            return ap
-        ap = mean(ev.ap for ev in self.evaluations.values() if ev.ap is not None)
-        self._cache["ap"] = ap
-        return ap
+        return self._ap
 
     def ar(self) -> float:
-        if (ar := self._cache.get("ar")) is not None:
-            return ar
-        ar = mean(ev.ar for ev in self.evaluations.values() if ev.ar is not None)
-        self._cache["ar"] = ar
-        return ar
+        return self._ar
 
-    def clear_cache(self):
-        self._cache.clear()
 
+class MultiThresholdEvaluation(Dict[str, Dict[str, float]]):
+
+    def __init__(self, evaluations: "list[Evaluation]") -> None:
+        result = defaultdict(list)
+        for evaluation in evaluations:
+            for label, ev_item in evaluation.items():
+                result[label].append(ev_item)
+
+        super().__init__({
+            label: {"ap": mean(ev.ap for ev in evs if not isnan(ev.ap)), "ar": mean(ev.ar for ev in evs if not isnan(ev.ar))} 
+                for label, evs in result.items()})
+
+    def ap(self) -> float:
+        return mean(ev["ap"] for ev in self.values() if not isnan(ev["ap"]))
+    
+    def ar(self) -> float:
+        return mean(ev["ar"] for ev in self.values() if not isnan(ev["ar"]))
+    
 
 @dataclass(unsafe_hash=True)
 class EvaluationParams:
@@ -275,62 +242,77 @@ class COCOEvaluator:
 
         return evaluation
 
+    def ap_evaluation(self) -> MultiThresholdEvaluation:
+        evaluations = [self.evaluate(t, 100) for t in self.AP_THRESHOLDS]
+        return MultiThresholdEvaluation(evaluations)
+
     def ap(self) -> float:
-        ap = 0.0
-        for iou_threshold in self.AP_THRESHOLDS:
-            ap += self.evaluate(iou_threshold, 100).ap()
-        return ap / len(self.AP_THRESHOLDS)
+        return self.ap_evaluation().ap()
+
+    def ap_50_evaluation(self) -> Evaluation:
+        return self.evaluate(0.5, 100)
 
     def ap_50(self) -> float:
-        return self.evaluate(0.5, 100).ap()
+        return self.ap_50_evaluation().ap()
+
+    def ap_75_evaluation(self) -> Evaluation:
+        return self.evaluate(0.75, 100)
 
     def ap_75(self) -> float:
-        return self.evaluate(0.75, 100).ap()
+        return self.ap_75_evaluation().ap()
 
-    def _ap_range(self, range_: "tuple[float, float]") -> float:
-        ap = 0.0
-        for iou_threshold in self.AP_THRESHOLDS:
-            ap += self.evaluate(iou_threshold, 100, range_).ap()
-        return ap / len(self.AP_THRESHOLDS)
+    def _range_evalation(self, range_: "tuple[float, float]") -> MultiThresholdEvaluation:
+        evaluations = [self.evaluate(t, 100, range_) for t in self.AP_THRESHOLDS]
+        return MultiThresholdEvaluation(evaluations)
 
-    def _ar_range(self, range_: "tuple[float, float]") -> float:
-        ar = 0.0
-        for iou_threshold in self.AP_THRESHOLDS:
-            ar += self.evaluate(iou_threshold, 100, range_).ar()
-        return ar / len(self.AP_THRESHOLDS)
+    def _ndets_evaluation(self, max_dets: int) -> MultiThresholdEvaluation:
+        evaluations = [self.evaluate(t, max_dets) for t in self.AP_THRESHOLDS]
+        return MultiThresholdEvaluation(evaluations)
 
-    def _ar_ndets(self, max_dets: int) -> float:
-        ar = 0.0
-        for iou_threshold in self.AP_THRESHOLDS:
-            ar += self.evaluate(iou_threshold, max_dets).ar()
-        return ar / len(self.AP_THRESHOLDS)
+    def small_evaluation(self) -> MultiThresholdEvaluation:
+        return self._range_evalation(self.SMALL_RANGE)
 
     def ap_small(self) -> float:
-        return self._ap_range(self.SMALL_RANGE)
+        return self.small_evaluation().ap()
+
+    def medium_evaluation(self) -> MultiThresholdEvaluation:
+        return self._range_evalation(self.MEDIUM_RANGE)
 
     def ap_medium(self) -> float:
-        return self._ap_range(self.MEDIUM_RANGE)
+        return self.medium_evaluation().ap()
+
+    def large_evaluation(self) -> MultiThresholdEvaluation:
+        return self._range_evalation(self.LARGE_RANGE)
 
     def ap_large(self) -> float:
-        return self._ap_range(self.LARGE_RANGE)
+        return self.large_evaluation().ap()
+
+    def ar_100_evaluation(self) -> MultiThresholdEvaluation:
+        return self._ndets_evaluation(100)
 
     def ar_100(self) -> float:
-        return self._ar_ndets(100)
+        return self.ar_100_evaluation().ar()
     
+    def ar_10_evaluation(self) -> MultiThresholdEvaluation:
+        return self._ndets_evaluation(10)
+
     def ar_10(self) -> float:
-        return self._ar_ndets(10)
+        return self.ar_10_evaluation().ar()
+
+    def ar_1_evaluation(self) -> MultiThresholdEvaluation:
+        return self._ndets_evaluation(1)
 
     def ar_1(self) -> float:
-        return self._ar_ndets(1)
+        return self.ar_1_evaluation().ar()
 
     def ar_small(self) -> float:
-        return self._ar_range(self.SMALL_RANGE)
+        return self.small_evaluation().ar()
 
     def ar_medium(self) -> float:
-        return self._ar_range(self.MEDIUM_RANGE)
+        return self.medium_evaluation().ar()
 
     def ar_large(self) -> float:
-        return self._ar_range(self.LARGE_RANGE)
+        return self.large_evaluation().ar()
 
     @classmethod
     def evaluate_annotations(cls,
@@ -439,57 +421,81 @@ class COCOEvaluator:
 
         return PartialEvaluationItem(matches, scores, npos)
 
-    def show_summary(self):
-        table = Table(title="COCO Evaluation")
-        table.add_column("Metric")
-        table.add_column("Value", justify="right")
+    # def show_summary(self):
+    #     table = Table(title="COCO Evaluation")
+    #     table.add_column("Metric")
+    #     table.add_column("Value", justify="right")
 
-        with tqdm(desc="COCO Evaluation", total=12) as pbar:
-            table.add_row("AP", f"{self.ap():.2%}")
-            pbar.update()
-            table.add_row("AP 50", f"{self.ap_50():.2%}")
-            pbar.update()
-            table.add_row("AP 75", f"{self.ap_75():.2%}")
-            pbar.update()
+    #     with tqdm(desc="COCO Evaluation", total=12) as pbar:
+    #         table.add_row("AP", f"{self.ap():.2%}")
+    #         pbar.update()
+    #         table.add_row("AP 50", f"{self.ap_50():.2%}")
+    #         pbar.update()
+    #         table.add_row("AP 75", f"{self.ap_75():.2%}")
+    #         pbar.update()
 
-            table.add_row("AP S", f"{self.ap_small():.2%}")
-            pbar.update()
-            table.add_row("AP M", f"{self.ap_medium():.2%}")
-            pbar.update()
-            table.add_row("AP L", f"{self.ap_large():.2%}")
-            pbar.update()
+    #         table.add_row("AP S", f"{self.ap_small():.2%}")
+    #         pbar.update()
+    #         table.add_row("AP M", f"{self.ap_medium():.2%}")
+    #         pbar.update()
+    #         table.add_row("AP L", f"{self.ap_large():.2%}")
+    #         pbar.update()
 
-            table.add_row("AR 1", f"{self.ar_1():.2%}")
-            pbar.update()
-            table.add_row("AR 10", f"{self.ar_10():.2%}")
-            pbar.update()
-            table.add_row("AR 100", f"{self.ar_100():.2%}")
-            pbar.update()
+    #         table.add_row("AR 1", f"{self.ar_1():.2%}")
+    #         pbar.update()
+    #         table.add_row("AR 10", f"{self.ar_10():.2%}")
+    #         pbar.update()
+    #         table.add_row("AR 100", f"{self.ar_100():.2%}")
+    #         pbar.update()
             
-            table.add_row("AR S", f"{self.ar_small():.2%}")
-            pbar.update()
-            table.add_row("AR M", f"{self.ar_medium():.2%}")
-            pbar.update()
-            table.add_row("AR L", f"{self.ar_large():.2%}")
-            pbar.update()
+    #         table.add_row("AR S", f"{self.ar_small():.2%}")
+    #         pbar.update()
+    #         table.add_row("AR M", f"{self.ar_medium():.2%}")
+    #         pbar.update()
+    #         table.add_row("AR L", f"{self.ar_large():.2%}")
+    #         pbar.update()
+
+    #     pprint(table)
+
+    def show_summary(self):
+        table = Table(title="COCO Evaluation", show_footer=True)
+        table.add_column("Label", footer="Total")
+
+        metrics = {
+            "AP": self.ap, "AP 50": self.ap_50, "AP 75": self.ap_75, 
+            "AP S": self.ap_small, "AP M": self.ap_medium, "AP L": self.ap_large, 
+            "AR 1": self.ar_1, "AR 10": self.ar_10, "AR 100": self.ar_100, 
+            "AR S": self.ar_small, "AR M": self.ar_medium, "AR L": self.ar_large}
+
+        for metric_name, metric in tqdm(metrics.items(), desc="Evaluation"):
+            table.add_column(metric_name, justify="right", footer=f"{metric():.2%}")
+
+        labels = sorted(self.ap_evaluation().keys())
+
+        for label in labels:
+            ap = self.ap_evaluation()[label]["ap"]
+            ap_50 = self.ap_50_evaluation()[label].ap
+            ap_75 = self.ap_75_evaluation()[label].ap
+
+            ap_s = self.small_evaluation()[label]["ap"]
+            ap_m = self.medium_evaluation()[label]["ap"]
+            ap_l = self.large_evaluation()[label]["ap"]
+
+            ar_1 = self.ar_1_evaluation()[label]["ap"]
+            ar_10 = self.ar_10_evaluation()[label]["ap"]
+            ar_100 = self.ar_100_evaluation()[label]["ap"]
+
+            ar_s = self.small_evaluation()[label]["ar"]
+            ar_m = self.medium_evaluation()[label]["ar"]
+            ar_l = self.large_evaluation()[label]["ar"]
+
+            table.add_row(label, 
+                f"{ap:.2%}", f"{ap_50:.2%}", f"{ap_75:.2%}", 
+                f"{ap_s:.2%}", f"{ap_m:.2%}", f"{ap_l:.2%}", 
+                f"{ar_1:.2%}", f"{ar_10:.2%}", f"{ar_100:.2%}", 
+                f"{ar_s:.2%}", f"{ar_m:.2%}", f"{ar_l:.2%}")
 
         pprint(table)
-
-    def show_extended_summary(self) -> None:
-        assert self.labels is not None, "Provide labels to evaluate for the extended summary"
-        labels = sorted(self.labels)
-
-        table = Table(title="COCO Evaluation", show_footer=True)
-        table.add_column("Label")
-
-        
-        
-        for metric_name in ("AP", "AP 50", "AP 75", "AP S", "AP M", "AP L", "AR 1", "AR 10", "AR 100", "AR S" "AR M", "AR L"):
-            table.add_column(metric_name, justify="right")
-
-
-
-
 
 
 def _compute_ap(scores: "list[float]", matched: "list[bool]", NP: int) -> float:
@@ -499,7 +505,7 @@ def _compute_ap(scores: "list[float]", matched: "list[bool]", NP: int) -> float:
     Copyrights: https://github.com/rafaelpadilla/review_object_detection_metrics
     """
     if NP == 0:
-        return None
+        return float("nan")
 
     recall_steps = np.linspace(0.0, 1.0, 101, endpoint=True)
 
