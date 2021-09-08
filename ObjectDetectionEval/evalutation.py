@@ -328,7 +328,7 @@ class COCOEvaluator:
         image_ids = ground_truths.image_ids | predictions.image_ids
         evaluation = PartialEvaluation()
 
-        for image_id in image_ids:
+        for image_id in sorted(image_ids):  # Sorted to ensure reproductibility
             gt = ground_truths.get(image_id) or Annotation.empty_like(predictions[image_id])
             pred = predictions.get(image_id) or Annotation.empty_like(ground_truths[image_id])
 
@@ -346,8 +346,7 @@ class COCOEvaluator:
         size_range: "tuple[float, float]" = None
     ) -> PartialEvaluation:
         assert prediction.image_id == ground_truth.image_id
-        # TODO: Benchmark this redundant computation perf penalty
-        # Those two can be hoisted up if slow
+
         preds = grouping(prediction.boxes, lambda box: box.label)
         refs = grouping(ground_truth.boxes, lambda box: box.label)
         labels = labels or set(preds.keys()).union(refs.keys())
@@ -370,7 +369,6 @@ class COCOEvaluator:
         max_detections: int = None,
         size_range: "tuple[float, float]" = None
     ) -> PartialEvaluationItem:
-        # TODO: Optimize a little bit this
         assert all(p.is_detection for p in predictions)
         assert all(g.is_ground_truth for g in ground_truths)
         assert all_equal(p.label for p in predictions)
@@ -407,7 +405,6 @@ class COCOEvaluator:
             if idx_best == -1:
                 continue
 
-            # gt_matches.add(idx_best)
             dt_matches[idx_dt] = idx_best
             gt_matches[idx_best] = idx_dt
         
