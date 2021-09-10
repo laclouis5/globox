@@ -1,7 +1,5 @@
-import rich
-from rich.style import Style
 from .annotation import Annotation
-from .annotationset import T, AnnotationSet
+from .annotationset import AnnotationSet
 from .boundingbox import BoundingBox
 from .utils import grouping, all_equal, mean
 
@@ -433,7 +431,7 @@ class COCOEvaluator:
         for metric_name, metric in tqdm(metrics.items(), desc="Evaluation"):
             table.add_column(metric_name, justify="right", footer=f"{metric():.2%}")
 
-        labels = sorted(self.ap_evaluation().keys())
+        labels = self.labels or sorted(self.ap_evaluation().keys())
 
         for label in labels:
             ap = self.ap_evaluation()[label]["ap"]
