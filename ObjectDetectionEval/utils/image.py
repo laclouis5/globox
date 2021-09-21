@@ -23,9 +23,9 @@ def get_image_size(file_path: Path) -> "tuple[int, int]":
     Return an `Image` object for a given img file content - no external
     dependencies except the os and struct builtin modules
     Args:
-        file_path (str): path to an image file
+        - file_path (str): path to an image file
     Returns:
-        Image: (path, type, file_size, width, height)
+        - The image size (width, height)
     """
     size = os.path.getsize(file_path)
 
