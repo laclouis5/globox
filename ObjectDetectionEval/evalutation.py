@@ -15,6 +15,7 @@ from rich.table import Table
 from rich import print as pprint
 from tqdm import tqdm
 
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
 class PartialEvaluationItem:
 
@@ -422,6 +423,8 @@ class COCOEvaluator:
         table = Table(title="COCO Evaluation", show_footer=True)
         table.add_column("Label", footer="Total")
 
+        # TODO: ProcessPoolExecutor + submit?
+        # Requires to submit 'evaluate' jobs to the pool (not self.ap etc. because they mutate the underlying shared cache)
         metrics = {
             "AP 50:95": self.ap, "AP 50": self.ap_50, "AP 75": self.ap_75, 
             "AP S": self.ap_small, "AP M": self.ap_medium, "AP L": self.ap_large, 

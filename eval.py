@@ -13,7 +13,6 @@ def main() -> None:
 
     evaluation = COCOEvaluator(gts, dets)
     evaluation.show_summary()
-    evaluation.save_csv_summary(Path("yolov4-tiny_15.csv"))
 
 
 if __name__ == "__main__":
