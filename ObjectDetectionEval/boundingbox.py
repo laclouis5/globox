@@ -4,12 +4,15 @@ import xml.etree.ElementTree as et
 
 
 class BoundingBox:
-    """
-    You are responsible for ensuring that xmin <= xmax and ymin <= ymax
-    at every moment.
-    """
+    """Represents a bounding box with a label and an optional confidence score.
 
-    __slots__ = ("label", "xmin", "ymin", "xmax", "ymax", "confidence")
+    The bounding box coordinates are specified by the top-left corner (xmin, ymin)
+    and the bottom-right corner (xmax, ymax). Coordinates are absolute (i.e. in pixels).
+
+    Use the '.create(...)' classmethod to create a BoundingBox using a different coordinate
+    system."""
+
+    __slots__ = ("label", "_xmin", "_ymin", "_xmax", "_ymax", "_confidence")
 
     def __init__(self, 
         label: str, 
@@ -19,35 +22,61 @@ class BoundingBox:
         ymax: float,
         confidence: float = None
     ) -> None:
-        assert xmin <= xmax, "xmax must be greater than xmin"
-        assert ymin <= ymax, "ymax must be greater than ymin"
+        assert xmin <= xmax, "'xmax' must be greater than 'xmin'"
+        assert ymin <= ymax, "'ymax' must be greater than 'ymin'"
 
         if confidence: 
             assert 0.0 <= confidence <= 1.0, \
                 f"Confidence ({confidence}) should be in 0...1"
 
         self.label = label
-        self.xmin = xmin
-        self.ymin = ymin
-        self.xmax = xmax
-        self.ymax = ymax
-        self.confidence = confidence
+        self._xmin = xmin
+        self._ymin = ymin
+        self._xmax = xmax
+        self._ymax = ymax
+        self._confidence = confidence
 
     @property
-    def xmid(self) -> float: 
-        return (self.xmin + self.xmax) / 2.0
+    def confidence(self) -> float:
+        return self._confidence
+
+    @confidence.setter
+    def confidence(self, confidence: float):
+        assert 0.0 <= confidence <= 1.0, \
+                f"Confidence ({confidence}) should be in 0...1"
+        self._confidence = confidence
+
+    @property
+    def xmin(self) -> float:
+        return self._xmin
+
+    @property
+    def ymin(self) -> float:
+        return self._ymin
+
+    @property
+    def xmax(self) -> float:
+        return self._xmax
+
+    @property
+    def ymax(self) -> float:
+        return self._ymax
+
+    @property
+    def xmid(self) -> float:
+        return (self._xmin + self._xmax) / 2.0
 
     @property
     def ymid(self) -> float: 
-        return (self.ymin + self.ymax) / 2.0
+        return (self._ymin + self._ymax) / 2.0
     
     @property
     def width(self) -> float: 
-        return self.xmax - self.xmin
+        return self._xmax - self._xmin
 
     @property
     def height(self) -> float: 
-        return self.ymax - self.ymin
+        return self._ymax - self._ymin
 
     @property
     def area(self) -> float:
@@ -59,15 +88,16 @@ class BoundingBox:
 
     @property
     def pascal_area(self) -> int:
-        width = int(self.xmax) - int(self.xmin) + 1
-        height = int(self.ymax) - int(self.ymin) + 1
+        width = int(self._xmax) - int(self._xmin) + 1
+        height = int(self._ymax) - int(self._ymin) + 1
         return width * height
 
     def iou(self, other: "BoundingBox") -> float:
-        xmin = max(self.xmin, other.xmin)
-        ymin = max(self.ymin, other.ymin)
-        xmax = min(self.xmax, other.xmax)
-        ymax = min(self.ymax, other.ymax)
+        """Intersection over Union computed with float coordinates."""
+        xmin = max(self._xmin, other._xmin)
+        ymin = max(self._ymin, other._ymin)
+        xmax = min(self._xmax, other._xmax)
+        ymax = min(self._ymax, other._ymax)
 
         if xmax < xmin or ymax < ymin:
             return 0.0
@@ -81,10 +111,11 @@ class BoundingBox:
         return intersection / union
 
     def pascal_iou(self, other: "BoundingBox") -> float:
-        xmin = max(int(self.xmin), int(other.xmin))
-        ymin = max(int(self.ymin), int(other.ymin))
-        xmax = min(int(self.xmax), int(other.xmax))
-        ymax = min(int(self.ymax), int(other.ymax))
+        """Intersection over Union computed with integer coordinates."""
+        xmin = max(int(self._xmin), int(other._xmin))
+        ymin = max(int(self._ymin), int(other._ymin))
+        xmax = min(int(self._xmax), int(other._xmax))
+        ymax = min(int(self._ymax), int(other._ymax))
 
         if xmax < xmin or ymax < ymin:
             return 0.0
@@ -99,11 +130,11 @@ class BoundingBox:
 
     @property
     def is_detection(self) -> bool:
-        return self.confidence is not None
+        return self._confidence is not None
 
     @property
     def is_ground_truth(self) -> bool:
-        return self.confidence is None
+        return self._confidence is None
 
     @staticmethod
     def rel_to_abs(coords: Coordinates, size: "tuple[int, int]") -> Coordinates:
@@ -130,18 +161,18 @@ class BoundingBox:
 
     @property
     def ltrb(self) -> Coordinates:
-        return self.xmin, self.ymin, self.xmax, self.ymax
+        return self._xmin, self._ymin, self._xmax, self._ymax
 
     @property
     def ltwh(self) -> Coordinates:
-        return self.xmin, self.ymin, self.width, self.height
+        return self._xmin, self._ymin, self.width, self.height
 
     @property
     def xywh(self) -> Coordinates:
         return self.xmid, self.ymid, self.width, self.height
 
-    @staticmethod
-    def create(
+    @classmethod
+    def create(cls,
         label: str, 
         coords: Coordinates, 
         confidence: float = None,
@@ -151,18 +182,18 @@ class BoundingBox:
     ) -> "BoundingBox":
         if relative:
             assert image_size is not None, "For relative coordinates image_size should be provided"
-            coords = BoundingBox.rel_to_abs(coords, image_size)
+            coords = cls.rel_to_abs(coords, image_size)
 
         if box_format is BoxFormat.LTWH:
-            coords = BoundingBox.ltwh_to_ltrb(coords)
+            coords = cls.ltwh_to_ltrb(coords)
         elif box_format is BoxFormat.XYWH:
-            coords = BoundingBox.xywh_to_ltrb(coords)
+            coords = cls.xywh_to_ltrb(coords)
         elif box_format is BoxFormat.LTRB:
             pass
         else:
             raise ValueError(f"Unknown BoxFormat '{box_format}'")
 
-        return BoundingBox(label, *coords, confidence)
+        return cls(label, *coords, confidence)
 
     @staticmethod
     def from_txt(
@@ -257,7 +288,7 @@ class BoundingBox:
         if self.is_ground_truth:
             return separator.join(f"{v}" for v in (label, *coords))
         else:
-            return separator.join(f"{v}" for v in (label, self.confidence, *coords))
+            return separator.join(f"{v}" for v in (label, self._confidence, *coords))
 
     def to_yolo(self,
         image_size: "tuple[int, int]",
@@ -298,4 +329,4 @@ class BoundingBox:
         return box_node
 
     def __repr__(self) -> str:
-        return f"BoundingBox(xmin: {self.xmin}, ymin: {self.ymin}, xmax: {self.xmax}, ymax: {self.ymax}, confidence: {self.confidence})"
+        return f"BoundingBox(label: {self.label}, xmin: {self._xmin}, ymin: {self._ymin}, xmax: {self._xmax}, ymax: {self._ymax}, confidence: {self._confidence})"

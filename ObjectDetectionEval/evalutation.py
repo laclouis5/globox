@@ -15,7 +15,8 @@ from rich.table import Table
 from rich import print as pprint
 from tqdm import tqdm
 
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+import itertools
+
 
 class PartialEvaluationItem:
 
@@ -171,6 +172,8 @@ class MultiThresholdEvaluation(Dict[str, Dict[str, float]]):
 
 @dataclass(unsafe_hash=True)
 class EvaluationParams:
+    """Holds the parameters which impact COCO evaluation."""
+
     iou_threshold: float
     max_detections: Optional[int]
     size_range: Optional["tuple[float, float]"]
@@ -201,6 +204,16 @@ class EvaluationParams:
 
 
 class COCOEvaluator:
+    """Class for evaluating standard COCO metrics efficently.
+    
+    This class use an internal cache to store evaluation results, 
+    hence, repeated calls to '.evaluate(...)', '.ap50()' and other 
+    such methods are fast.
+
+    There are lots of asserts in the evaluation hot path to ensure
+    a valid evaluation, speed gains can be otained by disabling them
+    (python3 --OO ...).
+    """
 
     AP_THRESHOLDS = (0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95)
     
@@ -227,6 +240,21 @@ class COCOEvaluator:
         max_detections: int = None, 
         size_range: "tuple[int, int]" = None
     ) -> Evaluation:
+        """COCO evaluation with custom parameters. The result
+        is cached so that repeated call as fast.
+
+        Parameters:
+        - iou_threshold: the bounding box iou threshold to 
+        consider a ground-truth to detection association valid.
+        - max_detections: the maximum number of detections taken
+        into account (sorted by descreasing confidence). Defaults
+        to no maximum.
+        - size_range: the range of size (bounding box area) to 
+        consider. Defaults to all sizes.
+
+        Returns:
+        - An evaluation holding the metrics.
+        """
         key = EvaluationParams(iou_threshold, max_detections, size_range)
         if (evaluation := self.evaluations.get(key)) is not None:
             return evaluation
@@ -328,8 +356,8 @@ class COCOEvaluator:
         evaluation = PartialEvaluation()
 
         for image_id in sorted(image_ids):  # Sorted to ensure reproductibility
-            gt = ground_truths.get(image_id) or Annotation.empty_like(predictions[image_id])
-            pred = predictions.get(image_id) or Annotation.empty_like(ground_truths[image_id])
+            gt = ground_truths.get(image_id) or Annotation._empty_like(predictions[image_id])
+            pred = predictions.get(image_id) or Annotation._empty_like(ground_truths[image_id])
 
             evaluation += cls.evaluate_annotation(
                 pred, gt, iou_threshold, labels, max_detections, size_range)
@@ -376,7 +404,7 @@ class COCOEvaluator:
         iou_threshold, max_detections, size_range = EvaluationParams.format(
             iou_threshold, max_detections, size_range)
 
-        dets = sorted(predictions, key=lambda box: box.confidence, reverse=True)
+        dets = sorted(predictions, key=lambda box: box._confidence, reverse=True)
         if max_detections is not None:
             dets = dets[:max_detections]
 
@@ -411,7 +439,7 @@ class COCOEvaluator:
         dt_ignore = [gt_ignore[dt_matches[i]] if i in dt_matches else not d.area_in(size_range)
             for i, d in enumerate(dets)]
 
-        scores = [d.confidence
+        scores = [d._confidence
             for i, d in enumerate(dets) if not dt_ignore[i]]
         matches = [i in dt_matches
             for i in range(len(dets)) if not dt_ignore[i]]
@@ -419,19 +447,38 @@ class COCOEvaluator:
 
         return PartialEvaluationItem(matches, scores, npos)
 
+    def _evaluate_all(self):
+        params = itertools.chain(
+            itertools.product(
+                self.AP_THRESHOLDS, 
+                (100,), 
+                ((0.0, float("inf")),)),
+            itertools.product(
+                self.AP_THRESHOLDS, 
+                (100,),
+                (self.SMALL_RANGE, self.MEDIUM_RANGE, self.LARGE_RANGE)),
+            itertools.product(
+                self.AP_THRESHOLDS, 
+                (1, 10), 
+                ((0.0, float("inf")),)))
+
+        for t, d, r in tqdm(params, desc="Evaluation", total=60):
+            self.evaluate(t, d, r)
+
     def show_summary(self):
+        """Compute and show the standard COCO metrics."""
+        self._evaluate_all()
+
         table = Table(title="COCO Evaluation", show_footer=True)
         table.add_column("Label", footer="Total")
 
-        # TODO: ProcessPoolExecutor + submit?
-        # Requires to submit 'evaluate' jobs to the pool (not self.ap etc. because they mutate the underlying shared cache)
         metrics = {
             "AP 50:95": self.ap, "AP 50": self.ap_50, "AP 75": self.ap_75, 
             "AP S": self.ap_small, "AP M": self.ap_medium, "AP L": self.ap_large, 
             "AR 1": self.ar_1, "AR 10": self.ar_10, "AR 100": self.ar_100, 
             "AR S": self.ar_small, "AR M": self.ar_medium, "AR L": self.ar_large}
 
-        for metric_name, metric in tqdm(metrics.items(), desc="Evaluation"):
+        for metric_name, metric in metrics.items():
             table.add_column(metric_name, justify="right", footer=f"{metric():.2%}")
 
         labels = self.labels or sorted(self.ap_evaluation().keys())

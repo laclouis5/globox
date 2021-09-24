@@ -61,19 +61,19 @@ def tests_bounding_box():
         pass
 
     b = BoundingBox(label="", xmin=0, ymin=0, xmax=0, ymax=0, confidence=0.666)
-    assert b.confidence == 0.666
+    assert b._confidence == 0.666
 
     b = BoundingBox(label="", xmin=0, ymin=0, xmax=0, ymax=0, confidence=0.0)
-    assert b.confidence == 0.0
+    assert b._confidence == 0.0
 
     b = BoundingBox(label="", xmin=0, ymin=0, xmax=0, ymax=0, confidence=1.0)
-    assert b.confidence == 1.0
+    assert b._confidence == 1.0
 
     b = BoundingBox(label="", xmin=-1, ymin=0, xmax=1, ymax=2)
-    assert b.xmin == -1
-    assert b.ymin == 0
-    assert b.xmax == 1
-    assert b.ymax == 2
+    assert b._xmin == -1
+    assert b._ymin == 0
+    assert b._xmax == 1
+    assert b._ymax == 2
     assert b.xmid == 0.0
     assert b.ymid == 1.0
     assert b.width == 2.0
@@ -205,11 +205,11 @@ def tests_parsing():
 
     for s in dets_sets:
         for b in s.all_boxes:
-            assert isinstance(b.confidence, float) and 0 <= b.confidence <= 1
+            assert isinstance(b._confidence, float) and 0 <= b._confidence <= 1
 
     for i, s in enumerate(gts_sets):
         for b in s.all_boxes:
-            assert b.confidence is None, f"dataset: {i}, Conf: {type(b.confidence)}"
+            assert b._confidence is None, f"dataset: {i}, Conf: {type(b._confidence)}"
             for c, s in zip(box.ltrb, annotation.image_size*2):
                 assert c < s, f"dataset {i}, {c}, {annotation.image_size}, {annotation.image_id}"
 

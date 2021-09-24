@@ -19,9 +19,9 @@ Source: https://github.com/scardine/image_size
 
 
 def get_image_size(file_path: Path) -> "tuple[int, int]":
-    """
-    Return an `Image` object for a given img file content - no external
-    dependencies except the os and struct builtin modules
+    """Compute the size of an image without loading into
+    memory, which could result in faster speed.
+
     Args:
         - file_path (str): path to an image file
     Returns:

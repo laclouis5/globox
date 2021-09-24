@@ -8,12 +8,10 @@ import json
 # from PIL import Image, ImageDraw
 
 class Annotation: 
-    """
-    image_id: an identifier that uniquely identifies an image. A ground-truth
-    annotation and a prediction annotation for the same image should have 
-    the same `image_id`. This can be the full image path, the image name
-    of an image number. `image_name` should be fine.
-    """
+    """Stores bounding box annotations for one image.
+
+    The image should be uniquely identified by the `image_id` str, and 
+    the image size (width, height) should be provided."""
 
     def __init__(self, 
         image_id: str, 
@@ -40,6 +38,8 @@ class Annotation:
         self.boxes.append(box)
 
     def map_labels(self, mapping: Mapping[str, str]) -> "Annotation":
+        """Change all the bounding box annotation labels according to
+        the provided mapping (act as a translation)."""
         for box in self.boxes:
             box.label = mapping[box.label]
         return self
@@ -48,7 +48,7 @@ class Annotation:
         return {b.label for b in self.boxes}
 
     @staticmethod
-    def empty_like(annotation: "Annotation") -> "Annotation":
+    def _empty_like(annotation: "Annotation") -> "Annotation":
         return Annotation(image_id=annotation.image_id, image_size=annotation.image_size)
 
     @staticmethod

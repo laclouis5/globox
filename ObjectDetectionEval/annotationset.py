@@ -19,13 +19,19 @@ D = TypeVar("D")
 
 
 class AnnotationSet:
+    """Represents a set of annotations.
+        
+        This class efficiently stores annotations for several images (a validation 
+        database for instance) with a fast lookup by `image_id`. It behaves like a 
+        set or dictionary and has similar methods (contains, update, iterator, + 
+        operator)."""
 
     def __init__(self, annotations: Iterable[Annotation] = None, override = False):
-        """TODO: Add optional addition of labels found during
-        parsing, for instance COCO names and YOLO `.names`.
-        Could also add a (lazy) computed accessor that 
-        runs through all boxes to get labels.
-        """
+        # TODO: Add optional addition of labels found during
+        # parsing, for instance COCO names and YOLO `.names`.
+        # Could also add a (lazy) computed accessor that 
+        # runs through all boxes to get labels.
+
         self._annotations: Dict[str, Annotation] = {}
 
         if annotations is None:
@@ -53,12 +59,30 @@ class AnnotationSet:
         return annotation.image_id in self._annotations.keys()
 
     def add(self, annotation: Annotation, override = False):
+        """Add an annotation to the set. The annotation 'image_id'
+        should not already be present in the set.
+        
+        Parameters:
+        - annotation: the annotation to add.
+        - override: set to true to override any annotation with the same
+        'image_id' already present in the set with the annotation."""
+
         if not override:
             assert annotation.image_id not in self.image_ids, \
                 "image_id already in the set (set 'override' to True to remove this assertion)"
         self._annotations[annotation.image_id] = annotation
 
     def update(self, other: "AnnotationSet", override = False) -> "AnnotationSet":
+        """Add annotations from another set to this set.
+        
+        Parameters:
+        - other: the set of annotations to add.
+        - override: set to true to override any annotation with the same
+        'image_id' already present in the set.
+        
+        Returns:
+        - the input set."""
+
         if not override:
             assert self.image_ids.isdisjoint(other.image_ids), \
                 "some image ids are already in the set (set 'override' to True to remove this assertion)"
@@ -82,6 +106,7 @@ class AnnotationSet:
 
     @property
     def all_boxes(self) -> Iterator[BoundingBox]:
+        """An iterator of all the bounding boxes."""
         for annotation in self:
             yield from annotation.boxes
 
@@ -353,6 +378,14 @@ class AnnotationSet:
 
     @staticmethod
     def parse_names_file(path: Path) -> "dict[str, str]":
+        """Parse YOLO .names file.
+        
+        Parameters:
+        - path: the path to the .names file.
+
+        Returns: 
+        - A dictionary mapping label number (as used by YOLO)
+        with label names."""
         # TODO: Add error handling
         return {str(i): v for i, v in enumerate(path.read_text().splitlines())}
 
