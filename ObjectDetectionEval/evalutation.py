@@ -419,7 +419,7 @@ class COCOEvaluator:
         dt_matches = {}
 
         for idx_dt, det in enumerate(dets):
-            best_iou = iou_threshold
+            best_iou = 0.0
             idx_best = -1
 
             for idx_gt, gt in enumerate(gts):
@@ -433,7 +433,7 @@ class COCOEvaluator:
                 best_iou = iou
                 idx_best = idx_gt
             
-            if idx_best == -1:
+            if idx_best == -1 or best_iou < iou_threshold:
                 continue
 
             dt_matches[idx_dt] = idx_best
