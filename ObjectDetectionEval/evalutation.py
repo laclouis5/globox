@@ -82,6 +82,7 @@ class PartialEvaluationItem:
 
 
 class EvaluationItem:
+    """Evaluation of COCO metrics for one label."""
 
     __slots__ = ("tp", "ndet", "npos", "ap", "ar")
     
@@ -94,7 +95,6 @@ class EvaluationItem:
 
 
 class PartialEvaluation(DefaultDict[str, PartialEvaluationItem]):
-
     """Do not mutate this excepted with defined methods."""
 
     def __init__(self, items: Mapping[str, PartialEvaluationItem] = None):
@@ -136,7 +136,8 @@ class PartialEvaluation(DefaultDict[str, PartialEvaluationItem]):
 
 
 class Evaluation(DefaultDict[str, EvaluationItem]):
-    
+    """Evaluation of COCO metrics for multiple labels."""
+
     def __init__(self, evaluation: PartialEvaluation) -> None:
         super().__init__(lambda: PartialEvaluation())
         self.update({label: ev.evaluate() for label, ev in evaluation.items()})
@@ -152,6 +153,9 @@ class Evaluation(DefaultDict[str, EvaluationItem]):
 
 
 class MultiThresholdEvaluation(Dict[str, Dict[str, float]]):
+    """Evaluation of COCO metrics for multiple labels and multiple
+    IoU thresholds.
+    """
 
     def __init__(self, evaluations: "list[Evaluation]") -> None:
         result = defaultdict(list)

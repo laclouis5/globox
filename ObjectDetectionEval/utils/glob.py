@@ -7,13 +7,14 @@ def glob(
     extensions: Union[str, Iterable[str]], 
     recursive: bool = False
 ) -> Iterable[Path]:
+    """Glob files by providing extensions to match."""
     if isinstance(extensions, str):
         extensions = {extensions}
     else:
         extensions = set(extensions)
 
     assert all(e.startswith(".") for e in extensions), \
-        "Parameter 'extension' should start with a dot"
+        "parameter 'extension' should start with a dot"
 
     files = folder.glob("**/*") if recursive else folder.glob("*")
 

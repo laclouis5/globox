@@ -8,7 +8,16 @@ class BoundingBox:
 
     The bounding box coordinates are specified by the top-left corner (xmin, ymin)
     and the bottom-right corner (xmax, ymax). Coordinates are absolute (i.e. in pixels).
-
+    
+    ```
+        xmin   xmid   xmax
+    ymin ╆╍╍╍╍╍╍┿╍╍╍╍╍╍┪
+         ╏      ┆      ╏
+    ymid ╂┄┄┄┄┄┄┼┄┄┄┄┄┄┨
+         ╏      ┆      ╏
+    ymax ┺╍╍╍╍╍╍┴╍╍╍╍╍╍┛
+    ```
+    
     Use the '.create(...)' classmethod to create a BoundingBox using a different coordinate
     system."""
 
