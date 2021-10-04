@@ -10,6 +10,7 @@ import dataclasses
 import numpy as np
 from copy import copy
 from math import isnan
+from pathlib import Path
 
 from rich.table import Table
 from rich import print as pprint
@@ -532,6 +533,44 @@ class COCOEvaluator:
             c.footer_style = "green"
 
         pprint(table)
+
+
+    def save_csv(self, path: Path):
+        """Compute and show the standard COCO metrics."""
+        self._evaluate_all()
+        labels = self.labels or sorted(self.ap_evaluation().keys())
+        headers = ("label",
+            "AP 50:95", "AP 50", "AP 75", 
+            "AP S", "AP M", "AP L", 
+            "AR 1", "AR 10", "AR 100", 
+            "AR S", "AR M", "AR L")
+        rows = []
+
+        for label in labels:
+            ap = self.ap_evaluation()[label]["ap"]
+            ap_50 = self.ap_50_evaluation()[label].ap
+            ap_75 = self.ap_75_evaluation()[label].ap
+
+            ap_s = self.small_evaluation()[label]["ap"]
+            ap_m = self.medium_evaluation()[label]["ap"]
+            ap_l = self.large_evaluation()[label]["ap"]
+
+            ar_1 = self.ar_1_evaluation()[label]["ap"]
+            ar_10 = self.ar_10_evaluation()[label]["ap"]
+            ar_100 = self.ar_100_evaluation()[label]["ap"]
+
+            ar_s = self.small_evaluation()[label]["ar"]
+            ar_m = self.medium_evaluation()[label]["ar"]
+            ar_l = self.large_evaluation()[label]["ar"]
+
+            rows.append(",".join((label, 
+                f"{ap}", f"{ap_50}", f"{ap_75}", 
+                f"{ap_s}", f"{ap_m}", f"{ap_l}", 
+                f"{ar_1}", f"{ar_10}", f"{ar_100}", 
+                f"{ar_s}", f"{ar_m}", f"{ar_l}")))
+
+        content = "\n".join((",".join(headers), *rows))
+        path.write_text(content)
 
 
 def _compute_ap(scores: "list[float]", matched: "list[bool]", NP: int) -> float:
