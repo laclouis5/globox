@@ -2,7 +2,7 @@ from .utils import *
 from .boundingbox import BoundingBox
 from .annotation import Annotation
 
-from typing import Dict, Callable, Iterator, Mapping, Optional, TypeVar
+from typing import Dict, Callable, Iterator, Mapping, TypeVar
 from csv import DictReader, DictWriter
 import xml.etree.ElementTree as et
 from collections import defaultdict
