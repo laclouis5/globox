@@ -212,7 +212,7 @@ class BoundingBox:
         image_size: "tuple[int, int]" = None,
         separator: str = " "
     ) -> "BoundingBox":
-        values = string.split(separator)
+        values = string.strip().split(separator)
 
         if len(values) == 5:
             label, *coords = values  
