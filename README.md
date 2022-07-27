@@ -17,7 +17,7 @@ pip install -U pip
 pip install -r requirements.txt
 ```
 
-## Use
+## Use as a library
 
 ### Parse Annotations
 
@@ -179,6 +179,13 @@ cat_eval = evaluator.evaluations[key]["cat"]
 cat_ap = cat_eval.ap()
 ```
 
+## Use in command line
+
+TODOs:
+
+- Add documentation and examples
+- Add support for input/output label mapping
+
 ## Tests
 
 Run tests with `python tests.py`.
@@ -213,12 +220,11 @@ The fastest format is COCO and LabelMe (for individual annotation files).
 - [x] Visualization options
 - [x] COCO Evaluation
 - [x] Tests with a huge load (5k images)
-- [ ] Visualization options ++ (graphs, figures, ...)
-- [ ] Parsers for TFRecord and TensorFlow
+- [x] CLI interface
+- [ ] Pip package!
 - [ ] PascalVOC Evaluation
-- [ ] CLI interface
-- [ ] Pip package
-- [ ] UI interface
+- [ ] Parsers for TFRecord and TensorFlow
+- [ ] UI interface?
 
 ## Acknowledgement
 
