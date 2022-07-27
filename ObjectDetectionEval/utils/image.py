@@ -31,7 +31,14 @@ def get_image_size(file_path: Path) -> "tuple[int, int]":
 
     # be explicit with open arguments - we need binary mode
     with file_path.open("rb") as input:
-        return _get_image_metadata_from_bytesio(input, size)
+        try:
+            return _get_image_metadata_from_bytesio(input, size)
+        except Exception:
+            from PIL import Image
+            try:
+                return Image.open(file_path).size
+            except Exception as e:
+                raise UnknownImageFormat(str(e))
 
 
 def _get_image_metadata_from_bytesio(input, size: int) -> "tuple[int, int]":
