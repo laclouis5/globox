@@ -186,7 +186,14 @@ class AnnotationSet:
         return AnnotationSet.from_folder(folder, ".xml", Annotation.from_xml)      
 
     @staticmethod
-    def from_openimage(file_path: Path, image_folder: Path) -> "AnnotationSet":
+    def from_openimage(file_path: Path, image_folder: Path = None) -> "AnnotationSet":
+        assert file_path.is_file() and file_path.suffix == ".csv", f"OpenImage annotation file {file_path} must be a csv file"
+
+        if image_folder is None:
+            image_folder = file_path.parent
+
+        assert image_folder.is_dir(), f"Image folder {image_folder} must be a valid directory"
+        
         # TODO: Add error handling.
         annotations = AnnotationSet()
 
@@ -221,6 +228,8 @@ class AnnotationSet:
 
     @staticmethod
     def from_coco(file_path: Path) -> "AnnotationSet":
+        assert file_path.is_file() and file_path.suffix == ".json", f"COCO annotation file {file_path} must be a json file"
+
         # TODO: Add error handling
         with file_path.open() as f:
             content = json.load(f)
@@ -246,6 +255,8 @@ class AnnotationSet:
 
     @staticmethod
     def from_cvat(file_path: Path) -> "AnnotationSet":
+        assert file_path.is_file() and file_path.suffix == ".xml", f"CVAT annotation file {file_path} must be a xml file"
+        
         # TODO: Add error handling.
         with file_path.open() as f:
             root = et.parse(f).getroot()

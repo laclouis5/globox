@@ -17,6 +17,17 @@ class BoxFormat(Enum):
     LTWH = auto()
     XYWH = auto()
 
+    @classmethod
+    def from_string(cls, string: str) -> "BoxFormat":
+        if string == "ltrb":
+            return BoxFormat.LTRB
+        elif string == "ltwh":
+            return BoxFormat.LTWH
+        elif string == "xywh":
+            return BoxFormat.XYWH
+        else:
+            raise ValueError(f"Invalid BoxFormat string '{string}'")
+
 
 class RecallSteps(Enum):
 
