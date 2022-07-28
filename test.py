@@ -281,7 +281,7 @@ def test_conversion():
 
 
 def test_speed():
-    iterations = 1
+    iterations = 10
     base = Path("data/coco_val.nosync/")
     images = base / "images"
 

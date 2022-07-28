@@ -10,9 +10,6 @@ import json
 
 from tqdm.contrib.concurrent import thread_map
 from tqdm import tqdm
-from rich.table import Table
-from rich import print as rprint
-
 
 T = TypeVar("T")
 D = TypeVar("D")
@@ -344,8 +341,8 @@ class AnnotationSet:
         if path.suffix == "":
             path = path.with_suffix(".json")
         assert path.suffix == ".json"
-        content = json.dumps(self.to_coco(), allow_nan=False)
-        path.write_text(content)
+        with path.open("w") as f:
+            json.dump(self.to_coco(), fp=f, allow_nan=False)
 
     def save_openimage(self, path: Path):
         if path.suffix == "":
@@ -374,17 +371,19 @@ class AnnotationSet:
                     writer.writerow(row)
 
     def to_cvat(self) -> et.Element:
-        ann_node = et.Element("annotations")
-        for annotation in tqdm(self, "Saving"):
-            ann_node.append(annotation.to_cvat())
-        return ann_node
+        def _create_node(annotation: Annotation) -> et.Element:
+            return annotation.to_cvat()
+
+        sub_nodes = thread_map(_create_node, self, desc="Saving")
+        node = et.Element("annotations")
+        node.extend(sub_nodes)
+        return node
 
     def save_cvat(self, path: Path):
         if path.suffix == "":
             path = path.with_suffix(".xml")
         assert path.suffix == ".xml"
         content = self.to_cvat()
-        et.indent(content)
         content = et.tostring(content, encoding="unicode")
         path.write_text(content)
 
@@ -408,6 +407,9 @@ class AnnotationSet:
             return {l["LabelName"]: l["DisplayName"] for l in reader}
 
     def show_stats(self):
+        from rich.table import Table
+        from rich import print as rprint
+
         box_by_label = defaultdict(int)
         im_by_label = defaultdict(int)
 

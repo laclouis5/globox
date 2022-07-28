@@ -179,7 +179,8 @@ class Annotation:
 
     def save_labelme(self, path: Path):
         content = self.to_labelme()
-        path.write_text(json.dumps(content, allow_nan=False, indent=2))
+        with path.open("w") as f:
+            json.dump(content, fp=f, allow_nan=False)
 
     def to_xml(self) -> et.Element:
         ann_node = et.Element("annotation")
@@ -196,25 +197,20 @@ class Annotation:
 
     def save_xml(self, path: Path):
         content = self.to_xml()
-        et.indent(content)
         content = et.tostring(content, encoding="unicode")
         path.write_text(content)
 
     def to_cvat(self) -> et.Element:
         img_node = et.Element("image")
-        img_node.attrib["name"] = self.image_id
-        img_node.attrib["width"] = f"{self.image_width}"
-        img_node.attrib["height"] = f"{self.image_height}"
+        img_node_attrib = img_node.attrib
+        img_node_attrib["name"] = self.image_id
+        img_node_attrib["width"] = f"{self.image_width}"
+        img_node_attrib["height"] = f"{self.image_height}"
 
         for box in self.boxes:
             img_node.append(box.to_cvat())
 
         return img_node
-
-    # def draw(self, img: Image):
-    #     draw = ImageDraw.Draw(img)
-    #     for box in self.boxes:
-    #         draw.rectangle(box.ltrb, outline="black", width=5)
 
     def __repr__(self) -> str:
         return f"Annotation(image_id: {self.image_id}, image_size: {self.image_size}, boxes: {self.boxes})"

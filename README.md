@@ -199,8 +199,8 @@ Speed test is done using `timeit` with 1 iteration on an early 2015 MacBook Air 
 
 Task|COCO|CVAT|OpenImage|LabelMe|PascalVOC|YOLO|TXT
 ----|----|----|---------|-------|---------|----|---
-Parsing|0.34s|0.84s|24.32s|9.64s|4.12s|20.55s|20.55s
-Saving |0.33s|0.71s|0.44s |4.53s|4.30s|2.50s |2.31s
+Parsing|0.52s|0.59s|3.44s|1.84s|2.45s|3.01s|2.54s
+Saving |1.12s|0.74s|0.42s|4.39s|4.46s|3.75s|3.52s
 
 OpenImage, YOLO and TXT are slower because they store bounding box coordinates in relative coordinates and do not provide the image size, so reading it from the image file is required.
 
@@ -222,6 +222,7 @@ The fastest format is COCO and LabelMe (for individual annotation files).
 - [x] Tests with a huge load (5k images)
 - [x] CLI interface
 - [ ] Make `image_size` optional and raise err when required (bbox conversion)
+- [ ] Make file saving atomic with a temporary to avoid file corruption
 - [ ] Pip package!
 - [ ] PascalVOC Evaluation
 - [ ] Parsers for TFRecord and TensorFlow
