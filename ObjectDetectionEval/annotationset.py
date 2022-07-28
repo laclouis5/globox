@@ -260,7 +260,8 @@ class AnnotationSet:
         # TODO: Add error handling.
         with file_path.open() as f:
             root = et.parse(f).getroot()
-        return AnnotationSet.from_iter(Annotation.from_cvat, root.iter("image"))
+        image_nodes = list(root.iter("image"))
+        return AnnotationSet.from_iter(Annotation.from_cvat, image_nodes)
 
     def save_txt(self, 
         save_dir: Path,

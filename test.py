@@ -351,9 +351,9 @@ def test_evaluation():
 
 
 if __name__ == "__main__":
-    tests_bounding_box()
-    test_annotationset()
-    tests_parsing()
-    test_conversion()
+    # tests_bounding_box()
+    # test_annotationset()
+    # tests_parsing()
+    # test_conversion()
     test_speed()
-    test_evaluation()
+    # test_evaluation()
