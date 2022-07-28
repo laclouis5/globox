@@ -221,10 +221,15 @@ The fastest format is COCO and LabelMe (for individual annotation files).
 - [x] COCO Evaluation
 - [x] Tests with a huge load (5k images)
 - [x] CLI interface
+- [ ] Make `image_size` optional and raise err when required (bbox conversion)
 - [ ] Pip package!
 - [ ] PascalVOC Evaluation
 - [ ] Parsers for TFRecord and TensorFlow
 - [ ] UI interface?
+
+# Optimizations
+- [ ] Share ThreadPoolExecutors
+- [ ] Conditional imports (rich, PIL, tqdm, xml/csv readers, etc.)
 
 ## Acknowledgement
 

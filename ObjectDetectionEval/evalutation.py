@@ -3,20 +3,15 @@ from .annotationset import AnnotationSet
 from .boundingbox import BoundingBox
 from .utils import grouping, all_equal, mean
 
-from typing import DefaultDict, Dict, Mapping, Optional, Union, Iterable
+from typing import DefaultDict, Dict, Mapping, Optional, Sequence, Union, Iterable
 from collections import defaultdict
-from dataclasses import dataclass
-import dataclasses
 import numpy as np
 from copy import copy
 from math import isnan
 from pathlib import Path
 
-from rich.table import Table
-from rich import print as pprint
-from tqdm import tqdm
-
 import itertools
+from functools import lru_cache
 
 
 class PartialEvaluationItem:
@@ -175,39 +170,6 @@ class MultiThresholdEvaluation(Dict[str, Dict[str, float]]):
         return mean(ev["ar"] for ev in self.values() if not isnan(ev["ar"]))
     
 
-@dataclass(unsafe_hash=True)
-class EvaluationParams:
-    """Holds the parameters which impact COCO evaluation."""
-
-    iou_threshold: float
-    max_detections: Optional[int]
-    size_range: Optional["tuple[float, float]"]
-    # recall_steps: RecallSteps
-
-    def __post_init__(self):
-        assert 0.0 <= self.iou_threshold <= 1.0
-
-        if self.max_detections is not None:
-            assert self.max_detections >= 0
-
-        if self.size_range is None:
-            self.size_range = (0.0, float("inf"))
-            return
-
-        low, high = self.size_range
-        assert low >= 0 and high >= low
-
-        # assert self.recall_steps in RecallSteps
-
-    @classmethod
-    def format(cls,
-        iou_threshold: float, 
-        max_detections: Optional[int], 
-        size_range: Optional["tuple[float, float]"]
-    ) -> "tuple[float, Optional[int], tuple[float, float]]":
-        return dataclasses.astuple(cls(iou_threshold, max_detections, size_range))
-
-
 class COCOEvaluator:
     """Class for evaluating standard COCO metrics efficently.
     
@@ -225,6 +187,7 @@ class COCOEvaluator:
     SMALL_RANGE = (0.0, 32.0**2)
     MEDIUM_RANGE = (32.0**2, 96.0**2)
     LARGE_RANGE = (96.0**2, float("inf"))
+    ALL_RANGE = (0.0, float("inf"))
 
     def __init__(self, 
         ground_truths: AnnotationSet,
@@ -233,17 +196,17 @@ class COCOEvaluator:
     ) -> None:
         self._predictions = predictions
         self._ground_truths = ground_truths
-        self.labels = labels
-        
-        self.evaluations: dict[EvaluationParams, Evaluation] = {}
 
-    def clear_cache(self):
-        self.evaluations = {}
+        if labels is None:
+            self.labels = []
+        else:
+            self.labels = list(labels)
 
+    @lru_cache(maxsize=60 * 4)  # Enough room for 4 times all standard metrics
     def evaluate(self,
         iou_threshold: float,
-        max_detections: int = None, 
-        size_range: "tuple[int, int]" = None
+        max_detections: int,
+        size_range: "tuple[float, float]"
     ) -> Evaluation:
         """COCO evaluation with custom parameters. The result
         is cached so that repeated call as fast.
@@ -253,92 +216,50 @@ class COCOEvaluator:
         consider a ground-truth to detection association valid.
         - max_detections: the maximum number of detections taken
         into account (sorted by descreasing confidence). Defaults
-        to no maximum.
+        to 100.
         - size_range: the range of size (bounding box area) to 
         consider. Defaults to all sizes.
 
         Returns:
         - An evaluation holding the metrics.
         """
-        key = EvaluationParams(iou_threshold, max_detections, size_range)
-        if (evaluation := self.evaluations.get(key)) is not None:
-            return evaluation
+        self._assert_params(iou_threshold, max_detections, size_range)
         
-        evaluation = self.evaluate_annotations(
+        return self.evaluate_annotations(
             self._predictions, 
             self._ground_truths,
             iou_threshold, 
-            self.labels,
             max_detections, 
-            size_range).evaluate()
-
-        self.evaluations[key] = evaluation
-
-        return evaluation
-
-    def ap_evaluation(self) -> MultiThresholdEvaluation:
-        evaluations = [self.evaluate(t, 100) for t in self.AP_THRESHOLDS]
-        return MultiThresholdEvaluation(evaluations)
+            size_range,
+            self.labels).evaluate()
 
     def ap(self) -> float:
         return self.ap_evaluation().ap()
 
-    def ap_50_evaluation(self) -> Evaluation:
-        return self.evaluate(0.5, 100)
-
     def ap_50(self) -> float:
         return self.ap_50_evaluation().ap()
-
-    def ap_75_evaluation(self) -> Evaluation:
-        return self.evaluate(0.75, 100)
 
     def ap_75(self) -> float:
         return self.ap_75_evaluation().ap()
 
-    def _range_evalation(self, range_: "tuple[float, float]") -> MultiThresholdEvaluation:
-        evaluations = [self.evaluate(t, 100, range_) for t in self.AP_THRESHOLDS]
-        return MultiThresholdEvaluation(evaluations)
-
-    def _ndets_evaluation(self, max_dets: int) -> MultiThresholdEvaluation:
-        evaluations = [self.evaluate(t, max_dets) for t in self.AP_THRESHOLDS]
-        return MultiThresholdEvaluation(evaluations)
-
-    def small_evaluation(self) -> MultiThresholdEvaluation:
-        return self._range_evalation(self.SMALL_RANGE)
-
     def ap_small(self) -> float:
         return self.small_evaluation().ap()
 
-    def medium_evaluation(self) -> MultiThresholdEvaluation:
-        return self._range_evalation(self.MEDIUM_RANGE)
-
     def ap_medium(self) -> float:
         return self.medium_evaluation().ap()
-
-    def large_evaluation(self) -> MultiThresholdEvaluation:
-        return self._range_evalation(self.LARGE_RANGE)
-
+    
     def ap_large(self) -> float:
         return self.large_evaluation().ap()
-
-    def ar_100_evaluation(self) -> MultiThresholdEvaluation:
-        return self._ndets_evaluation(100)
-
-    def ar_100(self) -> float:
-        return self.ar_100_evaluation().ar()
     
-    def ar_10_evaluation(self) -> MultiThresholdEvaluation:
-        return self._ndets_evaluation(10)
+    def ar_1(self) -> float:
+        return self.ndets_1_evaluation().ar()
 
     def ar_10(self) -> float:
-        return self.ar_10_evaluation().ar()
-
-    def ar_1_evaluation(self) -> MultiThresholdEvaluation:
-        return self._ndets_evaluation(1)
-
-    def ar_1(self) -> float:
-        return self.ar_1_evaluation().ar()
-
+        return self.ndets_10_evaluation().ar()
+    
+    def ar_100(self) -> float:
+        return self.ndets_100_evaluation().ar()
+    
     def ar_small(self) -> float:
         return self.small_evaluation().ar()
 
@@ -348,14 +269,50 @@ class COCOEvaluator:
     def ar_large(self) -> float:
         return self.large_evaluation().ar()
 
+    def ap_evaluation(self) -> MultiThresholdEvaluation:
+        evaluations = [self.evaluate(t, 100, self.ALL_RANGE) for t in self.AP_THRESHOLDS]
+        return MultiThresholdEvaluation(evaluations)
+
+    def ap_50_evaluation(self) -> Evaluation:
+        return self.evaluate(0.5, 100, self.ALL_RANGE)
+
+    def ap_75_evaluation(self) -> Evaluation:
+        return self.evaluate(0.75, 100, self.ALL_RANGE)
+
+    def small_evaluation(self) -> MultiThresholdEvaluation:
+        return self._range_evalation(self.SMALL_RANGE)
+
+    def medium_evaluation(self) -> MultiThresholdEvaluation:
+        return self._range_evalation(self.MEDIUM_RANGE)
+
+    def large_evaluation(self) -> MultiThresholdEvaluation:
+        return self._range_evalation(self.LARGE_RANGE)
+
+    def ndets_1_evaluation(self) -> MultiThresholdEvaluation:
+        return self._ndets_evaluation(1)
+
+    def ndets_10_evaluation(self) -> MultiThresholdEvaluation:
+        return self._ndets_evaluation(10)
+
+    def ndets_100_evaluation(self) -> MultiThresholdEvaluation:
+        return self._ndets_evaluation(100)
+
+    def _range_evalation(self, range_: "tuple[float, float]") -> MultiThresholdEvaluation:
+        evaluations = [self.evaluate(t, 100, range_) for t in self.AP_THRESHOLDS]
+        return MultiThresholdEvaluation(evaluations)
+
+    def _ndets_evaluation(self, max_dets: int) -> MultiThresholdEvaluation:
+        evaluations = [self.evaluate(t, max_dets, self.ALL_RANGE) for t in self.AP_THRESHOLDS]
+        return MultiThresholdEvaluation(evaluations)
+
     @classmethod
     def evaluate_annotations(cls,
         predictions: AnnotationSet, 
         ground_truths: AnnotationSet,
         iou_threshold: float,
-        labels: Iterable[str] = None,
-        max_detections: int = None,
-        size_range: "tuple[float, float]" = None
+        max_detections: int,
+        size_range: "tuple[float, float]",
+        labels: Sequence[str] = None,
     ) -> PartialEvaluation:
         image_ids = ground_truths.image_ids | predictions.image_ids
         evaluation = PartialEvaluation()
@@ -365,7 +322,7 @@ class COCOEvaluator:
             pred = predictions.get(image_id) or Annotation._empty_like(ground_truths[image_id])
 
             evaluation += cls.evaluate_annotation(
-                pred, gt, iou_threshold, labels, max_detections, size_range)
+                pred, gt, iou_threshold, max_detections, size_range, labels)
         return evaluation
 
     @classmethod
@@ -373,9 +330,9 @@ class COCOEvaluator:
         prediction: Annotation, 
         ground_truth: Annotation,
         iou_threshold: float,
-        labels: Iterable[str] = None,
-        max_detections: int = None,
-        size_range: "tuple[float, float]" = None
+        max_detections: int,
+        size_range: "tuple[float, float]",
+        labels: Sequence[str] = None
     ) -> PartialEvaluation:
         assert prediction.image_id == ground_truth.image_id
 
@@ -394,24 +351,22 @@ class COCOEvaluator:
         return evaluation
 
     @classmethod
-    def evaluate_boxes(self,
+    def evaluate_boxes(cls,
         predictions: "list[BoundingBox]",
         ground_truths: "list[BoundingBox]",
         iou_threshold: float,
-        max_detections: int = None,
-        size_range: "tuple[float, float]" = None
+        max_detections: int,
+        size_range: "tuple[float, float]"
     ) -> PartialEvaluationItem:
         assert all(p.is_detection for p in predictions)
         assert all(g.is_ground_truth for g in ground_truths)
         assert all_equal(p.label for p in predictions)
         assert all_equal(g.label for g in ground_truths)
 
-        iou_threshold, max_detections, size_range = EvaluationParams.format(
-            iou_threshold, max_detections, size_range)
+        cls._assert_params(iou_threshold, max_detections, size_range)
 
         dets = sorted(predictions, key=lambda box: box._confidence, reverse=True)
-        if max_detections is not None:
-            dets = dets[:max_detections]
+        dets = dets[:max_detections]
 
         gts = sorted(ground_truths, key=lambda box: not box.area_in(size_range))
         gt_ignore = [not g.area_in(size_range) for g in gts]  # Redundant `area_in`
@@ -452,39 +407,54 @@ class COCOEvaluator:
 
         return PartialEvaluationItem(matches, scores, npos)
 
-    def _evaluate_all(self):
+    @staticmethod
+    def _assert_params(
+        iou_threshold: float,
+        max_detections: int, 
+        size_range: "tuple[float, float]"
+    ):
+        assert 0.0 <= iou_threshold <= 1.0
+        assert max_detections >= 0
+        low, high = size_range
+        assert low >= 0.0 and high >= low
+
+    def clear_cache(self):
+        self.evaluate.cache_clear()
+
+    def _evaluate_all_progress_bar(self):
+        from tqdm import tqdm
+        
         params = itertools.chain(
             itertools.product(
                 self.AP_THRESHOLDS, 
-                (100,), 
-                ((0.0, float("inf")),)),
-            itertools.product(
-                self.AP_THRESHOLDS, 
                 (100,),
-                (self.SMALL_RANGE, self.MEDIUM_RANGE, self.LARGE_RANGE)),
+                (self.SMALL_RANGE, self.MEDIUM_RANGE, self.LARGE_RANGE, self.ALL_RANGE)),
             itertools.product(
                 self.AP_THRESHOLDS, 
                 (1, 10), 
-                ((0.0, float("inf")),)))
+                (self.ALL_RANGE,)))
 
         for t, d, r in tqdm(params, desc="Evaluation", total=60):
             self.evaluate(t, d, r)
 
     def show_summary(self):
         """Compute and show the standard COCO metrics."""
-        self._evaluate_all()
+        from rich.table import Table
+        from rich import print as pprint
+
+        self._evaluate_all_progress_bar()
 
         table = Table(title="COCO Evaluation", show_footer=True)
         table.add_column("Label", footer="Total")
 
         metrics = {
-            "AP 50:95": self.ap, "AP 50": self.ap_50, "AP 75": self.ap_75, 
-            "AP S": self.ap_small, "AP M": self.ap_medium, "AP L": self.ap_large, 
-            "AR 1": self.ar_1, "AR 10": self.ar_10, "AR 100": self.ar_100, 
-            "AR S": self.ar_small, "AR M": self.ar_medium, "AR L": self.ar_large}
+            "AP 50:95": self.ap(), "AP 50": self.ap_50(), "AP 75": self.ap_75(), 
+            "AP S": self.ap_small(), "AP M": self.ap_medium(), "AP L": self.ap_large(), 
+            "AR 1": self.ar_1(), "AR 10": self.ar_10(), "AR 100": self.ar_100(), 
+            "AR S": self.ar_small(), "AR M": self.ar_medium(), "AR L": self.ar_large()}
 
         for metric_name, metric in metrics.items():
-            table.add_column(metric_name, justify="right", footer=f"{metric():.2%}")
+            table.add_column(metric_name, justify="right", footer=f"{metric:.2%}")
 
         labels = self.labels or sorted(self.ap_evaluation().keys())
 
@@ -497,9 +467,9 @@ class COCOEvaluator:
             ap_m = self.medium_evaluation()[label]["ap"]
             ap_l = self.large_evaluation()[label]["ap"]
 
-            ar_1 = self.ar_1_evaluation()[label]["ap"]
-            ar_10 = self.ar_10_evaluation()[label]["ap"]
-            ar_100 = self.ar_100_evaluation()[label]["ap"]
+            ar_1 = self.ndets_1_evaluation()[label]["ap"]
+            ar_10 = self.ndets_10_evaluation()[label]["ap"]
+            ar_100 = self.ndets_100_evaluation()[label]["ap"]
 
             ar_s = self.small_evaluation()[label]["ar"]
             ar_m = self.medium_evaluation()[label]["ar"]
@@ -534,10 +504,9 @@ class COCOEvaluator:
 
         pprint(table)
 
-
-    def save_csv(self, path: Path):
+    def to_csv(self) -> str:
         """Compute and show the standard COCO metrics."""
-        self._evaluate_all()
+        self._evaluate_all_progress_bar()
         labels = self.labels or sorted(self.ap_evaluation().keys())
         headers = ("label",
             "AP 50:95", "AP 50", "AP 75", 
@@ -555,9 +524,9 @@ class COCOEvaluator:
             ap_m = self.medium_evaluation()[label]["ap"]
             ap_l = self.large_evaluation()[label]["ap"]
 
-            ar_1 = self.ar_1_evaluation()[label]["ap"]
-            ar_10 = self.ar_10_evaluation()[label]["ap"]
-            ar_100 = self.ar_100_evaluation()[label]["ap"]
+            ar_1 = self.ndets_1_evaluation()[label]["ap"]
+            ar_10 = self.ndets_10_evaluation()[label]["ap"]
+            ar_100 = self.ndets_100_evaluation()[label]["ap"]
 
             ar_s = self.small_evaluation()[label]["ar"]
             ar_m = self.medium_evaluation()[label]["ar"]
@@ -569,8 +538,11 @@ class COCOEvaluator:
                 f"{ar_1}", f"{ar_10}", f"{ar_100}", 
                 f"{ar_s}", f"{ar_m}", f"{ar_l}")))
 
-        content = "\n".join((",".join(headers), *rows))
-        path.write_text(content)
+        return "\n".join((",".join(headers), *rows))
+
+    def save_csv(self, path: Path):
+        csv_data = self.to_csv()
+        path.write_text(csv_data)
 
 
 def _compute_ap(scores: "list[float]", matched: "list[bool]", NP: int) -> float:

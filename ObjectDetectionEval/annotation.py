@@ -19,7 +19,7 @@ class Annotation:
         boxes: "list[BoundingBox]" = None
     ) -> None:
         img_w, img_h = image_size
-        assert img_w >= 0 and img_h >= 0
+        assert img_w > 0 and img_h > 0
         assert int(img_w) == img_w and int(img_h) == img_h
 
         self.image_id = image_id

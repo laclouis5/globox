@@ -1,6 +1,5 @@
 import argparse
 from pathlib import Path
-
 from ObjectDetectionEval import *
 
 
@@ -77,7 +76,6 @@ def add_stats_args(parser: argparse.ArgumentParser):
 def add_eval_args(parser: argparse.ArgumentParser):
     add_parse_args(parser, label="predictions")
     add_parse_gts_args(parser)
-    # check sys.stdout.isatty() to redirect csv summary to file
 
 
 def parse_annotations(args: argparse.Namespace) -> AnnotationSet:
@@ -185,6 +183,7 @@ def main():
         groundtruths = parse_gts_annotations(args)
         evaluator = COCOEvaluator(groundtruths, annotations)
         evaluator.show_summary()
+        # TODO: Add support for saving csv to file
     else:
         raise ValueError(f"Sub-command '{mode}' not recognized.")
 

@@ -5,8 +5,6 @@ from time import perf_counter
 from timeit import timeit
 from math import isclose
 
-# from PIL import Image
-
 
 data_path = Path("data/")
 gts_path = data_path / "gts/"
@@ -34,6 +32,7 @@ rel_ltwh = dets_path / "rel_ltwh/"
 id_to_label = AnnotationSet.parse_names_file(names_file)
 labels = set(id_to_label.values())
 label_to_id = {v: k for k, v in id_to_label.items()}
+
 
 def tests_bounding_box():
     try:
@@ -137,6 +136,7 @@ def tests_bounding_box():
     for id in annotations.image_ids:
         assert id == annotations[id].image_id
 
+
 def test_annotationset():
     files = list(glob(pascal_path, ".xml")) 
     set1 = AnnotationSet(Annotation.from_xml(f) for f in files[:50])
@@ -157,6 +157,7 @@ def test_annotationset():
         raise ValueError
     except AssertionError:
         pass
+
 
 def tests_parsing():
     start = perf_counter()
@@ -223,6 +224,7 @@ def tests_parsing():
     #         annotation.draw(img)
     #         img.save(image)
 
+
 def test_conversion():
     save_dir = Path("/tmp/").expanduser()
     txt_dir = save_dir / "txt/"
@@ -277,9 +279,10 @@ def test_conversion():
                 assert all(isinstance(c, float) for c in box.ltrb)
                 assert any(c > 1 for c in box.ltrb), f"dataset {i}, {box.ltrb}"
 
+
 def test_speed():
     iterations = 1
-    base = Path("/Users/louislac/Downloads/val/")
+    base = Path("data/coco_val.nosync/")
     images = base / "images"
 
     coco = base / "coco.json"
@@ -316,6 +319,7 @@ def test_speed():
     print(coco_s, cvat_s, oi_s, labelme_s, xml_s, yolo_s, txt_s)
     print(stats_t)
     
+
 def test_evaluation():
     coco_test_path = Path("data/test_coco_eval")
 
@@ -343,10 +347,13 @@ def test_evaluation():
     assert isclose(evaluator.ar_medium(), 0.603130, abs_tol=1e-6)
     assert isclose(evaluator.ar_large(), 0.553744, abs_tol=1e-6)
 
+    assert evaluator.evaluate.cache_info().currsize == 60
+
+
 if __name__ == "__main__":
-    # tests_bounding_box()
-    # test_annotationset()
-    # tests_parsing()
-    # test_conversion()
-    # test_speed()
+    tests_bounding_box()
+    test_annotationset()
+    tests_parsing()
+    test_conversion()
+    test_speed()
     test_evaluation()
