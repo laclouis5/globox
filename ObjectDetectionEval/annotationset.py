@@ -31,11 +31,12 @@ class AnnotationSet:
 
         self._annotations: Dict[str, Annotation] = {}
 
-        if annotations is None:
-            return 
+        if annotations is not None:
+            for annotation in annotations:
+                self.add(annotation, override)
 
-        for annotation in annotations:
-            self.add(annotation, override)
+        self._id_to_label: dict[int, str] = None
+        self._id_to_imageid: dict[int, str] = None
 
     def __getitem__(self, image_id: str) -> Annotation:
         return self._annotations[image_id]
@@ -86,10 +87,10 @@ class AnnotationSet:
         self._annotations.update(other._annotations)
         return self
 
-    def __iadd__(self, other: "AnnotationSet") -> "AnnotationSet":
+    def __ior__(self, other: "AnnotationSet") -> "AnnotationSet":
         return self.update(other)
 
-    def __add__(self, other: "AnnotationSet") -> "AnnotationSet":
+    def __or__(self, other: "AnnotationSet") -> "AnnotationSet":
         return AnnotationSet().update(self).update(other)
 
     def map_labels(self, mapping: Mapping[str, str]) -> "AnnotationSet":
@@ -113,26 +114,24 @@ class AnnotationSet:
     @staticmethod
     def from_iter(
         parser: Callable[[T], Annotation],
-        it: Iterable[T],
+        iterable: Iterable[T],
     ) -> "AnnotationSet":
-        total = len(it) if hasattr(it, "__len__") else None
-        annotations = thread_map(parser, it, desc="Parsing", total=total)
+        total = len(iterable) if hasattr(iterable, "__len__") else None
+        annotations = thread_map(parser, iterable, desc="Parsing", total=total)
         return AnnotationSet(annotations)
 
     @staticmethod
-    def from_folder(
-        folder: Path, 
-        file_extension: str,
-        file_parser: Callable[[Path], Annotation],
+    def from_folder(folder: Path, *,
+        extension: str,
+        parser: Callable[[Path], Annotation],
         recursive=False
     ) -> "AnnotationSet":
         assert folder.is_dir()
-        files = list(glob(folder, file_extension, recursive=recursive))
-        return AnnotationSet.from_iter(file_parser, files)
+        files = list(glob(folder, extension, recursive=recursive))
+        return AnnotationSet.from_iter(parser, files)
 
     @staticmethod
-    def from_txt(
-        folder: Path,
+    def from_txt(folder: Path, *,
         image_folder: Path = None,
         box_format = BoxFormat.LTRB,
         relative = False,
@@ -140,22 +139,26 @@ class AnnotationSet:
         image_extension: str = ".jpg",
         separator: str = " "
     ) -> "AnnotationSet":
+        """This method won't try to retreive the image sizes by default. Specify `image_folder` if you need them. `image_folder` is required when `relative` is True."""
         # TODO: Add error handling
-        if image_folder is None:
-            image_folder = folder
-
         assert folder.is_dir()
-        assert image_folder.is_dir()
         assert image_extension.startswith(".")
 
-        def _get_annotation(file: Path) -> Annotation:
-            image_path = image_folder / file.with_suffix(image_extension).name
+        if relative:
+            assert image_folder is not None, "`image_folder` must be provided when `relative` is True to read image sizes"
+        if image_folder is not None:
+            assert image_folder.is_dir()
 
-            try:
-                image_size = get_image_size(image_path)
-            except UnknownImageFormat:
-                raise FileParsingError(image_path, 
-                    reason=f"unable to read image file '{image_path}' to get the image size")
+        def _get_annotation(file: Path) -> Annotation:
+            if image_folder is not None:
+                image_path = image_folder / file.with_suffix(image_extension).name
+                try:
+                    image_size = get_image_size(image_path)
+                except UnknownImageFormat:
+                    raise FileParsingError(image_path, 
+                        reason=f"unable to read image file '{image_path}' to get the image size")
+            else:
+                image_size = None
             
             return Annotation.from_txt(
                 file_path=file,
@@ -165,25 +168,25 @@ class AnnotationSet:
                 image_size=image_size,
                 separator=separator)
 
-        return AnnotationSet.from_folder(folder, file_extension, _get_annotation)
+        return AnnotationSet.from_folder(folder, extension=file_extension, parser=_get_annotation)
 
     @staticmethod
-    def from_yolo(
-        folder: Path, 
+    def from_yolo(folder: Path, *,
         image_folder: Path = None, 
         image_extension = ".jpg",
     ) -> "AnnotationSet":
-        return AnnotationSet.from_txt(folder, image_folder, 
+        return AnnotationSet.from_txt(folder, 
+            image_folder=image_folder, 
             box_format=BoxFormat.XYWH, 
             relative=True, 
             image_extension=image_extension)
 
     @staticmethod
     def from_xml(folder: Path) -> "AnnotationSet":
-        return AnnotationSet.from_folder(folder, ".xml", Annotation.from_xml)      
+        return AnnotationSet.from_folder(folder, extension=".xml", parser=Annotation.from_xml)      
 
     @staticmethod
-    def from_openimage(file_path: Path, image_folder: Path = None) -> "AnnotationSet":
+    def from_openimage(file_path: Path, *, image_folder: Path = None) -> "AnnotationSet":
         assert file_path.is_file() and file_path.suffix == ".csv", f"OpenImage annotation file {file_path} must be a csv file"
 
         if image_folder is None:
@@ -211,17 +214,22 @@ class AnnotationSet:
                 if image_id not in annotations.image_ids:
                     image_path = image_folder / image_id
                     image_size = get_image_size(image_path)
-                    annotations.add(Annotation(image_id, image_size))
+                    annotations.add(Annotation(image_id=image_id, image_size=image_size))
                 
                 annotation = annotations[image_id]
-                coords = BoundingBox.rel_to_abs(coords, annotation.image_size)
-                annotation.add(BoundingBox(label, *coords, confidence))
+                annotation.add(
+                    BoundingBox.create(
+                        label=label, 
+                        coords=coords, 
+                        confidence=confidence, 
+                        relative=True, 
+                        image_size=annotation.image_size))
 
         return annotations
 
     @staticmethod
     def from_labelme(folder: Path) -> "AnnotationSet":
-        return AnnotationSet.from_folder(folder, ".json", Annotation.from_labelme)
+        return AnnotationSet.from_folder(folder, extension=".json", parser=Annotation.from_labelme)
 
     @staticmethod
     def from_coco(file_path: Path) -> "AnnotationSet":
@@ -240,15 +248,87 @@ class AnnotationSet:
             annotation = id_to_annotation[int(element["image_id"])]
             label = id_to_label[int(element["category_id"])]
             coords = (float(c) for c in element["bbox"])
-            coords = BoundingBox.ltwh_to_ltrb(coords)
             confidence = element.get("score")
     
             if confidence is not None:
                 confidence = float(confidence)
 
-            annotation.add(BoundingBox(label, *coords, confidence))
+            annotation.add(BoundingBox.create(label=label, coords=coords, confidence=confidence, box_format=BoxFormat.LTWH))
 
-        return AnnotationSet(id_to_annotation.values())
+        annotation_set = AnnotationSet(id_to_annotation.values())
+        annotation_set._id_to_label = id_to_label
+        annotation_set._id_to_imageid = {idx: ann.image_id for idx, ann in id_to_annotation.items()}
+
+        return annotation_set
+
+    def from_results(self, file_path: Path) -> "AnnotationSet":
+        assert file_path.is_file() and file_path.suffix == ".json", f"COCO annotation file {file_path} must be a json file"
+
+        id_to_label = self._id_to_label
+        id_to_imageid = self._id_to_imageid
+
+        assert id_to_label is not None and id_to_imageid is not None, "The AnnotationSet instance should have been created with `AnnotationSet.from_coco()` or should have `self.id_to_label` and `self.id_to_image_id` populated. If not the case use the static method `AnnotationSet.from_coco_results()` instead."
+
+        id_to_annotation = {}
+
+        with file_path.open() as f:
+            annotations = json.load(f)
+        
+        # TODO: Factorize this with `Self.from_coco()`?
+        for element in tqdm(annotations, desc="Parsing"):
+            image_id = id_to_imageid[element["image_id"]]
+            gt_ann = self[image_id]
+
+            if image_id not in id_to_annotation:
+                annotation = Annotation(image_id, (gt_ann.image_width, gt_ann.image_height))
+                id_to_annotation[image_id] = annotation
+            else:
+                annotation = id_to_annotation[image_id]
+
+            label = id_to_label[int(element["category_id"])]
+            coords = (float(c) for c in element["bbox"])
+            confidence = float(element["score"])
+
+            annotation.add(BoundingBox.create(label=label, coords=coords, confidence=confidence, box_format=BoxFormat.LTWH))     
+
+        annotation_set = AnnotationSet(id_to_annotation.values())
+        annotation_set._id_to_label = id_to_label
+        annotation_set._id_to_imageid = id_to_imageid
+        return annotation_set
+
+    @staticmethod
+    def from_coco_results(file_path: Path, *,
+        id_to_label: dict[int, str], 
+        id_to_imageid: dict[int, str]
+    ) -> "AnnotationSet":
+        """"""
+        assert file_path.is_file() and file_path.suffix == ".json", f"COCO annotation file {file_path} must be a json file"
+
+        id_to_annotation = {}
+
+        with file_path.open() as f:
+            annotations = json.load(f)
+        
+        # TODO: Factorize this with `Self.from_coco()`?
+        for element in tqdm(annotations, desc="Parsing"):
+            image_id = id_to_imageid[element["image_id"]]
+
+            if image_id not in id_to_annotation:
+                annotation = Annotation(image_id)
+                id_to_annotation[image_id] = annotation
+            else:
+                annotation = id_to_annotation[image_id]
+
+            label = id_to_label[int(element["category_id"])]
+            coords = (float(c) for c in element["bbox"])
+            confidence = float(element["score"])
+
+            annotation.add(BoundingBox.create(label=label, coords=coords, confidence=confidence, box_format=BoxFormat.LTWH))      
+
+        annotation_set = AnnotationSet(id_to_annotation.values())
+        annotation_set._id_to_label = id_to_label
+        annotation_set._id_to_imageid = id_to_imageid
+        return annotation_set
 
     @staticmethod
     def from_cvat(file_path: Path) -> "AnnotationSet":
@@ -260,8 +340,7 @@ class AnnotationSet:
         image_nodes = list(root.iter("image"))
         return AnnotationSet.from_iter(Annotation.from_cvat, image_nodes)
 
-    def save_txt(self, 
-        save_dir: Path,
+    def save_txt(self, save_dir: Path, *,
         label_to_id: Mapping[str, Union[float, str]] = None,
         box_format: BoxFormat = BoxFormat.LTRB, 
         relative: bool = False, 
@@ -271,21 +350,27 @@ class AnnotationSet:
         save_dir.mkdir(exist_ok=True)
 
         def _save(annotation: Annotation):
-            image_id = Path(annotation.image_id)
-            path = save_dir / image_id.with_suffix(file_extension)
-            annotation.save_txt(path, label_to_id, box_format, relative, separator)
+            image_id = annotation.image_id
+            path = (save_dir / image_id).with_suffix(file_extension)
+            annotation.save_txt(path, 
+                label_to_id=label_to_id, 
+                box_format=box_format, 
+                relative=relative,
+                separator=separator)
 
         self.save_from_it(_save)
 
     def save_from_it(self, save_fn: Callable[[Annotation], None]):        
         thread_map(save_fn, self, desc="Saving")
 
-    def save_yolo(self, save_dir: Path, label_to_id: Mapping[str, Union[float, str]] = None):
+    def save_yolo(self, save_dir: Path, *, 
+        label_to_id: Mapping[str, Union[float, str]] = None
+    ):
         save_dir.mkdir(exist_ok=True)
 
         def _save(annotation: Annotation):
             path = save_dir / Path(annotation.image_id).with_suffix(".txt")
-            annotation.save_yolo(path, label_to_id)
+            annotation.save_yolo(path, label_to_id=label_to_id)
 
         self.save_from_it(_save)
 
@@ -307,25 +392,32 @@ class AnnotationSet:
 
         self.save_from_it(_save)
 
-    def to_coco(self) -> dict:
-        labels = sorted(self._labels())
-        label_to_id = {l: i for i, l in enumerate(labels)}
-        imageid_to_id = {n: i for i, n in enumerate(self.image_ids)}
-        
+    def to_coco(self, *,
+        label_to_id: dict[str, int] = None, 
+        imageid_to_id: dict[str, int] = None
+    ) -> dict:
+        assert (label_to_id or self._id_to_label) and (imageid_to_id or self._id_to_imageid), "For COCO, mappings from labels and image ids to integer ids are required. They can be provided either by argument or automatically by the `AnnotationSet` instance if it was created with `AnnotationSet.from_coco()` or `AnnotationSet.from_coco_results()`."
+
+        label_to_id = label_to_id or {v: k for k, v in self._id_to_label.items()}
+        imageid_to_id = imageid_to_id or {v: k for k, v in self._id_to_imageid.items()}
+
         annotations = []
+        ann_id_count = 0
         for annotation in tqdm(self, desc="Saving"):
-            for idx, box in enumerate(annotation.boxes):
+            for box in annotation.boxes:
                 box_annotation = {
                     "iscrowd": 0, "ignore": 0,
                     "image_id": imageid_to_id[annotation.image_id],
                     "bbox": box.ltwh,
                     "category_id": label_to_id[box.label],
-                    "id": idx}
+                    "id": ann_id_count}
 
                 if box.is_detection:
                     box_annotation["score"] = box.confidence
 
                 annotations.append(box_annotation)
+
+                ann_id_count += 1
 
         images = [{
             "id": imageid_to_id[a.image_id], 
@@ -333,16 +425,20 @@ class AnnotationSet:
             "width": a.image_width, 
             "height": a.image_height} for a in self]
 
-        categories = [{"supercategory": "none", "id": label_to_id[l], "name": l} for l in labels]
+        categories = [{"supercategory": "none", "id": i, "name": l} for l, i in label_to_id.items()]
 
         return {"images": images, "annotations": annotations, "categories": categories}
 
-    def save_coco(self, path: Path):
+    def save_coco(self, path: Path, *,
+        label_to_id: dict[str, int] = None, 
+        imageid_to_id: dict[str, int] = None
+    ):
         if path.suffix == "":
             path = path.with_suffix(".json")
         assert path.suffix == ".json"
         with path.open("w") as f:
-            json.dump(self.to_coco(), fp=f, allow_nan=False)
+            content = self.to_coco(label_to_id=label_to_id, imageid_to_id=imageid_to_id)
+            json.dump(content, fp=f, allow_nan=False)
 
     def save_openimage(self, path: Path):
         if path.suffix == "":
@@ -358,7 +454,7 @@ class AnnotationSet:
 
             for annotation in tqdm(self, desc="Saving"):
                 for box in annotation.boxes:
-                    xmin, ymin, xmax, ymax = BoundingBox.abs_to_rel(box.ltrb, annotation.image_size)
+                    xmin, ymin, xmax, ymax = BoundingBox.abs_to_rel(coords=box.ltrb, size=annotation.image_size)
                     
                     row = {
                         "ImageID": annotation.image_id,
