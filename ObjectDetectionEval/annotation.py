@@ -1,37 +1,37 @@
 from .utils import *
 from .boundingbox import BoundingBox
 
-from typing import Mapping
+from typing import Mapping, Optional
 import xml.etree.ElementTree as et
 import json
 
-# from PIL import Image, ImageDraw
 
 class Annotation: 
     """Stores bounding box annotations for one image.
 
-    The image should be uniquely identified by the `image_id` str, and 
-    the image size (width, height) should be provided."""
+    The image should be uniquely identified by the `image_id` str. The
+    image size is necessary for some operations."""
 
     def __init__(self, 
         image_id: str, 
-        image_size: "tuple[int, int]", 
+        image_size: Optional[tuple[int, int]] = None, 
         boxes: "list[BoundingBox]" = None
     ) -> None:
-        img_w, img_h = image_size
-        assert img_w > 0 and img_h > 0
-        assert int(img_w) == img_w and int(img_h) == img_h
+        if image_size is not None:
+            img_w, img_h = image_size
+            assert img_w > 0 and img_h > 0
+            assert int(img_w) == img_w and int(img_h) == img_h
 
         self.image_id = image_id
         self.image_size = image_size
         self.boxes = boxes or []
 
     @property
-    def image_width(self) -> int:
+    def image_width(self) -> Optional[int]:
         return self.image_size[0]
 
     @property
-    def image_height(self) -> int:
+    def image_height(self) -> Optional[int]:
         return self.image_size[1]
 
     def add(self, box: BoundingBox):
@@ -46,10 +46,6 @@ class Annotation:
 
     def _labels(self) -> "set[str]":
         return {b.label for b in self.boxes}
-
-    @staticmethod
-    def _empty_like(annotation: "Annotation") -> "Annotation":
-        return Annotation(image_id=annotation.image_id, image_size=annotation.image_size)
 
     @staticmethod
     def from_txt(
@@ -97,7 +93,7 @@ class Annotation:
             size_node = root.find("size")
             width = size_node.findtext("width")
             height = size_node.findtext("height")
-            image_size = float(width), float(height) 
+            image_size = int(width), int(height) 
             boxes = [BoundingBox.from_xml(n) for n in root.iter("object")]
         except OSError:
             raise FileParsingError(file_path, reason="cannot read file")
@@ -137,78 +133,100 @@ class Annotation:
     @staticmethod
     def from_cvat(node: et.Element) -> "Annotation":
         # TODO: Add error handling
-        image_id = node.attrib["name"]
-        image_size = int(node.attrib["width"]), int(node.attrib["height"])
+        attribs = node.attrib
+        image_id = attribs["name"]
+        image_size = int(attribs["width"]), int(attribs["height"])
         boxes = [BoundingBox.from_cvat(n) for n in node.iter("box")]
         return Annotation(image_id, image_size, boxes)
 
-    def to_txt(self, 
+    def to_txt(self, *,
         label_to_id: Mapping[str, Union[float, str]] = None,
         box_format: BoxFormat = BoxFormat.LTRB, 
-        relative = False, 
+        relative = False,
+        image_size: tuple[int, int] = None, 
         separator: str = " "
     ) -> str:
-        return "\n".join(b.to_txt(label_to_id, box_format, relative, self.image_size, separator)
-            for b in self.boxes)
+        image_size = image_size or self.image_size
+        return "\n".join(
+            b.to_txt(label_to_id, box_format, relative, image_size, separator) for b in self.boxes)
 
-    def to_yolo(self, label_to_id: Mapping[str, Union[float, str]] = None) -> str:
-        return "\n".join(b.to_yolo(self.image_size, label_to_id) 
-            for b in self.boxes)
+    def to_yolo(self, *,
+        label_to_id: Mapping[str, Union[float, str]] = None,
+        image_size: tuple[int, int] = None
+    ) -> str:
+        image_size = image_size or self.image_size
+        return "\n".join(b.to_yolo(image_size, label_to_id) for b in self.boxes)
 
-    def save_txt(self, 
-        path: Path,
+    def save_txt(self, path: Path, *,
         label_to_id: Mapping[str, Union[float, str]] = None,
         box_format: BoxFormat = BoxFormat.LTRB, 
         relative = False, 
+        image_size: tuple[int, int] = None,
         separator: str = " "
     ):
-        content = self.to_txt(label_to_id, box_format, relative, separator)
+        content = self.to_txt(
+            label_to_id=label_to_id, 
+            box_format=box_format, 
+            relative=relative, 
+            image_size=image_size, 
+            separator=separator)
         path.write_text(content)
 
-    def save_yolo(self, path: Path, label_to_id: Mapping[str, Union[float, str]] = None):
-        content = self.to_yolo(label_to_id)
+    def save_yolo(self, path: Path, *,
+        label_to_id: Mapping[str, Union[float, str]] = None,
+        image_size: tuple[int, int] = None
+    ):
+        content = self.to_yolo(label_to_id=label_to_id, image_size=image_size)
         path.write_text(content)
 
-    def to_labelme(self) -> dict:
+    def to_labelme(self, *, image_size: tuple[int, int] = None) -> dict:
+        image_size = image_size or self.image_size
+        assert image_size is not None, "An image size should be provided either by argument or by `self.image_size`"
+
         return {
             "imagePath": self.image_id,
-            "imageWidth": self.image_width,
-            "imageHeight": self.image_height,
+            "imageWidth": image_size[0],
+            "imageHeight": image_size[1],
             "imageData": None,
             "shapes": [b.to_labelme() for b in self.boxes]}
 
-    def save_labelme(self, path: Path):
-        content = self.to_labelme()
+    def save_labelme(self, path: Path, *, image_size: tuple[int, int] = None):
+        content = self.to_labelme(image_size=image_size)
         with path.open("w") as f:
             json.dump(content, fp=f, allow_nan=False)
 
-    def to_xml(self) -> et.Element:
+    def to_xml(self, *, image_size: tuple[int, int] = None) -> et.Element:
+        image_size = image_size or self.image_size
+        assert image_size is not None, "An image size should be provided either by argument or by `self.image_size`"
+
         ann_node = et.Element("annotation")
         et.SubElement(ann_node, "filename").text = self.image_id
 
         size_node = et.SubElement(ann_node, "size")
-        et.SubElement(size_node, "width").text = f"{self.image_width}"
-        et.SubElement(size_node, "height").text = f"{self.image_height}"
+        et.SubElement(size_node, "width").text = f"{image_size[0]}"
+        et.SubElement(size_node, "height").text = f"{image_size[1]}"
 
         for box in self.boxes:
             ann_node.append(box.to_xml())
 
         return ann_node
 
-    def save_xml(self, path: Path):
-        content = self.to_xml()
+    def save_xml(self, path: Path, *, image_size: tuple[int, int] = None):
+        content = self.to_xml(image_size=image_size)
         content = et.tostring(content, encoding="unicode")
         path.write_text(content)
 
-    def to_cvat(self) -> et.Element:
-        img_node = et.Element("image")
-        img_node_attrib = img_node.attrib
-        img_node_attrib["name"] = self.image_id
-        img_node_attrib["width"] = f"{self.image_width}"
-        img_node_attrib["height"] = f"{self.image_height}"
+    def to_cvat(self, *, image_size: tuple[int, int] = None) -> et.Element:
+        image_size = image_size or self.image_size
+        assert image_size is not None, "An image size should be provided either by argument or by `self.image_size`"
 
-        for box in self.boxes:
-            img_node.append(box.to_cvat())
+        img_node = et.Element("image", attrib={
+            "name": self.image_id,
+            "width": f"{image_size[0]}",
+            "height": f"{image_size[1]}",
+        })
+
+        img_node.extend(box.to_cvat() for box in self.boxes)
 
         return img_node
 
