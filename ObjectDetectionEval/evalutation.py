@@ -154,7 +154,7 @@ class MultiThresholdEvaluation(Dict[str, Dict[str, float]]):
     """
 
     def __init__(self, evaluations: "list[Evaluation]") -> None:
-        result = defaultdict(list)
+        result = defaultdict[str, list[EvaluationItem]](list)
         for evaluation in evaluations:
             for label, ev_item in evaluation.items():
                 result[label].append(ev_item)
@@ -183,7 +183,7 @@ class COCOEvaluator:
     """
 
     AP_THRESHOLDS = (0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95)
-    
+
     SMALL_RANGE = (0.0, 32.0**2)
     MEDIUM_RANGE = (32.0**2, 96.0**2)
     LARGE_RANGE = (96.0**2, float("inf"))
@@ -318,8 +318,8 @@ class COCOEvaluator:
         evaluation = PartialEvaluation()
 
         for image_id in sorted(image_ids):  # Sorted to ensure reproductibility
-            gt = ground_truths.get(image_id) or Annotation._empty_like(predictions[image_id])
-            pred = predictions.get(image_id) or Annotation._empty_like(ground_truths[image_id])
+            gt = ground_truths.get(image_id) or Annotation(image_id)
+            pred = predictions.get(image_id) or Annotation(image_id)
 
             evaluation += cls.evaluate_annotation(
                 pred, gt, iou_threshold, max_detections, size_range, labels)
