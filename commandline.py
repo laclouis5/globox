@@ -77,6 +77,10 @@ def add_eval_args(parser: argparse.ArgumentParser):
     add_parse_args(parser, label="predictions")
     add_parse_gts_args(parser)
 
+    # parser.add_argument("--ap", action="append", dest="metrics")
+    # parser.add_argument("--ap50", action="append", dest="metrics")
+    # parser.add_argument("--iou", type=int, default=None)  # mutually_exclusive_group()
+    # etc...
 
 def parse_annotations(args: argparse.Namespace) -> AnnotationSet:
     input: Path = args.input.expanduser().resolve()
