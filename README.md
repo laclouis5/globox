@@ -156,9 +156,14 @@ which outputs:
 │ Total     │   50.36% │  69.70% │  57.17% │   │  65.48% │  60.31% │  55.37% │
 └───────────┴──────────┴─────────┴─────────┴...┴─────────┴─────────┴─────────┘
 ```
-This can be slow because it requires 90 iterations of the COCO evaluation metric on the validation set, thus a progress bar is shown.
 
-Custom evaluation policy can be done with:
+The array of results can be saved in CSV format:
+
+```python
+evaluator.save_csv(Path("results.csv"))
+```
+
+Custom evaluations can be achieved with:
 
 ```python
 evaluation = evaluator.evaluate(
@@ -166,18 +171,11 @@ evaluation = evaluator.evaluate(
     max_detections=1_000,
     size_range=(0.0, 10_000))
 
-print(evaluation.ap(), evaluation.ar())
+ap = evaluation.ap()
+cat_ar = evaluation["cat"].ar
 ```
 
-Evaluations are cached by `(iou_threshold, max_detections, size_range)` key for performance reasons. This avoids re-computations, for instance querying `.ap_50()` after `.ap()` has been called will not incur a re-computation. When dealing with large datasets the cache can grow very large, thus `.clear_cache()` method can be called to empty it.
-
-Evaluations can be queried by class label:
-
-```python
-key = (0.5, 100, None)  # AP_50
-cat_eval = evaluator.evaluations[key]["cat"]
-cat_ap = cat_eval.ap()
-```
+Evaluations are cached by `(iou_threshold, max_detections, size_range)` keys. This means that you should not care about about performance, repetead queries to the evaluator are fast!
 
 ## Use in command line
 
@@ -188,7 +186,7 @@ TODOs:
 
 ## Tests
 
-Run tests with `python tests.py`.
+Run tests with `python test.py`.
 
 ## Speed
 
@@ -197,10 +195,10 @@ Run tests with `python tests.py`.
 
 Speed test is done using `timeit` with 1 iteration on an early 2015 MacBook Air (8 GB RAM Dual-Core 1.6 GHz). The database is COCO 2017 Validation which comprises 5k images and 36 781 bounding boxes. 
 
-Task|COCO|CVAT|OpenImage|LabelMe|PascalVOC|YOLO|TXT
-----|----|----|---------|-------|---------|----|---
-Parsing|0.52s|0.59s|3.44s|1.84s|2.45s|3.01s|2.54s
-Saving |1.12s|0.74s|0.42s|4.39s|4.46s|3.75s|3.52s
+Task   |COCO |CVAT |OpenImage|LabelMe|PascalVOC|YOLO |TXT
+-------|-----|-----|---------|-------|---------|-----|-----
+Parsing|0.52s|0.59s|3.44s    |1.84s  |2.45s    |3.01s|2.54s
+Saving |1.12s|0.74s|0.42s    |4.39s  |4.46s    |3.75s|3.52s
 
 OpenImage, YOLO and TXT are slower because they store bounding box coordinates in relative coordinates and do not provide the image size, so reading it from the image file is required.
 

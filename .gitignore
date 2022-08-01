@@ -1,5 +1,5 @@
 # Others
-data/coco_val*/
+data/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
