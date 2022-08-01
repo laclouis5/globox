@@ -23,12 +23,12 @@ class BoundingBox:
 
     __slots__ = ("label", "_xmin", "_ymin", "_xmax", "_ymax", "_confidence")
 
-    def __init__(self, 
+    def __init__(self,
         label: str, 
         xmin: float, 
         ymin: float, 
-        xmax: float, 
-        ymax: float,
+        xmax: float,
+        ymax: float, *,
         confidence: float = None
     ) -> None:
         assert xmin <= xmax, "'xmax' must be greater than 'xmin'"
@@ -181,7 +181,7 @@ class BoundingBox:
         return self.xmid, self.ymid, self.width, self.height
 
     @classmethod
-    def create(cls,
+    def create(cls, *,
         label: str, 
         coords: Coordinates, 
         confidence: float = None,
@@ -202,7 +202,7 @@ class BoundingBox:
         else:
             raise ValueError(f"Unknown BoxFormat '{box_format}'")
 
-        return cls(label, *coords, confidence)
+        return cls(label, *coords, confidence=confidence)
 
     @staticmethod
     def from_txt(
@@ -229,7 +229,13 @@ class BoundingBox:
         except ValueError as e:
             raise ParsingError(f"{e} in line '{string}'")
 
-        return BoundingBox.create(label, coords, confidence, box_format, relative, image_size)
+        return BoundingBox.create(
+            label=label, 
+            coords=coords, 
+            confidence=confidence, 
+            box_format=box_format, 
+            relative=relative, 
+            image_size=image_size)
 
     @staticmethod
     def from_yolo(string: str, image_size: "tuple[int, int]") -> "BoundingBox":
@@ -252,7 +258,7 @@ class BoundingBox:
         except ValueError as e:
             raise ParsingError(f"{e}")
 
-        return BoundingBox(label, *coords, confidence=None)
+        return BoundingBox(label, *coords)
 
     @staticmethod
     def from_labelme(node: dict) -> "BoundingBox":
@@ -287,7 +293,7 @@ class BoundingBox:
             raise ValueError(f"Unknown BoxFormat '{box_format}'")
         
         if relative:
-            assert image_size is not None, "For relative coordinates image_size should be provided"
+            assert image_size is not None, "For relative coordinates `image_size` should be provided"
             coords = BoundingBox.abs_to_rel(coords, image_size)
 
         label = self.label
@@ -326,16 +332,14 @@ class BoundingBox:
         return obj_node
 
     def to_cvat(self) -> et.Element:
-        box_node = et.Element("box")
-        box_node.attrib["label"] = self.label
-
         xtl, ytl, xbr, ybr = self.ltrb
-        box_node.attrib["xtl"] = f"{xtl}"
-        box_node.attrib["ytl"] = f"{ytl}"
-        box_node.attrib["xbr"] = f"{xbr}"
-        box_node.attrib["ybr"] = f"{ybr}"
-
-        return box_node
+        return et.Element("box", attrib={
+            "label": self.label,
+            "xtl": f"{xtl}",
+            "ytl": f"{ytl}",
+            "xbr": f"{xbr}",
+            "ybr": f"{ybr}",
+        })
 
     def __repr__(self) -> str:
         return f"BoundingBox(label: {self.label}, xmin: {self._xmin}, ymin: {self._ymin}, xmax: {self._xmax}, ymax: {self._ymax}, confidence: {self._confidence})"
