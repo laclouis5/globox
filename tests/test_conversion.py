@@ -2,15 +2,14 @@ from .constants import *
 from ObjectDetectionEval import *
 
 
-def test_conversion():
-    save_dir = Path("/tmp/").expanduser()
-    txt_dir = save_dir / "txt/"
-    yolo_dir = save_dir / "yolo/"
-    xml_dir = save_dir / "xml/"
-    cvat_path = save_dir / "cvat.xml"
-    coco_path = save_dir / "coco.json"
-    labelme_dir = save_dir / "labelme"
-    openimage_path = save_dir / "openimage.csv"
+def test_conversion(tmp_path: Path):
+    txt_dir = tmp_path / "txt/"
+    yolo_dir = tmp_path / "yolo/"
+    xml_dir = tmp_path / "xml/"
+    cvat_path = tmp_path / "cvat.xml"
+    coco_path = tmp_path / "coco.json"
+    labelme_dir = tmp_path / "labelme"
+    openimage_path = tmp_path / "openimage.csv"
 
     boxes = AnnotationSet.from_coco(file_path=coco2_path)
 
