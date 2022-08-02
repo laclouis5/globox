@@ -1,5 +1,5 @@
 import pytest
-from constants import *
+from .constants import *
 from ObjectDetectionEval import *
 
 
