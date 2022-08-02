@@ -58,7 +58,7 @@ class PartialEvaluationItem:
     def ap(self) -> float:
         if (ap := self._cache.get("ap")) is not None:
             return ap
-        ap = _compute_ap(self._scores, self._tps, self._npos)
+        ap = COCOEvaluator._compute_ap(self._scores, self._tps, self._npos)
         self._cache["ap"] = ap
         return ap
 
@@ -182,12 +182,14 @@ class COCOEvaluator:
     (python3 --OO ...).
     """
 
-    AP_THRESHOLDS = (0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95)
+    AP_THRESHOLDS = np.linspace(0.5, 0.95, 10)
 
     SMALL_RANGE = (0.0, 32.0**2)
     MEDIUM_RANGE = (32.0**2, 96.0**2)
     LARGE_RANGE = (96.0**2, float("inf"))
     ALL_RANGE = (0.0, float("inf"))
+
+    RECALL_STEPS = np.linspace(0.0, 1.0, 101)
 
     def __init__(self, 
         ground_truths: AnnotationSet,
@@ -544,34 +546,32 @@ class COCOEvaluator:
         csv_data = self.to_csv()
         path.write_text(csv_data)
 
+    @classmethod
+    def _compute_ap(cls, scores: "list[float]", matched: "list[bool]", NP: int) -> float:
+        """ This curve tracing method has some quirks that do not appear when only unique confidence thresholds
+        are used (i.e. Scikit-learn's implementation), however, in order to be consistent, the COCO's method is reproduced. 
+        
+        Copyrights: https://github.com/rafaelpadilla/review_object_detection_metrics
+        """
+        if NP == 0:
+            return float("nan")
 
-def _compute_ap(scores: "list[float]", matched: "list[bool]", NP: int) -> float:
-    """ This curve tracing method has some quirks that do not appear when only unique confidence thresholds
-    are used (i.e. Scikit-learn's implementation), however, in order to be consistent, the COCO's method is reproduced. 
-    
-    Copyrights: https://github.com/rafaelpadilla/review_object_detection_metrics
-    """
-    if NP == 0:
-        return float("nan")
+        # sort in descending score order
+        scores = np.array(scores, dtype=float)
+        matched = np.array(matched, dtype=bool)
+        inds = np.argsort(-scores, kind="stable")
 
-    recall_steps = np.linspace(0.0, 1.0, 101, endpoint=True)
+        scores = scores[inds]
+        matched = matched[inds]
 
-    # sort in descending score order
-    scores = np.array(scores, dtype=float)
-    matched = np.array(matched, dtype=bool)
-    inds = np.argsort(-scores, kind="stable")
+        tp = np.cumsum(matched)
 
-    scores = scores[inds]
-    matched = matched[inds]
+        rc = tp / NP
+        pr = tp / np.arange(1, len(matched)+1)
+        # make precision monotonically decreasing
+        i_pr = np.maximum.accumulate(pr[::-1])[::-1]
+        rec_idx = np.searchsorted(rc, cls.RECALL_STEPS, side="left")
 
-    tp = np.cumsum(matched)
+        sum_ = i_pr[rec_idx[rec_idx < len(i_pr)]].sum()
 
-    rc = tp / NP
-    pr = tp / np.arange(1, len(matched)+1)
-    # make precision monotonically decreasing
-    i_pr = np.maximum.accumulate(pr[::-1])[::-1]
-    rec_idx = np.searchsorted(rc, recall_steps, side="left")
-
-    sum_ = i_pr[rec_idx[rec_idx < len(i_pr)]].sum()
-
-    return sum_ / len(rec_idx)
+        return sum_ / len(rec_idx)
