@@ -436,7 +436,7 @@ class AnnotationSet:
         if path.suffix == "":
             path = path.with_suffix(".json")
         assert path.suffix == ".json"
-        with path.open("w") as f:
+        with open_atomic(path, "w") as f:
             content = self.to_coco(label_to_id=label_to_id, imageid_to_id=imageid_to_id)
             json.dump(content, fp=f, allow_nan=False)
 
@@ -444,7 +444,7 @@ class AnnotationSet:
         if path.suffix == "":
             path = path.with_suffix(".csv")
         assert path.suffix == ".csv"
-        with path.open("w", newline="") as f:
+        with open_atomic(path, "w", newline="") as f:
             fields = (
                 "ImageID", "Source", "LabelName", "Confidence", 
                 "XMin", "XMax", "YMin", "YMax", "IsOccluded", 

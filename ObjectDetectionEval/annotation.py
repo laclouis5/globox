@@ -192,7 +192,7 @@ class Annotation:
 
     def save_labelme(self, path: Path, *, image_size: tuple[int, int] = None):
         content = self.to_labelme(image_size=image_size)
-        with path.open("w") as f:
+        with open_atomic(path, "w") as f:
             json.dump(content, fp=f, allow_nan=False)
 
     def to_xml(self, *, image_size: tuple[int, int] = None) -> et.Element:
