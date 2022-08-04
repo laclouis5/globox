@@ -1,6 +1,9 @@
+from .boundingbox import BoxFormat
+from .annotationset import AnnotationSet
+from .evalutation import COCOEvaluator
+
 import argparse
 from pathlib import Path
-from ObjectDetectionEval import *
 
 
 PARSE_CHOICES = {"coco", "yolo", "labelme", "pascalvoc", "openimage", "txt", "cvat"}
@@ -11,7 +14,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     
     parser.add_argument("--verbose", "-v", action="store_true")
-    parser.add_argument("--threads", "-j", type=int, default=0)
+    # parser.add_argument("--threads", "-j", type=int, default=0)
 
     subparsers = parser.add_subparsers(dest="mode")
     convert_parser = subparsers.add_parser("convert")

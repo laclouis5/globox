@@ -1,8 +1,8 @@
-from .errors import *
+from .errors import UnknownImageFormat
 
-import os, struct
 from pathlib import Path
-
+from struct import unpack, error as struct_error
+from os import path
 
 """
 get_image_size.py
@@ -27,7 +27,7 @@ def get_image_size(file_path: Path) -> "tuple[int, int]":
     Returns:
         - The image size (width, height)
     """
-    size = os.path.getsize(file_path)
+    size = path.getsize(file_path)
 
     # be explicit with open arguments - we need binary mode
     with file_path.open("rb") as input:
@@ -57,18 +57,18 @@ def _get_image_metadata_from_bytesio(input, size: int) -> "tuple[int, int]":
 
     if (size >= 10) and data[:6] in (b'GIF87a', b'GIF89a'):
         # GIFs
-        w, h = struct.unpack("<HH", data[6:10])
+        w, h = unpack("<HH", data[6:10])
         width = int(w)
         height = int(h)
     elif ((size >= 24) and data.startswith(b'\211PNG\r\n\032\n')
             and (data[12:16] == b'IHDR')):
         # PNGs
-        w, h = struct.unpack(">LL", data[16:24])
+        w, h = unpack(">LL", data[16:24])
         width = int(w)
         height = int(h)
     elif (size >= 16) and data.startswith(b'\211PNG\r\n\032\n'):
         # older PNGs
-        w, h = struct.unpack(">LL", data[8:16])
+        w, h = unpack(">LL", data[8:16])
         width = int(w)
         height = int(h)
     elif (size >= 2) and data.startswith(b'\377\330'):
@@ -84,15 +84,15 @@ def _get_image_metadata_from_bytesio(input, size: int) -> "tuple[int, int]":
                     b = input.read(1)
                 if (ord(b) >= 0xC0 and ord(b) <= 0xC3):
                     input.read(3)
-                    h, w = struct.unpack(">HH", input.read(4))
+                    h, w = unpack(">HH", input.read(4))
                     break
                 else:
                     input.read(
-                        int(struct.unpack(">H", input.read(2))[0]) - 2)
+                        int(unpack(">H", input.read(2))[0]) - 2)
                 b = input.read(1)
             width = int(w)
             height = int(h)
-        except struct.error:
+        except struct_error:
             raise UnknownImageFormat("StructError" + msg)
         except ValueError:
             raise UnknownImageFormat("ValueError" + msg)
@@ -100,13 +100,13 @@ def _get_image_metadata_from_bytesio(input, size: int) -> "tuple[int, int]":
             raise UnknownImageFormat(e.__class__.__name__ + msg)
     elif (size >= 26) and data.startswith(b'BM'):
         # BMP
-        headersize = struct.unpack("<I", data[14:18])[0]
+        headersize = unpack("<I", data[14:18])[0]
         if headersize == 12:
-            w, h = struct.unpack("<HH", data[18:22])
+            w, h = unpack("<HH", data[18:22])
             width = int(w)
             height = int(h)
         elif headersize >= 40:
-            w, h = struct.unpack("<ii", data[18:26])
+            w, h = unpack("<ii", data[18:26])
             width = int(w)
             # as h is negative when stored upside down
             height = abs(int(h))
@@ -136,12 +136,12 @@ def _get_image_metadata_from_bytesio(input, size: int) -> "tuple[int, int]":
             11: (4, boChar + "f"),  # FLOAT
             12: (8, boChar + "d")   # DOUBLE
         }
-        ifdOffset = struct.unpack(boChar + "L", data[4:8])[0]
+        ifdOffset = unpack(boChar + "L", data[4:8])[0]
         try:
             countSize = 2
             input.seek(ifdOffset)
             ec = input.read(countSize)
-            ifdEntryCount = struct.unpack(boChar + "H", ec)[0]
+            ifdEntryCount = unpack(boChar + "H", ec)[0]
             # 2 bytes: TagId + 2 bytes: type + 4 bytes: count of values + 4
             # bytes: value offset
             ifdEntrySize = 12
@@ -149,12 +149,12 @@ def _get_image_metadata_from_bytesio(input, size: int) -> "tuple[int, int]":
                 entryOffset = ifdOffset + countSize + i * ifdEntrySize
                 input.seek(entryOffset)
                 tag = input.read(2)
-                tag = struct.unpack(boChar + "H", tag)[0]
+                tag = unpack(boChar + "H", tag)[0]
                 if(tag == 256 or tag == 257):
                     # if type indicates that value fits into 4 bytes, value
                     # offset is not an offset but value itself
                     type = input.read(2)
-                    type = struct.unpack(boChar + "H", type)[0]
+                    type = unpack(boChar + "H", type)[0]
                     if type not in tiffTypes:
                         raise UnknownImageFormat(
                             "Unkown TIFF field type:" +
@@ -163,7 +163,7 @@ def _get_image_metadata_from_bytesio(input, size: int) -> "tuple[int, int]":
                     typeChar = tiffTypes[type][1]
                     input.seek(entryOffset + 8)
                     value = input.read(typeSize)
-                    value = int(struct.unpack(typeChar, value)[0])
+                    value = int(unpack(typeChar, value)[0])
                     if tag == 256:
                         width = value
                     else:
@@ -176,12 +176,12 @@ def _get_image_metadata_from_bytesio(input, size: int) -> "tuple[int, int]":
             # see http://en.wikipedia.org/wiki/ICO_(file_format)
         input.seek(0)
         reserved = input.read(2)
-        if 0 != struct.unpack("<H", reserved)[0]:
+        if 0 != unpack("<H", reserved)[0]:
             raise UnknownImageFormat("Sorry, don't know how to get size for this file")
         format = input.read(2)
-        assert 1 == struct.unpack("<H", format)[0]
+        assert 1 == unpack("<H", format)[0]
         num = input.read(2)
-        num = struct.unpack("<H", num)[0]
+        num = unpack("<H", num)[0]
         if num > 1:
             import warnings
             warnings.warn("ICO File contains more than one image")

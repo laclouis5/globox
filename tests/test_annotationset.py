@@ -1,6 +1,7 @@
-import pytest
+from objtools import Annotation, AnnotationSet
+from objtools.file_utils import glob
 from .constants import *
-from ObjectDetectionEval import *
+import pytest
 
 
 def test_annotationset():

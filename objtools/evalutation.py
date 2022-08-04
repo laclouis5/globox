@@ -1,7 +1,8 @@
+from .boundingbox import BoundingBox
 from .annotation import Annotation
 from .annotationset import AnnotationSet
-from .boundingbox import BoundingBox
-from .utils import grouping, all_equal, mean, open_atomic
+from .utils import grouping, all_equal, mean
+from .atomic import open_atomic
 
 from typing import DefaultDict, Dict, Mapping, Optional, Sequence, Union, Iterable
 from collections import defaultdict
@@ -9,9 +10,14 @@ import numpy as np
 from copy import copy
 from math import isnan
 from pathlib import Path
-
-import itertools
+from enum import Enum, auto
+from itertools import chain, product
 from functools import lru_cache
+
+
+class RecallSteps(Enum):
+    ELEVEN = auto()
+    ALL = auto()
 
 
 class PartialEvaluationItem:
@@ -195,6 +201,7 @@ class COCOEvaluator:
         ground_truths: AnnotationSet,
         predictions: AnnotationSet ,
         labels: Iterable[str] = None,
+        verbose: bool = True
     ) -> None:
         self._predictions = predictions
         self._ground_truths = ground_truths
@@ -426,12 +433,12 @@ class COCOEvaluator:
     def _evaluate_all_progress_bar(self):
         from tqdm import tqdm
         
-        params = itertools.chain(
-            itertools.product(
+        params = chain(
+            product(
                 self.AP_THRESHOLDS, 
                 (100,),
                 (self.SMALL_RANGE, self.MEDIUM_RANGE, self.LARGE_RANGE, self.ALL_RANGE)),
-            itertools.product(
+            product(
                 self.AP_THRESHOLDS, 
                 (1, 10), 
                 (self.ALL_RANGE,)))

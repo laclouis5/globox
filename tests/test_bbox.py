@@ -1,6 +1,6 @@
-import pytest
+from objtools import BoxFormat, BoundingBox
 from math import isclose
-from ObjectDetectionEval import *
+import pytest
 
 
 def test_init():

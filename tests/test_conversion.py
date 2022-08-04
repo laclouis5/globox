@@ -1,5 +1,6 @@
+from objtools import AnnotationSet
+from objtools.utils import all_equal
 from .constants import *
-from ObjectDetectionEval import *
 
 
 def test_conversion(tmp_path: Path):

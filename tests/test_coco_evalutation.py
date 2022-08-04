@@ -1,5 +1,5 @@
+from objtools import COCOEvaluator
 from .constants import *
-from ObjectDetectionEval import *
 from math import isclose
 
 

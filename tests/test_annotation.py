@@ -1,5 +1,5 @@
+from objtools import BoundingBox, Annotation
 import pytest
-from ObjectDetectionEval import *
 
 
 def test_init():

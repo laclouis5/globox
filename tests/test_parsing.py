@@ -1,5 +1,6 @@
+from objtools import BoxFormat, AnnotationSet
+from objtools.utils import all_equal
 from .constants import *
-from ObjectDetectionEval import *
 
 
 def tests_parsing():

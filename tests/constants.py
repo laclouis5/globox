@@ -1,5 +1,5 @@
+from objtools import AnnotationSet
 from pathlib import Path
-from ObjectDetectionEval import AnnotationSet
 
 
 data_path = Path("data/")
