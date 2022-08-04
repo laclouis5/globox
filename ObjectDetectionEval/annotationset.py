@@ -186,12 +186,8 @@ class AnnotationSet:
         return AnnotationSet.from_folder(folder, extension=".xml", parser=Annotation.from_xml)      
 
     @staticmethod
-    def from_openimage(file_path: Path, *, image_folder: Path = None) -> "AnnotationSet":
+    def from_openimage(file_path: Path, *, image_folder: Path) -> "AnnotationSet":
         assert file_path.is_file() and file_path.suffix == ".csv", f"OpenImage annotation file {file_path} must be a csv file"
-
-        if image_folder is None:
-            image_folder = file_path.parent
-
         assert image_folder.is_dir(), f"Image folder {image_folder} must be a valid directory"
         
         # TODO: Add error handling.
@@ -394,12 +390,18 @@ class AnnotationSet:
 
     def to_coco(self, *,
         label_to_id: dict[str, int] = None, 
-        imageid_to_id: dict[str, int] = None
+        imageid_to_id: dict[str, int] = None,
+        auto_ids: bool = False,
     ) -> dict:
-        assert (label_to_id or self._id_to_label) and (imageid_to_id or self._id_to_imageid), "For COCO, mappings from labels and image ids to integer ids are required. They can be provided either by argument or automatically by the `AnnotationSet` instance if it was created with `AnnotationSet.from_coco()` or `AnnotationSet.from_coco_results()`."
+        native_ids = (label_to_id or self._id_to_label) and (imageid_to_id or self._id_to_imageid)
+        assert native_ids or auto_ids, "For COCO, mappings from labels and image ids to integer ids are required. They can be provided either by argument or automatically by the `AnnotationSet` instance if it was created with `AnnotationSet.from_coco()` or `AnnotationSet.from_coco_results()`. You can also set `auto_ids` to True to automatically create image and label ids (warning: this could cause unexpected compatibility issues with other COCO datasets)."
 
-        label_to_id = label_to_id or {v: k for k, v in self._id_to_label.items()}
-        imageid_to_id = imageid_to_id or {v: k for k, v in self._id_to_imageid.items()}
+        if native_ids:  # native_ids takes precedence over auto_ids
+            label_to_id = label_to_id or {v: k for k, v in self._id_to_label.items()}
+            imageid_to_id = imageid_to_id or {v: k for k, v in self._id_to_imageid.items()}
+        else:
+            label_to_id = {l: i for i, l in enumerate(sorted(self._labels()))}
+            imageid_to_id = {im: i for i, im in enumerate(sorted(self.image_ids))}
 
         annotations = []
         ann_id_count = 0
@@ -431,13 +433,14 @@ class AnnotationSet:
 
     def save_coco(self, path: Path, *,
         label_to_id: dict[str, int] = None, 
-        imageid_to_id: dict[str, int] = None
+        imageid_to_id: dict[str, int] = None,
+        auto_ids: bool = False,
     ):
         if path.suffix == "":
             path = path.with_suffix(".json")
         assert path.suffix == ".json"
         with open_atomic(path, "w") as f:
-            content = self.to_coco(label_to_id=label_to_id, imageid_to_id=imageid_to_id)
+            content = self.to_coco(label_to_id=label_to_id, imageid_to_id=imageid_to_id, auto_ids=auto_ids)
             json.dump(content, fp=f, allow_nan=False)
 
     def save_openimage(self, path: Path):
@@ -481,18 +484,18 @@ class AnnotationSet:
         assert path.suffix == ".xml"
         content = self.to_cvat()
         content = et.tostring(content, encoding="unicode")
-        path.write_text(content)
+        with open_atomic(path, "w") as f:
+            f.write(content)
 
     @staticmethod
     def parse_names_file(path: Path) -> "dict[str, str]":
-        """Parse YOLO .names file.
+        """Parse .names file.
         
         Parameters:
         - path: the path to the .names file.
 
         Returns: 
-        - A dictionary mapping label number (as used by YOLO)
-        with label names."""
+        - A dictionary mapping label number with label names."""
         # TODO: Add error handling
         return {str(i): v for i, v in enumerate(path.read_text().splitlines())}
 

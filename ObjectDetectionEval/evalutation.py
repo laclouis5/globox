@@ -1,7 +1,7 @@
 from .annotation import Annotation
 from .annotationset import AnnotationSet
 from .boundingbox import BoundingBox
-from .utils import grouping, all_equal, mean
+from .utils import grouping, all_equal, mean, open_atomic
 
 from typing import DefaultDict, Dict, Mapping, Optional, Sequence, Union, Iterable
 from collections import defaultdict
@@ -544,7 +544,8 @@ class COCOEvaluator:
 
     def save_csv(self, path: Path):
         csv_data = self.to_csv()
-        path.write_text(csv_data)
+        with open_atomic(path, "w") as f:
+            f.write(csv_data)
 
     @classmethod
     def _compute_ap(cls, scores: "list[float]", matched: "list[bool]", NP: int) -> float:

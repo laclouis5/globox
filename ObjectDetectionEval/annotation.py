@@ -170,14 +170,18 @@ class Annotation:
             relative=relative, 
             image_size=image_size, 
             separator=separator)
-        path.write_text(content)
+
+        with open_atomic(path, "w") as f:
+            f.write(content)
 
     def save_yolo(self, path: Path, *,
         label_to_id: Mapping[str, Union[float, str]] = None,
         image_size: tuple[int, int] = None
     ):
         content = self.to_yolo(label_to_id=label_to_id, image_size=image_size)
-        path.write_text(content)
+        
+        with open_atomic(path, "w") as f:
+            f.write(content)
 
     def to_labelme(self, *, image_size: tuple[int, int] = None) -> dict:
         image_size = image_size or self.image_size
@@ -214,7 +218,9 @@ class Annotation:
     def save_xml(self, path: Path, *, image_size: tuple[int, int] = None):
         content = self.to_xml(image_size=image_size)
         content = et.tostring(content, encoding="unicode")
-        path.write_text(content)
+        
+        with open_atomic(path, "w") as f:
+            f.write(content)
 
     def to_cvat(self, *, image_size: tuple[int, int] = None) -> et.Element:
         image_size = image_size or self.image_size
