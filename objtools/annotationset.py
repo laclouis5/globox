@@ -1,4 +1,3 @@
-
 from .boundingbox import BoundingBox, BoxFormat
 from .annotation import Annotation
 from .errors import UnknownImageFormat, FileParsingError
