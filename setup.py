@@ -1,4 +1,3 @@
-from importlib.metadata import entry_points
 from pathlib import Path
 from setuptools import setup
 
@@ -23,7 +22,6 @@ with (Path(NAME) / "__version__.py").open() as f:
     exec(f.read(), about)
     VERSION = about["__version__"]
 
-
 setup(
     name=NAME,
     version=VERSION,
@@ -44,6 +42,6 @@ setup(
         "License :: OSI Approved :: MIT License",
     ],
     entry_points={
-        "console_scripts": ["objtools=objtools.cli:main"]
+        "console_scripts": ["objtools=objtools.cli:main"],
     }
 )
