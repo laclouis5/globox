@@ -39,6 +39,7 @@ setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.8",
         "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
     ],
     entry_points={
         "console_scripts": [f"{NAME}={NAME}.cli:main"],
