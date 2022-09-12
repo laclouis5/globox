@@ -187,7 +187,7 @@ TODOs:
 
 ## Tests
 
-Run tests with `python test.py`.
+Download the source code, install dependencies and run tests with `pytest`.
 
 ## Speed
 
@@ -228,6 +228,7 @@ The fastest format is COCO and LabelMe (for individual annotation files).
 - [ ] UI interface?
 
 # Optimizations
+
 - [ ] Share ThreadPoolExecutors
 - [ ] Conditional imports (rich, PIL, tqdm, xml/csv readers, etc.)
 - [ ] Cache more stuff in `COCOEvaluator`
