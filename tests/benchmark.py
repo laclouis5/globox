@@ -1,4 +1,4 @@
-from objtools import *
+from globox import *
 from .constants import *
 from pathlib import Path
 from timeit import timeit

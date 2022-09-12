@@ -1,5 +1,5 @@
-from objtools import BoxFormat, AnnotationSet
-from objtools.utils import all_equal
+from globox import BoxFormat, AnnotationSet
+from globox.utils import all_equal
 from .constants import *
 
 

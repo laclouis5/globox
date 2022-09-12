@@ -1,4 +1,4 @@
-# objtools — Object Detection Toolbox
+# Globox — Object Detection Toolbox
 
 This framework can:
 
@@ -12,13 +12,10 @@ This framework can be used both as a library in your own code and as a command l
 
 ## Install
 
-Requires Python >= 3.8.2. Best to use a virtual environment.
+You can install the package using pip:
 
 ```shell
-python3.8 -m venv .env
-source .env/bin/activate
-pip install -U pip
-pip install -r requirements.txt
+pip install globox
 ```
 
 ## Use as a library

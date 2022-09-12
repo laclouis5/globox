@@ -2,14 +2,14 @@ from pathlib import Path
 from setuptools import setup
 
 
-NAME = "objtools"
+NAME = "globox"
 AUTHOR = "Louis Lac"
 EMAIL = "lac.louis5@gmail.com"
 URL = "https://github.com/laclouis5/ObjectDetectionEval"
 DESCRIPTION = "A package and command line interface to read and convert object detection databases (COCO, YOLO, PascalVOC, LabelMe, CVAT, OpenImage, ...) and evaluate them with COCO and PascalVOC."
 
 LICENSE = "MIT"
-PYTHON = ">=3.8"
+PYTHON = ">=3.8.2"
 
 with open("README.md") as f:
     LONG_DESCRIPTION = f.read()
@@ -32,7 +32,7 @@ setup(
     author_email=EMAIL,
     url=URL,
     license=LICENSE,
-    packages=["objtools"],
+    packages=[NAME],
     python_requires=PYTHON,
     install_requires=REQUIREMENTS,
     classifiers=[
@@ -42,6 +42,6 @@ setup(
         "License :: OSI Approved :: MIT License",
     ],
     entry_points={
-        "console_scripts": ["objtools=objtools.cli:main"],
+        "console_scripts": [f"{NAME}={NAME}.cli:main"],
     }
 )

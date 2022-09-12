@@ -1,4 +1,4 @@
-from objtools import COCOEvaluator
+from globox import COCOEvaluator
 from .constants import *
 from math import isclose
 

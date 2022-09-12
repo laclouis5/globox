@@ -1,5 +1,5 @@
-from objtools import AnnotationSet
-from objtools.utils import all_equal
+from globox import AnnotationSet
+from globox.utils import all_equal
 from .constants import *
 
 

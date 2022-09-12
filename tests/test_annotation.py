@@ -1,4 +1,4 @@
-from objtools import BoundingBox, Annotation
+from globox import BoundingBox, Annotation
 import pytest
 
 

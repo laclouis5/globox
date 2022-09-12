@@ -1,4 +1,4 @@
-from objtools import AnnotationSet
+from globox import AnnotationSet
 from pathlib import Path
 
 

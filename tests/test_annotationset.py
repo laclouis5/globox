@@ -1,5 +1,5 @@
-from objtools import Annotation, AnnotationSet
-from objtools.file_utils import glob
+from globox import Annotation, AnnotationSet
+from globox.file_utils import glob
 from .constants import *
 import pytest
 
