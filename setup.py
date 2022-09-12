@@ -11,11 +11,10 @@ DESCRIPTION = "A package and command line interface to read and convert object d
 LICENSE = "MIT"
 PYTHON = ">=3.8.2"
 
+REQUIREMENTS = ["rich", "tqdm", "numpy"]
+
 with open("README.md") as f:
     LONG_DESCRIPTION = f.read()
-
-with open("requirements.txt") as f:
-    REQUIREMENTS = f.readlines()
 
 with (Path(NAME) / "__version__.py").open() as f:
     about = {}
