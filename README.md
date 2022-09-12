@@ -180,10 +180,31 @@ Evaluations are cached by `(iou_threshold, max_detections, size_range)` keys. Th
 
 ## Use in command line
 
-TODOs:
+Get a summary of annotations for one dataset:
 
-- Add documentation and examples
-- Add support for input/output label mapping
+```shell
+globox summary /yolo/folder/ --format yolo
+```
+
+Convert annotations from one format to another one:
+
+```shell
+globox convert input/yolo/folder/ output_coco_file_path.json --format yolo --save_fmt coco
+```
+
+Evaluate a set of detections with COCO metrics:
+
+```shell
+globox evaluate groundtruths/ predictions.json --format yolo --format_dets coco
+```
+
+Show the help message for an exhaustive list of options:
+
+```shell
+globox summary -h
+globox convert -h
+globox evaluate -h
+```
 
 ## Tests
 

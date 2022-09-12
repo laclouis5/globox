@@ -6,7 +6,7 @@ NAME = "globox"
 AUTHOR = "Louis Lac"
 EMAIL = "lac.louis5@gmail.com"
 URL = "https://github.com/laclouis5/globox"
-DESCRIPTION = "A package and command line interface to read and convert object detection databases (COCO, YOLO, PascalVOC, LabelMe, CVAT, OpenImage, ...) and evaluate them with COCO and PascalVOC."
+DESCRIPTION = "Globox is a package and command line interface to read and convert object detection databases (COCO, YOLO, PascalVOC, LabelMe, CVAT, OpenImage, ...) and evaluate them with COCO and PascalVOC."
 
 LICENSE = "MIT"
 PYTHON = ">=3.8.2"
