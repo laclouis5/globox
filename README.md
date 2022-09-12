@@ -2,11 +2,11 @@
 
 This framework can:
 
-* parse all kinds of object detection databases (ImageNet, COCO, YOLO, PascalVOC, OpenImage, CVAT, LabelMe, etc.) and show statistics,
+* parse all kinds of object detection datasets (ImageNet, COCO, YOLO, PascalVOC, OpenImage, CVAT, LabelMe, etc.) and show statistics,
 * convert them to other formats (ImageNet, COCO, YOLO, PascalVOC, OpenImage, CVAT, LabelMe, etc.),
-* and evaluate predictions with standard object detection metrics such as AP@[.5:.05:.95], AP@50, mAP, AR<sub>1</sub>, AR<sub>10</sub>, AR<sub>100</sub>.
+* and evaluate predictions using standard object detection metrics such as AP@[.5:.05:.95], AP@50, mAP, AR<sub>1</sub>, AR<sub>10</sub>, AR<sub>100</sub>.
 
-This framework can be used both as a library in your own code and as a command line tool. This tool is designed to be simple to use, fast and correct. Soon available as a PiP package.
+This framework can be used both as a library in your own code and as a command line tool. This tool is designed to be simple to use, fast and correct.
 
 # Quick Start
 
