@@ -41,6 +41,7 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
+    keywords=["annotation", "metrics", "object detection", "bounding boxes", "yolo", "openimages", "cvat", "coco", "pascal voc", "average precision", "mean average precision"],
     entry_points={
         "console_scripts": [f"{NAME}={NAME}.cli:main"],
     }
