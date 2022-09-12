@@ -8,7 +8,7 @@ This framework can:
 
 This framework can be used both as a library in your own code and as a command line tool. This tool is designed to be simple to use, fast and correct. Soon available as a PiP package.
 
-## Quick Start
+# Quick Start
 
 ## Install
 
@@ -206,6 +206,8 @@ globox convert -h
 globox evaluate -h
 ```
 
+--- 
+
 ## Tests
 
 Download the source code, install dependencies and run tests with `pytest`.
@@ -248,7 +250,7 @@ The fastest format is COCO and LabelMe (for individual annotation files).
 - [ ] Parsers for TFRecord and TensorFlow
 - [ ] UI interface?
 
-# Optimizations
+## Optimizations
 
 - [ ] Share ThreadPoolExecutors
 - [ ] Conditional imports (rich, PIL, tqdm, xml/csv readers, etc.)
