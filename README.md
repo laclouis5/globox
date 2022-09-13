@@ -137,12 +137,12 @@ All COCO standard metrics can be displayed in a pretty printed table with:
 
 ```python
 evaluator.show_summary()
-````
+```
 
 which outputs:
 
-```bash
-                              COCO Evaluation                                                             
+```
+                              COCO Evaluation
 ┏━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┳...┳━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┓
 ┃ Label     ┃ AP 50:95 ┃   AP 50 ┃   AP 75 ┃   ┃    AR S ┃    AR M ┃    AR L ┃
 ┡━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━╇...╇━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━┩
@@ -245,7 +245,7 @@ The fastest format is COCO and LabelMe (for individual annotation files).
 - [x] CLI interface
 - [x] Make `image_size` optional and raise err when required (bbox conversion)
 - [x] Make file saving atomic with a temporary to avoid file corruption
-- [ ] Pip package!
+- [x] Pip package!
 - [ ] PascalVOC Evaluation
 - [ ] Parsers for TFRecord and TensorFlow
 - [ ] UI interface?
