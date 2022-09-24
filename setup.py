@@ -9,9 +9,10 @@ URL = "https://github.com/laclouis5/globox"
 DESCRIPTION = "Globox is a package and command line interface to read and convert object detection databases (COCO, YOLO, PascalVOC, LabelMe, CVAT, OpenImage, ...) and evaluate them with COCO and PascalVOC."
 
 LICENSE = "MIT"
-PYTHON = ">=3.8.2"
+PYTHON = ">=3.8"
 
 REQUIREMENTS = ["rich", "tqdm", "numpy"]
+EXTRA_REQ = ["pytest", "twine", "build"]
 
 with open("README.md") as f:
     LONG_DESCRIPTION = f.read()
@@ -34,6 +35,9 @@ setup(
     packages=[NAME],
     python_requires=PYTHON,
     install_requires=REQUIREMENTS,
+    extras_require={
+        "dev": EXTRA_REQ
+    },
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
