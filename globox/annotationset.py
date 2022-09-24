@@ -39,8 +39,8 @@ class AnnotationSet:
             for annotation in annotations:
                 self.add(annotation, override)
 
-        self._id_to_label: dict[int, str] = None
-        self._id_to_imageid: dict[int, str] = None
+        self._id_to_label: "dict[int, str]" = None
+        self._id_to_imageid: "dict[int, str]" = None
 
     def __getitem__(self, image_id: str) -> Annotation:
         return self._annotations[image_id]
@@ -298,8 +298,8 @@ class AnnotationSet:
 
     @staticmethod
     def from_coco_results(file_path: Path, *,
-        id_to_label: dict[int, str], 
-        id_to_imageid: dict[int, str]
+        id_to_label: "dict[int, str]", 
+        id_to_imageid: "dict[int, str]"
     ) -> "AnnotationSet":
         """"""
         assert file_path.is_file() and file_path.suffix == ".json", f"COCO annotation file {file_path} must be a json file"
@@ -393,8 +393,8 @@ class AnnotationSet:
         self.save_from_it(_save)
 
     def to_coco(self, *,
-        label_to_id: dict[str, int] = None, 
-        imageid_to_id: dict[str, int] = None,
+        label_to_id: "dict[str, int]" = None, 
+        imageid_to_id: "dict[str, int]" = None,
         auto_ids: bool = False,
     ) -> dict:
         native_ids = (label_to_id or self._id_to_label) and (imageid_to_id or self._id_to_imageid)
@@ -436,8 +436,8 @@ class AnnotationSet:
         return {"images": images, "annotations": annotations, "categories": categories}
 
     def save_coco(self, path: Path, *,
-        label_to_id: dict[str, int] = None, 
-        imageid_to_id: dict[str, int] = None,
+        label_to_id: "dict[str, int]" = None, 
+        imageid_to_id: "dict[str, int]" = None,
         auto_ids: bool = False,
     ):
         if path.suffix == "":

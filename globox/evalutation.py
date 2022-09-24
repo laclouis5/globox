@@ -160,7 +160,7 @@ class MultiThresholdEvaluation(Dict[str, Dict[str, float]]):
     """
 
     def __init__(self, evaluations: "list[Evaluation]") -> None:
-        result = defaultdict[str, list[EvaluationItem]](list)
+        result: "defaultdict[str, list[EvaluationItem]]" = defaultdict(list)
         for evaluation in evaluations:
             for label, ev_item in evaluation.items():
                 result[label].append(ev_item)

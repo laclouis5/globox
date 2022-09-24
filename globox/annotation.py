@@ -16,7 +16,7 @@ class Annotation:
 
     def __init__(self, 
         image_id: str, 
-        image_size: Optional[tuple[int, int]] = None, 
+        image_size: Optional["tuple[int, int]"] = None, 
         boxes: "list[BoundingBox]" = None
     ) -> None:
         if image_size is not None:
@@ -145,7 +145,7 @@ class Annotation:
         label_to_id: Mapping[str, Union[float, str]] = None,
         box_format: BoxFormat = BoxFormat.LTRB, 
         relative = False,
-        image_size: tuple[int, int] = None, 
+        image_size: "tuple[int, int]" = None, 
         separator: str = " "
     ) -> str:
         image_size = image_size or self.image_size
@@ -154,7 +154,7 @@ class Annotation:
 
     def to_yolo(self, *,
         label_to_id: Mapping[str, Union[float, str]] = None,
-        image_size: tuple[int, int] = None
+        image_size: "tuple[int, int]" = None
     ) -> str:
         image_size = image_size or self.image_size
         return "\n".join(b.to_yolo(image_size, label_to_id) for b in self.boxes)
@@ -163,7 +163,7 @@ class Annotation:
         label_to_id: Mapping[str, Union[float, str]] = None,
         box_format: BoxFormat = BoxFormat.LTRB, 
         relative = False, 
-        image_size: tuple[int, int] = None,
+        image_size: "tuple[int, int]" = None,
         separator: str = " "
     ):
         content = self.to_txt(
@@ -178,14 +178,14 @@ class Annotation:
 
     def save_yolo(self, path: Path, *,
         label_to_id: Mapping[str, Union[float, str]] = None,
-        image_size: tuple[int, int] = None
+        image_size: "tuple[int, int]" = None
     ):
         content = self.to_yolo(label_to_id=label_to_id, image_size=image_size)
         
         with open_atomic(path, "w") as f:
             f.write(content)
 
-    def to_labelme(self, *, image_size: tuple[int, int] = None) -> dict:
+    def to_labelme(self, *, image_size: "tuple[int, int]" = None) -> dict:
         image_size = image_size or self.image_size
         assert image_size is not None, "An image size should be provided either by argument or by `self.image_size`"
 
@@ -196,12 +196,12 @@ class Annotation:
             "imageData": None,
             "shapes": [b.to_labelme() for b in self.boxes]}
 
-    def save_labelme(self, path: Path, *, image_size: tuple[int, int] = None):
+    def save_labelme(self, path: Path, *, image_size: "tuple[int, int]" = None):
         content = self.to_labelme(image_size=image_size)
         with open_atomic(path, "w") as f:
             json.dump(content, fp=f, allow_nan=False)
 
-    def to_xml(self, *, image_size: tuple[int, int] = None) -> et.Element:
+    def to_xml(self, *, image_size: "tuple[int, int]" = None) -> et.Element:
         image_size = image_size or self.image_size
         assert image_size is not None, "An image size should be provided either by argument or by `self.image_size`"
 
@@ -217,14 +217,14 @@ class Annotation:
 
         return ann_node
 
-    def save_xml(self, path: Path, *, image_size: tuple[int, int] = None):
+    def save_xml(self, path: Path, *, image_size: "tuple[int, int]" = None):
         content = self.to_xml(image_size=image_size)
         content = et.tostring(content, encoding="unicode")
         
         with open_atomic(path, "w") as f:
             f.write(content)
 
-    def to_cvat(self, *, image_size: tuple[int, int] = None) -> et.Element:
+    def to_cvat(self, *, image_size: "tuple[int, int]" = None) -> et.Element:
         image_size = image_size or self.image_size
         assert image_size is not None, "An image size should be provided either by argument or by `self.image_size`"
 
