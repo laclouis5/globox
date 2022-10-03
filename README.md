@@ -210,7 +210,13 @@ globox evaluate -h
 
 ## Tests
 
-Download the source code, install dependencies and run tests with `pytest`.
+1. Ask the author for the test data and put it at the root directory.
+2. Run:
+
+```shell
+pip install -e ".[dev]"
+tox
+```
 
 ## Speed
 
