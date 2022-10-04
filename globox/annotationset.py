@@ -4,6 +4,7 @@ from .errors import UnknownImageFormat, FileParsingError
 from .file_utils import glob
 from .image_utils import get_image_size
 from .atomic import open_atomic
+from .thread_utils import thread_map
 
 from typing import Dict, Callable, Iterator, Mapping, TypeVar, Iterable, Union
 from csv import DictReader, DictWriter
@@ -11,8 +12,8 @@ from pathlib import Path
 import xml.etree.ElementTree as et
 from collections import defaultdict
 import json
+from operator import length_hint
 
-from tqdm.contrib.concurrent import thread_map
 from tqdm import tqdm
 
 T = TypeVar("T")
@@ -118,10 +119,10 @@ class AnnotationSet:
     @staticmethod
     def from_iter(
         parser: Callable[[T], Annotation],
-        iterable: Iterable[T],
+        iterable: Iterable[T], *,
+        verbose: bool = False
     ) -> "AnnotationSet":
-        total = len(iterable) if hasattr(iterable, "__len__") else None
-        annotations = thread_map(parser, iterable, desc="Parsing", total=total)
+        annotations = thread_map(parser, iterable, desc="Parsing", verbose=verbose)
         return AnnotationSet(annotations)
 
     @staticmethod
@@ -360,8 +361,8 @@ class AnnotationSet:
 
         self.save_from_it(_save)
 
-    def save_from_it(self, save_fn: Callable[[Annotation], None]):        
-        thread_map(save_fn, self, desc="Saving")
+    def save_from_it(self, save_fn: Callable[[Annotation], None], *, verbose: bool = False):        
+        thread_map(save_fn, self, desc="Saving", verbose=verbose)
 
     def save_yolo(self, save_dir: Path, *, 
         label_to_id: Mapping[str, Union[float, str]] = None
@@ -473,20 +474,20 @@ class AnnotationSet:
                     
                     writer.writerow(row)
 
-    def to_cvat(self) -> et.Element:
+    def to_cvat(self, *, verbose: bool = False) -> et.Element:
         def _create_node(annotation: Annotation) -> et.Element:
             return annotation.to_cvat()
 
-        sub_nodes = thread_map(_create_node, self, desc="Saving")
+        sub_nodes = thread_map(_create_node, self, desc="Saving", verbose=verbose)
         node = et.Element("annotations")
         node.extend(sub_nodes)
         return node
 
-    def save_cvat(self, path: Path):
+    def save_cvat(self, path: Path, *, verbose: bool = False):
         if path.suffix == "":
             path = path.with_suffix(".xml")
         assert path.suffix == ".xml"
-        content = self.to_cvat()
+        content = self.to_cvat(verbose=verbose)
         content = et.tostring(content, encoding="unicode")
         with open_atomic(path, "w") as f:
             f.write(content)
