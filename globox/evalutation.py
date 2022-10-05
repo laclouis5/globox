@@ -62,14 +62,16 @@ class PartialEvaluationItem:
         return tp
 
     def ap(self) -> float:
-        if (ap := self._cache.get("ap")) is not None:
+        ap = self._cache.get("ap")
+        if ap is not None:
             return ap
         ap = COCOEvaluator._compute_ap(self._scores, self._tps, self._npos)
         self._cache["ap"] = ap
         return ap
 
     def ar(self) -> Optional[float]:
-        if (ar :=self._cache.get("ar")) is not None:
+        ar = self._cache.get("ar")
+        if ar is not None:
             return ar
         tp = self.tp()
         ar = tp / self._npos if self._npos != 0 else float("nan")
@@ -117,16 +119,18 @@ class PartialEvaluation(DefaultDict[str, PartialEvaluationItem]):
         return copy_
 
     def ap(self) -> float:
-        if (ap := self._cache.get("ap")) is not None:
+        ap = self._cache.get("ap")
+        if ap is not None:
             return ap
-        ap = mean(ap for ev in self.values() if not isnan(ap := ev.ap()))
+        ap = mean(a for a in (ev.ap() for ev in self.values()) if not isnan(a))
         self._cache["ap"] = ap
         return ap
 
     def ar(self) -> float:
-        if (ar := self._cache.get("ar")) is not None:
+        ar = self._cache.get("ar")
+        if ar is not None:
             return ar
-        ar = mean(ar for ev in self.values() if not isnan(ar := ev.ar()))
+        ar = mean(a for a in (ev.ar() for ev in self.values()) if not isnan(a))
         self._cache["ar"] = ar
         return ar
 
@@ -391,7 +395,9 @@ class COCOEvaluator:
                     continue
                 if idx_best > -1 and not gt_ignore[idx_best] and gt_ignore[idx_gt]:
                     break 
-                if (iou := det.iou(gt)) < best_iou:
+                
+                iou = det.iou(gt)
+                if iou < best_iou:
                     continue
 
                 best_iou = iou

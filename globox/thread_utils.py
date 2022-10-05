@@ -21,7 +21,7 @@ def thread_map(
     total: int = None, 
     unit: str = "it", 
     verbose: bool = False
-) -> list[V]:
+) -> "list[V]":
     disable = not verbose
     total = total or length_hint(it)
     results = []

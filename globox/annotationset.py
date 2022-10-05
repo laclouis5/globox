@@ -484,10 +484,11 @@ class AnnotationSet:
             "ImageID", "Source", "LabelName", "Confidence", 
             "XMin", "XMax", "YMin", "YMax", "IsOccluded", 
             "IsTruncated", "IsGroupOf", "IsDepiction", "IsInside")
-        writer = DictWriter(f, fieldnames=fields, restval="")
-        writer.writeheader()
-
+    
         with open_atomic(path, "w", newline="") as f:
+            writer = DictWriter(f, fieldnames=fields, restval="")
+            writer.writeheader()
+
             for annotation in tqdm(self, desc="Saving", disable=not verbose):
                 for box in annotation.boxes:
                     xmin, ymin, xmax, ymax = BoundingBox.abs_to_rel(coords=box.ltrb, size=annotation.image_size)
