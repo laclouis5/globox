@@ -96,19 +96,20 @@ def add_eval_args(parser: argparse.ArgumentParser):
 def parse_annotations(args: argparse.Namespace) -> AnnotationSet:
     input: Path = args.input.expanduser().resolve()
     format_in: str = args.format_in
+    verbose: bool = args.verbose
 
     if format_in == "coco":
-        return AnnotationSet.from_coco(input)
+        return AnnotationSet.from_coco(input, verbose=verbose)
     elif format_in == "pascalvoc":
-        return AnnotationSet.from_xml(input)
+        return AnnotationSet.from_xml(input, verbose=verbose)
     elif format_in == "openimage":
         assert args.img_folder is not None, "The image directory must be provided for openimage format (required for reading the image size)"
         image_dir: Path = args.img_folder.expanduser().resolve()
-        return AnnotationSet.from_openimage(input, image_folder=image_dir)
+        return AnnotationSet.from_openimage(input, image_folder=image_dir, verbose=verbose)
     elif format_in == "labelme":
-        return AnnotationSet.from_labelme(input)
+        return AnnotationSet.from_labelme(input, verbose=verbose)
     elif format_in == "cvat":
-        return AnnotationSet.from_cvat(input)
+        return AnnotationSet.from_cvat(input, verbose=verbose)
     else:
         img_ext: str = args.img_ext_in
         if args.img_folder is not None:
@@ -117,7 +118,10 @@ def parse_annotations(args: argparse.Namespace) -> AnnotationSet:
             image_dir = None
 
         if format_in == "yolo":
-            annotations = AnnotationSet.from_yolo(input, image_folder=image_dir, image_extension=img_ext)    
+            annotations = AnnotationSet.from_yolo(input, 
+                image_folder=image_dir, 
+                image_extension=img_ext, 
+                verbose=verbose)    
         elif format_in == "txt":
             format_in = BoxFormat.from_string(args.bb_fmt_in)
             relative: bool = args.norm_in == "rel"
@@ -130,7 +134,8 @@ def parse_annotations(args: argparse.Namespace) -> AnnotationSet:
                 relative=relative,
                 file_extension=extension, 
                 image_extension=img_ext, 
-                separtor=sep)
+                separtor=sep, 
+                verbose=verbose)
         else:
             raise ValueError(f"Input format '{format_in}' unknown")
 
@@ -145,23 +150,24 @@ def parse_annotations(args: argparse.Namespace) -> AnnotationSet:
 def parse_dets_annotations(args: argparse.Namespace, coco_gts: AnnotationSet = None) -> AnnotationSet:
     input: Path = args.predictions.expanduser().resolve()
     format_dets: str = args.format_dets
+    verbose: bool = args.verbose
 
     if format_dets == "coco":
-        return AnnotationSet.from_coco(input)
+        return AnnotationSet.from_coco(input, verbose=verbose)
     if format_dets == "coco_result":
         if coco_gts is None:
             raise ValueError("When using 'COCO results', the parsed ground truths must be in 'COCO' format")
-        return coco_gts.from_results(input)
+        return coco_gts.from_results(input, verbose=verbose)
     elif format_dets == "pascalvoc":
-        return AnnotationSet.from_xml(input)
+        return AnnotationSet.from_xml(input, verbose=verbose)
     elif format_dets == "openimage":
         assert args.image_dir_dets is not None, "The image directory must be provided for openimage format (required for reading the image size)"
         image_dir: Path = args.img_folder_dets.expanduser().resolve()
-        return AnnotationSet.from_openimage(input, image_folder=image_dir)
+        return AnnotationSet.from_openimage(input, image_folder=image_dir, verbose=verbose)
     elif format_dets == "labelme":
-        return AnnotationSet.from_labelme(input)
+        return AnnotationSet.from_labelme(input, verbose=verbose)
     elif format_dets == "cvat":
-        return AnnotationSet.from_cvat(input)
+        return AnnotationSet.from_cvat(input, verbose=verbose)
     else:
         img_ext: str = args.img_ext_dets
         if args.image_dir is not None:
@@ -170,7 +176,10 @@ def parse_dets_annotations(args: argparse.Namespace, coco_gts: AnnotationSet = N
             image_dir = None
 
         if format_dets == "yolo":
-            annotations = AnnotationSet.from_yolo(input, image_folder=image_dir, image_extension=img_ext)
+            annotations = AnnotationSet.from_yolo(input, 
+                image_folder=image_dir, 
+                image_extension=img_ext, 
+                verbose=verbose)
         elif format_dets == "txt":
             bb_fmt = BoxFormat.from_string(args.bb_fmt_dets)
             relative: bool = args.norm_dets == "rel"
@@ -183,7 +192,8 @@ def parse_dets_annotations(args: argparse.Namespace, coco_gts: AnnotationSet = N
                 relative=relative, 
                 file_extension=extension,
                 image_extension=img_ext,
-                separator=sep)
+                separator=sep,
+                verbose=verbose)
         else:
             raise ValueError(f"Groundtruth format '{format_dets}' unknown")
 
@@ -199,6 +209,7 @@ def parse_dets_annotations(args: argparse.Namespace, coco_gts: AnnotationSet = N
 def save_annotations(args: argparse.Namespace, annotations: AnnotationSet):
     output: Path = args.output.expanduser().resolve()
     format_out: str = args.format_out
+    verbose: bool = args.verbose
 
     if args.mapping_out is not None:  # Takes precedence
         map_path: Path = args.mapping_out.expanduser().resolve()
@@ -211,18 +222,18 @@ def save_annotations(args: argparse.Namespace, annotations: AnnotationSet):
         annotations.map_labels(mapping)
 
     if format_out == "coco":
-        annotations.save_coco(output, auto_ids=args.coco_auto_ids)
+        annotations.save_coco(output, auto_ids=args.coco_auto_ids, verbose=verbose)
     elif format_out == "pascalvoc":
-        annotations.save_xml(output)
+        annotations.save_xml(output, verbose=verbose)
     elif format_out == "openimage":
-        annotations.save_openimage(output)
+        annotations.save_openimage(output, verbose=verbose)
     elif format_out == "labelme":
-        annotations.save_labelme(output)
+        annotations.save_labelme(output, verbose=verbose)
     elif format_out == "cvat":
-        annotations.save_cvat(output)
+        annotations.save_cvat(output, verbose=verbose)
     else:
         if format_out == "yolo":
-            annotations.save_yolo(output)
+            annotations.save_yolo(output, verbose=verbose)
         elif format_out == "txt":
             bb_fmt = BoxFormat.from_string(args.bb_fmt_out)
             relative: bool = args.norm_out == "rel"
@@ -234,22 +245,25 @@ def save_annotations(args: argparse.Namespace, annotations: AnnotationSet):
                 box_format=bb_fmt, 
                 relative=relative, 
                 separator=sep, 
-                file_extension=extension)
+                file_extension=extension, 
+                verbose=verbose)
         else:
             raise ValueError(f"Save format '{format_out}' unknown")
 
 
 def evaluate(args: argparse.Namespace, groundtruths: AnnotationSet, predictions: AnnotationSet):
+    verbose: bool = args.verbose
     evaluator = COCOEvaluator(groundtruths, predictions)
-    evaluator.show_summary()
+    evaluator.show_summary(verbose=verbose)
     
     if args.save_csv_path is not None:
         path = args.save_csv_path.expanduser().resolve()
-        evaluator.save_csv(path)
+        evaluator.save_csv(path, verbose=verbose)
 
 
 def main():
     args = parse_args()   
+    verbose: bool = args.verbose
 
     mode = args.mode
     if mode == "convert":
@@ -262,7 +276,7 @@ def main():
         groundtruths = parse_annotations(args)
         coco_gts = groundtruths if args.format_dets == "coco_result" else None
         predictions = parse_dets_annotations(args, coco_gts=coco_gts)
-        evaluate(args, groundtruths, predictions)
+        evaluate(args, groundtruths, predictions, verbose=verbose)
     else:
         raise ValueError(f"Sub-command '{mode}' not recognized.")
 
