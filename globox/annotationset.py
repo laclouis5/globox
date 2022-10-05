@@ -12,8 +12,6 @@ from pathlib import Path
 import xml.etree.ElementTree as et
 from collections import defaultdict
 import json
-from operator import length_hint
-
 from tqdm import tqdm
 
 T = TypeVar("T")
@@ -129,11 +127,12 @@ class AnnotationSet:
     def from_folder(folder: Path, *,
         extension: str,
         parser: Callable[[Path], Annotation],
-        recursive=False
+        recursive=False,
+        verbose: bool = False
     ) -> "AnnotationSet":
         assert folder.is_dir()
         files = list(glob(folder, extension, recursive=recursive))
-        return AnnotationSet.from_iter(parser, files)
+        return AnnotationSet.from_iter(parser, files, verbose=verbose)
 
     @staticmethod
     def from_txt(folder: Path, *,
@@ -142,7 +141,8 @@ class AnnotationSet:
         relative = False,
         file_extension: str = ".txt",
         image_extension: str = ".jpg",
-        separator: str = " "
+        separator: str = " ",
+        verbose: bool = False
     ) -> "AnnotationSet":
         """This method won't try to retreive the image sizes by default. Specify `image_folder` if you need them. `image_folder` is required when `relative` is True."""
         # TODO: Add error handling
@@ -173,25 +173,36 @@ class AnnotationSet:
                 image_size=image_size,
                 separator=separator)
 
-        return AnnotationSet.from_folder(folder, extension=file_extension, parser=_get_annotation)
+        return AnnotationSet.from_folder(folder, 
+            extension=file_extension, 
+            parser=_get_annotation, 
+            verbose=verbose)
 
     @staticmethod
     def from_yolo(folder: Path, *,
         image_folder: Path = None, 
         image_extension = ".jpg",
+        verbose: bool = False
     ) -> "AnnotationSet":
         return AnnotationSet.from_txt(folder, 
             image_folder=image_folder, 
             box_format=BoxFormat.XYWH, 
             relative=True, 
-            image_extension=image_extension)
+            image_extension=image_extension,
+            verbose=verbose)
 
     @staticmethod
-    def from_xml(folder: Path) -> "AnnotationSet":
-        return AnnotationSet.from_folder(folder, extension=".xml", parser=Annotation.from_xml)      
+    def from_xml(folder: Path, verbose: bool = False) -> "AnnotationSet":
+        return AnnotationSet.from_folder(folder, 
+            extension=".xml", 
+            parser=Annotation.from_xml,
+            verbose=verbose)      
 
     @staticmethod
-    def from_openimage(file_path: Path, *, image_folder: Path) -> "AnnotationSet":
+    def from_openimage(file_path: Path, *, 
+        image_folder: Path,
+        verbose: bool = False
+    ) -> "AnnotationSet":
         assert file_path.is_file() and file_path.suffix == ".csv", f"OpenImage annotation file {file_path} must be a csv file"
         assert image_folder.is_dir(), f"Image folder {image_folder} must be a valid directory"
         
@@ -201,7 +212,7 @@ class AnnotationSet:
         with file_path.open(newline="") as f:
             reader = DictReader(f)
 
-            for row in tqdm(reader, desc="Parsing"):
+            for row in tqdm(reader, desc="Parsing", disable=not verbose):
                 image_id = row["ImageID"]
                 label = row["LabelName"]
                 coords = (float(row[r]) for r in ("XMin", "YMin", "XMax", "YMax"))
@@ -229,11 +240,14 @@ class AnnotationSet:
         return annotations
 
     @staticmethod
-    def from_labelme(folder: Path) -> "AnnotationSet":
-        return AnnotationSet.from_folder(folder, extension=".json", parser=Annotation.from_labelme)
+    def from_labelme(folder: Path, verbose: bool = False) -> "AnnotationSet":
+        return AnnotationSet.from_folder(folder, 
+            extension=".json", 
+            parser=Annotation.from_labelme,
+            verbose=verbose)
 
     @staticmethod
-    def from_coco(file_path: Path) -> "AnnotationSet":
+    def from_coco(file_path: Path, verbose: bool = False) -> "AnnotationSet":
         assert file_path.is_file() and file_path.suffix == ".json", f"COCO annotation file {file_path} must be a json file"
 
         # TODO: Add error handling
@@ -245,7 +259,7 @@ class AnnotationSet:
         id_to_annotation = {int(d["id"]): Annotation._from_coco_partial(d)
                 for d in content["images"]}
         
-        for element in tqdm(content["annotations"], desc="Parsing"):
+        for element in tqdm(content["annotations"], desc="Parsing", disable=not verbose):
             annotation = id_to_annotation[int(element["image_id"])]
             label = id_to_label[int(element["category_id"])]
             coords = (float(c) for c in element["bbox"])
@@ -262,7 +276,7 @@ class AnnotationSet:
 
         return annotation_set
 
-    def from_results(self, file_path: Path) -> "AnnotationSet":
+    def from_results(self, file_path: Path, verbose: bool = False) -> "AnnotationSet":
         assert file_path.is_file() and file_path.suffix == ".json", f"COCO annotation file {file_path} must be a json file"
 
         id_to_label = self._id_to_label
@@ -276,7 +290,7 @@ class AnnotationSet:
             annotations = json.load(f)
         
         # TODO: Factorize this with `Self.from_coco()`?
-        for element in tqdm(annotations, desc="Parsing"):
+        for element in tqdm(annotations, desc="Parsing", disable=not verbose):
             image_id = id_to_imageid[element["image_id"]]
             gt_ann = self[image_id]
 
@@ -300,7 +314,8 @@ class AnnotationSet:
     @staticmethod
     def from_coco_results(file_path: Path, *,
         id_to_label: "dict[int, str]", 
-        id_to_imageid: "dict[int, str]"
+        id_to_imageid: "dict[int, str]",
+        verbose: bool = False
     ) -> "AnnotationSet":
         """"""
         assert file_path.is_file() and file_path.suffix == ".json", f"COCO annotation file {file_path} must be a json file"
@@ -311,7 +326,7 @@ class AnnotationSet:
             annotations = json.load(f)
         
         # TODO: Factorize this with `Self.from_coco()`?
-        for element in tqdm(annotations, desc="Parsing"):
+        for element in tqdm(annotations, desc="Parsing", disable=not verbose):
             image_id = id_to_imageid[element["image_id"]]
 
             if image_id not in id_to_annotation:
@@ -332,21 +347,25 @@ class AnnotationSet:
         return annotation_set
 
     @staticmethod
-    def from_cvat(file_path: Path) -> "AnnotationSet":
+    def from_cvat(file_path: Path, verbose: bool = False) -> "AnnotationSet":
         assert file_path.is_file() and file_path.suffix == ".xml", f"CVAT annotation file {file_path} must be a xml file"
         
         # TODO: Add error handling.
         with file_path.open() as f:
             root = et.parse(f).getroot()
         image_nodes = list(root.iter("image"))
-        return AnnotationSet.from_iter(Annotation.from_cvat, image_nodes)
+        return AnnotationSet.from_iter(Annotation.from_cvat, image_nodes, verbose=verbose)
+
+    def save_from_it(self, save_fn: Callable[[Annotation], None], *, verbose: bool = False):        
+        thread_map(save_fn, self, desc="Saving", verbose=verbose)
 
     def save_txt(self, save_dir: Path, *,
         label_to_id: Mapping[str, Union[float, str]] = None,
         box_format: BoxFormat = BoxFormat.LTRB, 
         relative: bool = False, 
         separator: str = " ",
-        file_extension: str = ".txt"
+        file_extension: str = ".txt",
+        verbose: bool = False
     ):
         save_dir.mkdir(exist_ok=True)
 
@@ -359,13 +378,11 @@ class AnnotationSet:
                 relative=relative,
                 separator=separator)
 
-        self.save_from_it(_save)
-
-    def save_from_it(self, save_fn: Callable[[Annotation], None], *, verbose: bool = False):        
-        thread_map(save_fn, self, desc="Saving", verbose=verbose)
+        self.save_from_it(_save, verbose=verbose)
 
     def save_yolo(self, save_dir: Path, *, 
-        label_to_id: Mapping[str, Union[float, str]] = None
+        label_to_id: Mapping[str, Union[float, str]] = None,
+        verbose: bool = False
     ):
         save_dir.mkdir(exist_ok=True)
 
@@ -373,30 +390,31 @@ class AnnotationSet:
             path = save_dir / Path(annotation.image_id).with_suffix(".txt")
             annotation.save_yolo(path, label_to_id=label_to_id)
 
-        self.save_from_it(_save)
+        self.save_from_it(_save, verbose=verbose)
 
-    def save_labelme(self, save_dir: Path):
+    def save_labelme(self, save_dir: Path, *, verbose: bool = False):
         save_dir.mkdir(exist_ok=True)
         
         def _save(annotation: Annotation):
             path = save_dir / Path(annotation.image_id).with_suffix(".json")
             annotation.save_labelme(path)
 
-        self.save_from_it(_save)
+        self.save_from_it(_save, verbose=verbose)
 
-    def save_xml(self, save_dir: Path):
+    def save_xml(self, save_dir: Path, *, verbose: bool = False):
         save_dir.mkdir(exist_ok=True)
         
         def _save(annotation: Annotation):
             path = save_dir / Path(annotation.image_id).with_suffix(".xml")
             annotation.save_xml(path)
 
-        self.save_from_it(_save)
+        self.save_from_it(_save, verbose=verbose)
 
     def to_coco(self, *,
         label_to_id: "dict[str, int]" = None, 
         imageid_to_id: "dict[str, int]" = None,
         auto_ids: bool = False,
+        verbose: bool = False
     ) -> dict:
         native_ids = (label_to_id or self._id_to_label) and (imageid_to_id or self._id_to_imageid)
         assert native_ids or auto_ids, "For COCO, mappings from labels and image ids to integer ids are required. They can be provided either by argument or automatically by the `AnnotationSet` instance if it was created with `AnnotationSet.from_coco()` or `AnnotationSet.from_coco_results()`. You can also set `auto_ids` to True to automatically create image and label ids (warning: this could cause unexpected compatibility issues with other COCO datasets)."
@@ -410,7 +428,7 @@ class AnnotationSet:
 
         annotations = []
         ann_id_count = 0
-        for annotation in tqdm(self, desc="Saving"):
+        for annotation in tqdm(self, desc="Saving", disable=not verbose):
             for box in annotation.boxes:
                 box_annotation = {
                     "iscrowd": 0, "ignore": 0,
@@ -440,27 +458,37 @@ class AnnotationSet:
         label_to_id: "dict[str, int]" = None, 
         imageid_to_id: "dict[str, int]" = None,
         auto_ids: bool = False,
+        verbose: bool = False
     ):
         if path.suffix == "":
             path = path.with_suffix(".json")
+
         assert path.suffix == ".json"
+        
+        content = self.to_coco(
+            label_to_id=label_to_id, 
+            imageid_to_id=imageid_to_id, 
+            auto_ids=auto_ids, 
+            verbose=verbose)
+
         with open_atomic(path, "w") as f:
-            content = self.to_coco(label_to_id=label_to_id, imageid_to_id=imageid_to_id, auto_ids=auto_ids)
             json.dump(content, fp=f, allow_nan=False)
 
-    def save_openimage(self, path: Path):
+    def save_openimage(self, path: Path, *, verbose: bool = False):
         if path.suffix == "":
             path = path.with_suffix(".csv")
-        assert path.suffix == ".csv"
-        with open_atomic(path, "w", newline="") as f:
-            fields = (
-                "ImageID", "Source", "LabelName", "Confidence", 
-                "XMin", "XMax", "YMin", "YMax", "IsOccluded", 
-                "IsTruncated", "IsGroupOf", "IsDepiction", "IsInside")
-            writer = DictWriter(f, fieldnames=fields, restval="")
-            writer.writeheader()
 
-            for annotation in tqdm(self, desc="Saving"):
+        assert path.suffix == ".csv"
+
+        fields = (
+            "ImageID", "Source", "LabelName", "Confidence", 
+            "XMin", "XMax", "YMin", "YMax", "IsOccluded", 
+            "IsTruncated", "IsGroupOf", "IsDepiction", "IsInside")
+        writer = DictWriter(f, fieldnames=fields, restval="")
+        writer.writeheader()
+
+        with open_atomic(path, "w", newline="") as f:
+            for annotation in tqdm(self, desc="Saving", disable=not verbose):
                 for box in annotation.boxes:
                     xmin, ymin, xmax, ymax = BoundingBox.abs_to_rel(coords=box.ltrb, size=annotation.image_size)
                     
@@ -510,14 +538,14 @@ class AnnotationSet:
             reader = DictReader(f, fieldnames=("LabelName", "DisplayName"))
             return {l["LabelName"]: l["DisplayName"] for l in reader}
 
-    def show_stats(self):
+    def show_stats(self, *, verbose: bool = False):
         from rich.table import Table
         from rich import print as rprint
 
         box_by_label = defaultdict(int)
         im_by_label = defaultdict(int)
 
-        for annotation in tqdm(self, desc="Stats"):
+        for annotation in tqdm(self, desc="Stats", disable=not verbose):
             for box in annotation.boxes:
                 box_by_label[box.label] += 1
             
