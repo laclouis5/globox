@@ -13,7 +13,7 @@ from pathlib import Path
 from enum import Enum, auto
 from itertools import chain, product
 from functools import lru_cache
-
+from tqdm import tqdm
 
 class RecallSteps(Enum):
     ELEVEN = auto()
@@ -201,7 +201,6 @@ class COCOEvaluator:
         ground_truths: AnnotationSet,
         predictions: AnnotationSet ,
         labels: Iterable[str] = None,
-        verbose: bool = True
     ) -> None:
         self._predictions = predictions
         self._ground_truths = ground_truths
@@ -430,9 +429,7 @@ class COCOEvaluator:
     def clear_cache(self):
         self.evaluate.cache_clear()
 
-    def _evaluate_all_progress_bar(self):
-        from tqdm import tqdm
-        
+    def _evaluate_all(self, verbose: bool = False): 
         params = chain(
             product(
                 self.AP_THRESHOLDS, 
@@ -443,15 +440,15 @@ class COCOEvaluator:
                 (1, 10), 
                 (self.ALL_RANGE,)))
 
-        for t, d, r in tqdm(params, desc="Evaluation", total=60):
+        for t, d, r in tqdm(params, desc="Evaluation", total=60, disable=not verbose):
             self.evaluate(t, d, r)
 
-    def show_summary(self):
+    def show_summary(self, *, verbose: bool = False):
         """Compute and show the standard COCO metrics."""
         from rich.table import Table
         from rich import print as pprint
 
-        self._evaluate_all_progress_bar()
+        self._evaluate_all(verbose=verbose)
 
         table = Table(title="COCO Evaluation", show_footer=True)
         table.add_column("Label", footer="Total")
@@ -513,9 +510,9 @@ class COCOEvaluator:
 
         pprint(table)
 
-    def to_csv(self) -> str:
+    def to_csv(self, verbose: bool = False) -> str:
         """Compute and show the standard COCO metrics."""
-        self._evaluate_all_progress_bar()
+        self._evaluate_all(verbose=verbose)
         labels = self.labels or sorted(self.ap_evaluation().keys())
         headers = ("label",
             "AP 50:95", "AP 50", "AP 75", 
