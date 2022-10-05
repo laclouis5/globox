@@ -12,7 +12,7 @@ LICENSE = "MIT"
 PYTHON = ">=3.7"
 
 REQUIREMENTS = ["rich", "tqdm", "numpy"]
-EXTRA_REQ = ["tox", "twine", "build"]
+EXTRA_REQ = ["tox", "twine", "build", "pycocotools", "pytest"]
 
 with open("README.md") as f:
     LONG_DESCRIPTION = f.read()

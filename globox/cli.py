@@ -13,7 +13,7 @@ PARSE_CHOICES_EXT = {*PARSE_CHOICES, "coco_result"}
 def parse_args():
     parser = argparse.ArgumentParser()
     
-    parser.add_argument("--verbose", "-v", action="store_true")
+    parser.add_argument("--quiet", "-q", action="store_true")
     # parser.add_argument("--threads", "-j", type=int, default=0)
 
     subparsers = parser.add_subparsers(dest="mode")
@@ -96,7 +96,7 @@ def add_eval_args(parser: argparse.ArgumentParser):
 def parse_annotations(args: argparse.Namespace) -> AnnotationSet:
     input: Path = args.input.expanduser().resolve()
     format_in: str = args.format_in
-    verbose: bool = args.verbose
+    verbose: bool = not args.quiet
 
     if format_in == "coco":
         return AnnotationSet.from_coco(input, verbose=verbose)
@@ -150,7 +150,7 @@ def parse_annotations(args: argparse.Namespace) -> AnnotationSet:
 def parse_dets_annotations(args: argparse.Namespace, coco_gts: AnnotationSet = None) -> AnnotationSet:
     input: Path = args.predictions.expanduser().resolve()
     format_dets: str = args.format_dets
-    verbose: bool = args.verbose
+    verbose: bool = not args.quiet
 
     if format_dets == "coco":
         return AnnotationSet.from_coco(input, verbose=verbose)
@@ -209,7 +209,7 @@ def parse_dets_annotations(args: argparse.Namespace, coco_gts: AnnotationSet = N
 def save_annotations(args: argparse.Namespace, annotations: AnnotationSet):
     output: Path = args.output.expanduser().resolve()
     format_out: str = args.format_out
-    verbose: bool = args.verbose
+    verbose: bool = not args.quiet
 
     if args.mapping_out is not None:  # Takes precedence
         map_path: Path = args.mapping_out.expanduser().resolve()
@@ -252,7 +252,7 @@ def save_annotations(args: argparse.Namespace, annotations: AnnotationSet):
 
 
 def evaluate(args: argparse.Namespace, groundtruths: AnnotationSet, predictions: AnnotationSet):
-    verbose: bool = args.verbose
+    verbose: bool = not args.quiet
     evaluator = COCOEvaluator(groundtruths, predictions)
     evaluator.show_summary(verbose=verbose)
     
@@ -263,7 +263,6 @@ def evaluate(args: argparse.Namespace, groundtruths: AnnotationSet, predictions:
 
 def main():
     args = parse_args()   
-    verbose: bool = args.verbose
 
     mode = args.mode
     if mode == "convert":
@@ -276,7 +275,7 @@ def main():
         groundtruths = parse_annotations(args)
         coco_gts = groundtruths if args.format_dets == "coco_result" else None
         predictions = parse_dets_annotations(args, coco_gts=coco_gts)
-        evaluate(args, groundtruths, predictions, verbose=verbose)
+        evaluate(args, groundtruths, predictions)
     else:
         raise ValueError(f"Sub-command '{mode}' not recognized.")
 

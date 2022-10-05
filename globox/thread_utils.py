@@ -12,8 +12,10 @@ def at_exit():
 
 atexit.register(at_exit)
 
+
 U = TypeVar("U")
 V = TypeVar("V")
+
 def thread_map(
     fn: Callable[[U], V], 
     it: Iterable[U], 
@@ -31,6 +33,7 @@ def thread_map(
             results.append(result)
             pbar.update()
     return results
+
 
 # TODO
 def thread_imap():
