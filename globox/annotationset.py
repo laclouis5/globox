@@ -111,6 +111,9 @@ class AnnotationSet:
         for annotation in self:
             yield from annotation.boxes
 
+    def nb_boxes(self) -> int:
+        return sum(len(ann.boxes) for ann in self)
+
     def _labels(self) -> "set[str]":
         return {b.label for b in self.all_boxes}
 

@@ -1,7 +1,9 @@
 from globox import *
 from pathlib import Path
 from timeit import timeit
-from time import monotonic
+from time import perf_counter
+from rich.table import Table
+from rich import print as rich_print
 
 
 def benchmark():
@@ -22,7 +24,7 @@ def benchmark():
     labels = gts._labels()
     label_to_id = {str(l): i for i, l in enumerate(labels)}
     
-    start = monotonic()
+    start = perf_counter()
 
     coco_s = timeit(lambda: gts.save_coco(coco_out), number=iterations) / iterations
     cvat_s = timeit(lambda: gts.save_cvat(cvat), number=iterations) / iterations
@@ -42,13 +44,24 @@ def benchmark():
 
     stats_t = timeit(lambda: gts.show_stats(), number=iterations) / iterations
 
-    stop = monotonic()
+    stop = perf_counter()
 
-    print(coco_p, cvat_p, oi_p, labelme_p, xml_p, yolo_p, txt_p)
-    print(coco_s, cvat_s, oi_s, labelme_s, xml_s, yolo_s, txt_s)
-    print(stats_t)
+    headers = ["COCO", "CVAT", "Open Image", "LabelMe", "Pascal VOC", "YOLO", "Txt"]
+    parse_times = (f"{t:.2f} s" for t in (coco_p, cvat_p, oi_p, labelme_p, xml_p, yolo_p, txt_p))
+    save_times = (f"{t:.2f} s" for t in (coco_s, cvat_s, oi_s, labelme_s, xml_s, yolo_s, txt_s))
 
-    print(f"Total time: {stop - start} s")
+    table = Table(title=f"Benchmark ({len(gts)} images, {gts.nb_boxes()} boxes)")
+    table.add_column("")
+    for header in headers:
+        table.add_column(header, justify="right")
+    
+    table.add_row("Parsing", *parse_times)
+    table.add_row("Saving", *save_times)
+
+    rich_print(table)
+
+    print(f"Statistics time: {stats_t:.2f} s")
+    print(f"Total benchmark time: {(stop - start):.2f} s")
 
 
 if __name__ == "__main__":
