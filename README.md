@@ -256,12 +256,6 @@ The fastest format is COCO and LabelMe (for individual annotation files).
 - [ ] Parsers for TFRecord and TensorFlow
 - [ ] UI interface?
 
-## Optimizations
-
-- [ ] Share ThreadPoolExecutors
-- [ ] Conditional imports (rich, PIL, tqdm, xml/csv readers, etc.)
-- [ ] Cache more stuff in `COCOEvaluator`
-
 ## Acknowledgement
 
 This repo is based on the work of [Rafael Padilla](https://github.com/rafaelpadilla/review_object_detection_metrics). The goal of this repo is to improve the performance and flexibility and to provide additional tools.
