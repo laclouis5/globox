@@ -7,7 +7,7 @@ from rich import print as rich_print
 
 
 def benchmark():
-    iterations = 10
+    iterations = 5
     base = Path("data/coco_val.nosync/")
     images = base / "images"
 

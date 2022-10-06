@@ -14,7 +14,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     
     parser.add_argument("--quiet", "-q", action="store_true")
-    # parser.add_argument("--threads", "-j", type=int, default=0)
+    parser.add_argument("--threads", "-j", default=None, type=int)
 
     subparsers = parser.add_subparsers(dest="mode")
     convert_parser = subparsers.add_parser("convert")
@@ -258,11 +258,15 @@ def evaluate(args: argparse.Namespace, groundtruths: AnnotationSet, predictions:
     
     if args.save_csv_path is not None:
         path = args.save_csv_path.expanduser().resolve()
-        evaluator.save_csv(path, verbose=verbose)
+        evaluator.save_csv(path, verbose=False)
+        if verbose:
+            print(f"Evaluation saved to '{args.save_csv_path}'.")
 
 
 def main():
     args = parse_args()   
+
+    assert args.threads is None or args.threads > 0
 
     mode = args.mode
     if mode == "convert":

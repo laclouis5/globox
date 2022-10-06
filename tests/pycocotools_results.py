@@ -1,13 +1,14 @@
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
+from pathlib import Path
 
 
 def main():
-    gt_path = "ground_truths.json"
-    det_path = "results.json"
+    gt_path = Path("data/coco/ground_truths.json").resolve()
+    det_path = Path("data/coco/results.json").resolve()
 
-    gts = COCO(gt_path)
-    dets = gts.loadRes(det_path)
+    gts = COCO(str(gt_path))
+    dets = gts.loadRes(str(det_path))
 
     evaluator = COCOeval(gts, dets, "bbox")
     evaluator.evaluate()

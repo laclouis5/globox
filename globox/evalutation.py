@@ -516,7 +516,7 @@ class COCOEvaluator:
 
         pprint(table)
 
-    def to_csv(self, verbose: bool = False) -> str:
+    def to_csv(self, *, verbose: bool = False) -> str:
         """Compute and show the standard COCO metrics."""
         self._evaluate_all(verbose=verbose)
         labels = self.labels or sorted(self.ap_evaluation().keys())
@@ -552,8 +552,8 @@ class COCOEvaluator:
 
         return "\n".join((",".join(headers), *rows))
 
-    def save_csv(self, path: Path):
-        csv_data = self.to_csv()
+    def save_csv(self, path: Path, *, verbose: bool = False):
+        csv_data = self.to_csv(verbose=verbose)
         with open_atomic(path, "w") as f:
             f.write(csv_data)
 
@@ -578,11 +578,11 @@ class COCOEvaluator:
         tp = np.cumsum(matched)
 
         rc = tp / NP
-        pr = tp / np.arange(1, len(matched)+1)
+        pr = tp / np.arange(1, matched.size + 1)
         # make precision monotonically decreasing
         i_pr = np.maximum.accumulate(pr[::-1])[::-1]
         rec_idx = np.searchsorted(rc, cls.RECALL_STEPS, side="left")
 
-        sum_ = i_pr[rec_idx[rec_idx < len(i_pr)]].sum()
+        sum_ = i_pr[rec_idx[rec_idx < i_pr.size]].sum()
 
-        return sum_ / len(rec_idx)
+        return sum_ / rec_idx.size
