@@ -1,5 +1,5 @@
 from pathlib import Path
-from setuptools import setup
+from setuptools import setup, find_packages
 
 
 NAME = "globox"
@@ -12,12 +12,12 @@ LICENSE = "MIT"
 PYTHON = ">=3.7"
 
 REQUIREMENTS = ["rich", "tqdm", "numpy"]
-EXTRA_REQ = ["tox", "twine", "build", "pycocotools", "pytest"]
+EXTRA_REQ = ["tox", "pytest", "twine", "build", "pycocotools"]
 
 with open("README.md") as f:
     LONG_DESCRIPTION = f.read()
 
-with (Path(NAME) / "__version__.py").open() as f:
+with (Path("src/", NAME) / "__version__.py").open() as f:
     about = {}
     exec(f.read(), about)
     VERSION = about["__version__"]
@@ -32,7 +32,8 @@ setup(
     author_email=EMAIL,
     url=URL,
     license=LICENSE,
-    packages=[NAME],
+    packages=find_packages(where="src/"),
+    package_dir={"": "src"},
     python_requires=PYTHON,
     install_requires=REQUIREMENTS,
     extras_require={
@@ -44,7 +45,10 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    keywords=["annotation", "metrics", "object detection", "bounding boxes", "yolo", "openimages", "cvat", "coco", "pascal voc", "average precision", "mean average precision"],
+    keywords=["annotation", "metrics", "object detection", "bounding boxes", 
+        "yolo", "openimages", "cvat", "coco", "pascal voc", "average precision", 
+        "mean average precision",
+    ],
     entry_points={
         "console_scripts": [f"{NAME}={NAME}.cli:main"],
     }
