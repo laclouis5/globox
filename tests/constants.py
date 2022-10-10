@@ -2,7 +2,7 @@ from globox import AnnotationSet
 from pathlib import Path
 
 
-data_path = (Path(__file__).parent / "data/").resolve()
+data_path = (Path(__file__).parent / "globox_test_data/").resolve()
 gts_path = data_path / "gts/"
 dets_path = data_path / "dets/"
 image_folder = data_path / "images/"

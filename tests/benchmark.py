@@ -8,7 +8,7 @@ from argparse import ArgumentParser
 
 
 def benchmark(repetitions: int = 5):
-    base = (Path(__file__).parent / "data/coco_val_5k/").resolve()
+    base = (Path(__file__).parent / "globox_test_data/coco_val_5k/").resolve()
     images = base / "images"
 
     coco = base / "coco.json"
