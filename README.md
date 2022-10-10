@@ -210,11 +210,21 @@ globox evaluate -h
 
 ## Tests
 
-1. Ask the author for the test data and put it at the root directory.
-2. Run:
+1. Clone the repo with its test data:
+
+```shell
+git clone https://github.com/laclouis5/globox --recurse-submodules=tests/globox_test_data
+```
+
+2. Install developement dependencies (virtual env recommended):
 
 ```shell
 pip install -e ".[dev]"
+```
+
+3. Run tox:
+
+```shell
 tox
 ```
 
@@ -223,7 +233,13 @@ tox
 <details>
 <summary>Click to expand</summary>
 
-Speed test is done using `timeit` with 1 iteration on an early 2015 MacBook Air (8 GB RAM Dual-Core 1.6 GHz). The database is COCO 2017 Validation which comprises 5k images and 36 781 bounding boxes. 
+Speed benchmark can be executed with:
+
+```shell
+python3 tests/benchmark.py
+```
+
+Speed test is done using `timeit` with 5 iterations on an early 2015 MacBook Air (8 GB RAM Dual-Core 1.6 GHz). The dataset is COCO 2017 Validation which comprises 5k images and 36 781 bounding boxes. 
 
 Task   |COCO |CVAT |OpenImage|LabelMe|PascalVOC|YOLO |TXT
 -------|-----|-----|---------|-------|---------|-----|-----
