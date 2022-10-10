@@ -4,11 +4,11 @@ from timeit import timeit
 from time import perf_counter
 from rich.table import Table
 from rich import print as rich_print
+from argparse import ArgumentParser
 
 
-def benchmark():
-    iterations = 5
-    base = Path("data/coco_val.nosync/")
+def benchmark(repetitions: int = 5):
+    base = (Path(__file__).parent / "data/coco_val_5k/").resolve()
     images = base / "images"
 
     coco = base / "coco.json"
@@ -26,23 +26,23 @@ def benchmark():
     
     start = perf_counter()
 
-    coco_s = timeit(lambda: gts.save_coco(coco_out), number=iterations) / iterations
-    cvat_s = timeit(lambda: gts.save_cvat(cvat), number=iterations) / iterations
-    oi_s = timeit(lambda: gts.save_openimage(oi), number=iterations) / iterations
-    labelme_s = timeit(lambda: gts.save_labelme(labelme), number=iterations) / iterations
-    xml_s = timeit(lambda: gts.save_xml(xml), number=iterations) / iterations
-    yolo_s = timeit(lambda: gts.save_yolo(yolo, label_to_id=label_to_id), number=iterations) / iterations
-    txt_s = timeit(lambda: gts.save_txt(txt, label_to_id=label_to_id), number=iterations) / iterations
+    coco_s = timeit(lambda: gts.save_coco(coco_out), number=repetitions) / repetitions
+    cvat_s = timeit(lambda: gts.save_cvat(cvat), number=repetitions) / repetitions
+    oi_s = timeit(lambda: gts.save_openimage(oi), number=repetitions) / repetitions
+    labelme_s = timeit(lambda: gts.save_labelme(labelme), number=repetitions) / repetitions
+    xml_s = timeit(lambda: gts.save_xml(xml), number=repetitions) / repetitions
+    yolo_s = timeit(lambda: gts.save_yolo(yolo, label_to_id=label_to_id), number=repetitions) / repetitions
+    txt_s = timeit(lambda: gts.save_txt(txt, label_to_id=label_to_id), number=repetitions) / repetitions
 
-    coco_p = timeit(lambda: AnnotationSet.from_coco(coco), number=iterations) / iterations
-    cvat_p = timeit(lambda: AnnotationSet.from_cvat(cvat), number=iterations) / iterations
-    oi_p = timeit(lambda: AnnotationSet.from_openimage(oi, image_folder=images), number=iterations) / iterations
-    labelme_p = timeit(lambda: AnnotationSet.from_labelme(labelme), number=iterations) / iterations
-    xml_p = timeit(lambda: AnnotationSet.from_xml(xml), number=iterations) / iterations
-    yolo_p = timeit(lambda: AnnotationSet.from_yolo(yolo, image_folder=images), number=iterations) / iterations
-    txt_p = timeit(lambda: AnnotationSet.from_txt(txt, image_folder=images), number=iterations) / iterations
+    coco_p = timeit(lambda: AnnotationSet.from_coco(coco), number=repetitions) / repetitions
+    cvat_p = timeit(lambda: AnnotationSet.from_cvat(cvat), number=repetitions) / repetitions
+    oi_p = timeit(lambda: AnnotationSet.from_openimage(oi, image_folder=images), number=repetitions) / repetitions
+    labelme_p = timeit(lambda: AnnotationSet.from_labelme(labelme), number=repetitions) / repetitions
+    xml_p = timeit(lambda: AnnotationSet.from_xml(xml), number=repetitions) / repetitions
+    yolo_p = timeit(lambda: AnnotationSet.from_yolo(yolo, image_folder=images), number=repetitions) / repetitions
+    txt_p = timeit(lambda: AnnotationSet.from_txt(txt, image_folder=images), number=repetitions) / repetitions
 
-    stats_t = timeit(lambda: gts.show_stats(), number=iterations) / iterations
+    stats_t = timeit(lambda: gts.show_stats(), number=repetitions) / repetitions
 
     stop = perf_counter()
 
@@ -65,4 +65,8 @@ def benchmark():
 
 
 if __name__ == "__main__":
-    benchmark()
+    parser = ArgumentParser()
+    parser.add_argument("--repetitions", "-n", default=5, type=int, 
+        help="Number of repetitions for timeit.")
+    args = parser.parse_args()
+    benchmark(repetitions=args.repetitions)
