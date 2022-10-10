@@ -11,7 +11,10 @@ jobs:
         python: ["3.7", "3.8", "3.9", "3.10"]
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Chechout with submodules 
+        uses: actions/checkout@v3
+        with: 
+          submodules: recursive
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
