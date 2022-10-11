@@ -5,42 +5,46 @@ from time import perf_counter
 from rich.table import Table
 from rich import print as rich_print
 from argparse import ArgumentParser
+from tempfile import TemporaryDirectory
 
 
 def benchmark(repetitions: int = 5):
     base = (Path(__file__).parent / "globox_test_data/coco_val_5k/").resolve()
+    coco = base / "coco.json"
     images = base / "images"
 
-    coco = base / "coco.json"
-    coco_out = base / "coco_out.json"
-    cvat = base / "cvat.xml"
-    oi = base / "openimage.csv"
-    labelme = base / "labelme"
-    xml = base / "xml"
-    yolo = base / "yolo"
-    txt = base / "txt"
-
     gts = AnnotationSet.from_coco(coco)
-    labels = gts._labels()
-    label_to_id = {str(l): i for i, l in enumerate(labels)}
-    
-    start = perf_counter()
+    labels = sorted(gts._labels())
+    label_to_id = {l: i for i, l in enumerate(labels)}
 
-    coco_s = timeit(lambda: gts.save_coco(coco_out), number=repetitions) / repetitions
-    cvat_s = timeit(lambda: gts.save_cvat(cvat), number=repetitions) / repetitions
-    oi_s = timeit(lambda: gts.save_openimage(oi), number=repetitions) / repetitions
-    labelme_s = timeit(lambda: gts.save_labelme(labelme), number=repetitions) / repetitions
-    xml_s = timeit(lambda: gts.save_xml(xml), number=repetitions) / repetitions
-    yolo_s = timeit(lambda: gts.save_yolo(yolo, label_to_id=label_to_id), number=repetitions) / repetitions
-    txt_s = timeit(lambda: gts.save_txt(txt, label_to_id=label_to_id), number=repetitions) / repetitions
+    with TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        
+        coco_out = tmp / "coco_out.json"
+        cvat = tmp / "cvat.xml"
+        oi = tmp / "openimage.csv"
+        labelme = tmp / "labelme"
+        xml = tmp / "xml"
+        yolo = tmp / "yolo"
+        txt = tmp / "txt"
+        
+        start = perf_counter()
 
-    coco_p = timeit(lambda: AnnotationSet.from_coco(coco), number=repetitions) / repetitions
-    cvat_p = timeit(lambda: AnnotationSet.from_cvat(cvat), number=repetitions) / repetitions
-    oi_p = timeit(lambda: AnnotationSet.from_openimage(oi, image_folder=images), number=repetitions) / repetitions
-    labelme_p = timeit(lambda: AnnotationSet.from_labelme(labelme), number=repetitions) / repetitions
-    xml_p = timeit(lambda: AnnotationSet.from_xml(xml), number=repetitions) / repetitions
-    yolo_p = timeit(lambda: AnnotationSet.from_yolo(yolo, image_folder=images), number=repetitions) / repetitions
-    txt_p = timeit(lambda: AnnotationSet.from_txt(txt, image_folder=images), number=repetitions) / repetitions
+        coco_s = timeit(lambda: gts.save_coco(coco_out), number=repetitions) / repetitions
+        cvat_s = timeit(lambda: gts.save_cvat(cvat), number=repetitions) / repetitions
+        oi_s = timeit(lambda: gts.save_openimage(oi), number=repetitions) / repetitions
+        labelme_s = timeit(lambda: gts.save_labelme(labelme), number=repetitions) / repetitions
+        xml_s = timeit(lambda: gts.save_xml(xml), number=repetitions) / repetitions
+        yolo_s = timeit(lambda: gts.save_yolo(yolo, label_to_id=label_to_id), number=repetitions) / repetitions
+        txt_s = timeit(lambda: gts.save_txt(txt, label_to_id=label_to_id), number=repetitions) / repetitions
+
+        coco_p = timeit(lambda: AnnotationSet.from_coco(coco), number=repetitions) / repetitions
+        cvat_p = timeit(lambda: AnnotationSet.from_cvat(cvat), number=repetitions) / repetitions
+        oi_p = timeit(lambda: AnnotationSet.from_openimage(oi, image_folder=images), number=repetitions) / repetitions
+        labelme_p = timeit(lambda: AnnotationSet.from_labelme(labelme), number=repetitions) / repetitions
+        xml_p = timeit(lambda: AnnotationSet.from_xml(xml), number=repetitions) / repetitions
+        yolo_p = timeit(lambda: AnnotationSet.from_yolo(yolo, image_folder=images), number=repetitions) / repetitions
+        txt_p = timeit(lambda: AnnotationSet.from_txt(txt, image_folder=images), number=repetitions) / repetitions
 
     stats_t = timeit(lambda: gts.show_stats(), number=repetitions) / repetitions
 
