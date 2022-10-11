@@ -142,7 +142,7 @@ class Annotation:
         return Annotation(image_id, image_size, boxes)
 
     def to_txt(self, *,
-        label_to_id: Mapping[str, Union[float, str]] = None,
+        label_to_id: Mapping[str, Union[int, str]] = None,
         box_format: BoxFormat = BoxFormat.LTRB, 
         relative = False,
         image_size: "tuple[int, int]" = None, 
@@ -153,14 +153,14 @@ class Annotation:
             b.to_txt(label_to_id, box_format, relative, image_size, separator) for b in self.boxes)
 
     def to_yolo(self, *,
-        label_to_id: Mapping[str, Union[float, str]] = None,
+        label_to_id: Mapping[str, Union[int, str]] = None,
         image_size: "tuple[int, int]" = None
     ) -> str:
         image_size = image_size or self.image_size
         return "\n".join(b.to_yolo(image_size, label_to_id) for b in self.boxes)
 
     def save_txt(self, path: Path, *,
-        label_to_id: Mapping[str, Union[float, str]] = None,
+        label_to_id: Mapping[str, Union[int, str]] = None,
         box_format: BoxFormat = BoxFormat.LTRB, 
         relative = False, 
         image_size: "tuple[int, int]" = None,
@@ -177,7 +177,7 @@ class Annotation:
             f.write(content)
 
     def save_yolo(self, path: Path, *,
-        label_to_id: Mapping[str, Union[float, str]] = None,
+        label_to_id: Mapping[str, Union[int, str]] = None,
         image_size: "tuple[int, int]" = None
     ):
         content = self.to_yolo(label_to_id=label_to_id, image_size=image_size)

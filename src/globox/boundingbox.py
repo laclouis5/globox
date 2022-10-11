@@ -306,7 +306,7 @@ class BoundingBox:
         return BoundingBox(label, *coords)
 
     def to_txt(self, 
-        label_to_id: Mapping[str, Union[float, str]] = None,
+        label_to_id: Mapping[str, Union[int, str]] = None,
         box_format: BoxFormat = BoxFormat.LTRB, 
         relative = False, 
         image_size: "tuple[int, int]" = None,
@@ -325,9 +325,14 @@ class BoundingBox:
             assert image_size is not None, "For relative coordinates `image_size` should be provided"
             coords = BoundingBox.abs_to_rel(coords, image_size)
 
+        assert "\n" not in separator, "The newline character '//n' cannot be used as the separator character."
+
         label = self.label
         if label_to_id is not None:
             label = label_to_id[label]
+        
+        if isinstance(label, str):
+            assert separator not in label, f"The box label '{label}' contains the character '{separator}' which is the same as the separtor character used for BoundingBox representation in TXT/YOLO format. This will corrupt the saved annotation file and likely make it unreadable. Use another character in the label name or `label_to_id` mapping, e.g. use and underscore instead of a whitespace."
 
         if self.is_ground_truth:
             return separator.join(f"{v}" for v in (label, *coords))
@@ -336,7 +341,7 @@ class BoundingBox:
 
     def to_yolo(self,
         image_size: "tuple[int, int]",
-        label_to_id: Mapping[str, Union[float, str]] = None
+        label_to_id: Mapping[str, Union[int, str]] = None
     ) -> str:
         return self.to_txt(
             label_to_id=label_to_id, 

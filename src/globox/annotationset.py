@@ -363,7 +363,7 @@ class AnnotationSet:
         thread_map(save_fn, self, desc="Saving", verbose=verbose)
 
     def save_txt(self, save_dir: Path, *,
-        label_to_id: Mapping[str, Union[float, str]] = None,
+        label_to_id: Mapping[str, Union[int, str]] = None,
         box_format: BoxFormat = BoxFormat.LTRB, 
         relative: bool = False, 
         separator: str = " ",
@@ -384,7 +384,7 @@ class AnnotationSet:
         self.save_from_it(_save, verbose=verbose)
 
     def save_yolo(self, save_dir: Path, *, 
-        label_to_id: Mapping[str, Union[float, str]] = None,
+        label_to_id: Mapping[str, Union[int, str]] = None,
         verbose: bool = False
     ):
         save_dir.mkdir(exist_ok=True)
@@ -494,11 +494,15 @@ class AnnotationSet:
 
             for annotation in tqdm(self, desc="Saving", disable=not verbose):
                 for box in annotation.boxes:
+                    label = box.label
+                    
+                    assert "," not in label, f"The box label '{label}' contains the character ',' which is the same as the separtor character used for BoundingBox representation in OpenImage format (CSV). This will corrupt the saved annotation file and likely make it unreadable. Use another character in the label name, e.g. use and underscore instead of a comma."
+
                     xmin, ymin, xmax, ymax = BoundingBox.abs_to_rel(coords=box.ltrb, size=annotation.image_size)
                     
                     row = {
                         "ImageID": annotation.image_id,
-                        "LabelName": box.label,
+                        "LabelName": label,
                         "XMin": xmin, "XMax": xmax, "YMin": ymin, "YMax": ymax}
                     
                     if box.is_detection:
