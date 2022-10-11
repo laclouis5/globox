@@ -115,7 +115,6 @@ def test_txt_conversion():
         _ = box.to_txt()
     box.to_txt(label_to_id={"dining table": "dining_table"})
 
-    box = BoundingBox.create(label="dining/ntable", coords=(0, 0, 10, 10))
+    box = BoundingBox.create(label="dining_table", coords=(0, 0, 10, 10))
     with pytest.raises(AssertionError):
-        _ = box.to_txt()
-    box.to_txt(label_to_id={"dining/ntable": "dining_table"})
+        _ = box.to_txt(separator="\n")

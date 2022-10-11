@@ -60,12 +60,12 @@ class BoundingBox:
         ymax: float, *,
         confidence: float = None
     ) -> None:
-        assert xmin <= xmax, "'xmax' must be greater than 'xmin'"
-        assert ymin <= ymax, "'ymax' must be greater than 'ymin'"
+        assert xmin <= xmax, "`xmax` must be greater than `xmin`."
+        assert ymin <= ymax, "`ymax` must be greater than `ymin`."
 
         if confidence: 
             assert 0.0 <= confidence <= 1.0, \
-                f"Confidence ({confidence}) should be in 0...1"
+                f"Confidence ({confidence}) should be in [0, 1]."
 
         self.label = label
         self._xmin = xmin
@@ -81,7 +81,7 @@ class BoundingBox:
     @confidence.setter
     def confidence(self, confidence: float):
         assert 0.0 <= confidence <= 1.0, \
-                f"Confidence ({confidence}) should be in 0...1"
+                f"Confidence ({confidence}) should be in [0, 1]."
         self._confidence = confidence
 
     @property
@@ -219,7 +219,7 @@ class BoundingBox:
         image_size: "tuple[int, int]" = None, 
     ) -> "BoundingBox":
         if relative:
-            assert image_size is not None, "For relative coordinates image_size should be provided"
+            assert image_size is not None, "For relative coordinates `image_size` should be provided."
             coords = cls.rel_to_abs(coords, image_size)
 
         if box_format is BoxFormat.LTWH:
@@ -229,7 +229,7 @@ class BoundingBox:
         elif box_format is BoxFormat.LTRB:
             pass
         else:
-            raise ValueError(f"Unknown BoxFormat '{box_format}'")
+            raise ValueError(f"Unknown BoxFormat '{box_format}'.")
 
         return cls(label, *coords, confidence=confidence)
 
@@ -322,10 +322,10 @@ class BoundingBox:
             raise ValueError(f"Unknown BoxFormat '{box_format}'")
         
         if relative:
-            assert image_size is not None, "For relative coordinates `image_size` should be provided"
+            assert image_size is not None, "For relative coordinates, `image_size` should be provided."
             coords = BoundingBox.abs_to_rel(coords, image_size)
 
-        assert "\n" not in separator, "The newline character '//n' cannot be used as the separator character."
+        assert "\n" not in separator, "The newline character '\\n' cannot be used as the separator character."
 
         label = self.label
         if label_to_id is not None:

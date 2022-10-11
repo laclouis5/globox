@@ -103,7 +103,7 @@ def parse_annotations(args: argparse.Namespace) -> AnnotationSet:
     elif format_in == "pascalvoc":
         return AnnotationSet.from_xml(input, verbose=verbose)
     elif format_in == "openimage":
-        assert args.img_folder is not None, "The image directory must be provided for openimage format (required for reading the image size)"
+        assert args.img_folder is not None, "The image directory must be provided for openimage format (required for reading the image size)."
         image_dir: Path = args.img_folder.expanduser().resolve()
         return AnnotationSet.from_openimage(input, image_folder=image_dir, verbose=verbose)
     elif format_in == "labelme":
@@ -156,12 +156,12 @@ def parse_dets_annotations(args: argparse.Namespace, coco_gts: AnnotationSet = N
         return AnnotationSet.from_coco(input, verbose=verbose)
     if format_dets == "coco_result":
         if coco_gts is None:
-            raise ValueError("When using 'COCO results', the parsed ground truths must be in 'COCO' format")
+            raise ValueError("When using 'COCO results', the parsed ground truths must be in 'COCO' format.")
         return coco_gts.from_results(input, verbose=verbose)
     elif format_dets == "pascalvoc":
         return AnnotationSet.from_xml(input, verbose=verbose)
     elif format_dets == "openimage":
-        assert args.image_dir_dets is not None, "The image directory must be provided for openimage format (required for reading the image size)"
+        assert args.image_dir_dets is not None, "The image directory must be provided for openimage format (required for reading the image size)."
         image_dir: Path = args.img_folder_dets.expanduser().resolve()
         return AnnotationSet.from_openimage(input, image_folder=image_dir, verbose=verbose)
     elif format_dets == "labelme":

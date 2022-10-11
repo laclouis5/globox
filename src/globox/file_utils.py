@@ -14,7 +14,7 @@ def glob(
         extensions = set(extensions)
 
     assert all(e.startswith(".") for e in extensions), \
-        "parameter 'extension' should start with a dot"
+        "Parameter `extension` should start with a dot."
 
     files = folder.glob("**/*") if recursive else folder.glob("*")
 

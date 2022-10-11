@@ -70,7 +70,7 @@ class AnnotationSet:
 
         if not override:
             assert annotation.image_id not in self.image_ids, \
-                "image_id already in the set (set 'override' to True to remove this assertion)"
+                f"The annotation with id '{annotation.image_id}' is already present in the set (set `override` to True to remove this assertion)."
         self._annotations[annotation.image_id] = annotation
 
     def update(self, other: "AnnotationSet", override = False) -> "AnnotationSet":
@@ -86,7 +86,7 @@ class AnnotationSet:
 
         if not override:
             assert self.image_ids.isdisjoint(other.image_ids), \
-                "some image ids are already in the set (set 'override' to True to remove this assertion)"
+                "some image ids are already in the set (set 'override' to True to remove this assertion)."
         self._annotations.update(other._annotations)
         return self
 
@@ -153,7 +153,7 @@ class AnnotationSet:
         assert image_extension.startswith(".")
 
         if relative:
-            assert image_folder is not None, "`image_folder` must be provided when `relative` is True to read image sizes"
+            assert image_folder is not None, "When `relative` is set to True, `image_folder` must be provided to read image sizes."
         if image_folder is not None:
             assert image_folder.is_dir()
 
@@ -164,7 +164,7 @@ class AnnotationSet:
                     image_size = get_image_size(image_path)
                 except UnknownImageFormat:
                     raise FileParsingError(image_path, 
-                        reason=f"unable to read image file '{image_path}' to get the image size")
+                        reason=f"Unable to read image file '{image_path}' to get the image size.")
             else:
                 image_size = None
             
@@ -206,8 +206,8 @@ class AnnotationSet:
         image_folder: Path,
         verbose: bool = False
     ) -> "AnnotationSet":
-        assert file_path.is_file() and file_path.suffix == ".csv", f"OpenImage annotation file {file_path} must be a csv file"
-        assert image_folder.is_dir(), f"Image folder {image_folder} must be a valid directory"
+        assert file_path.is_file() and file_path.suffix == ".csv", f"OpenImage annotation file {file_path} must be a csv file."
+        assert image_folder.is_dir(), f"Image folder {image_folder} must be a valid directory."
         
         # TODO: Add error handling.
         annotations = AnnotationSet()
@@ -251,7 +251,7 @@ class AnnotationSet:
 
     @staticmethod
     def from_coco(file_path: Path, verbose: bool = False) -> "AnnotationSet":
-        assert file_path.is_file() and file_path.suffix == ".json", f"COCO annotation file {file_path} must be a json file"
+        assert file_path.is_file() and file_path.suffix == ".json", f"COCO annotation file {file_path} must be a json file."
 
         # TODO: Add error handling
         with file_path.open() as f:
@@ -280,7 +280,7 @@ class AnnotationSet:
         return annotation_set
 
     def from_results(self, file_path: Path, verbose: bool = False) -> "AnnotationSet":
-        assert file_path.is_file() and file_path.suffix == ".json", f"COCO annotation file {file_path} must be a json file"
+        assert file_path.is_file() and file_path.suffix == ".json", f"COCO annotation file {file_path} must be a json file."
 
         id_to_label = self._id_to_label
         id_to_imageid = self._id_to_imageid
@@ -320,8 +320,7 @@ class AnnotationSet:
         id_to_imageid: "dict[int, str]",
         verbose: bool = False
     ) -> "AnnotationSet":
-        """"""
-        assert file_path.is_file() and file_path.suffix == ".json", f"COCO annotation file {file_path} must be a json file"
+        assert file_path.is_file() and file_path.suffix == ".json", f"COCO annotation file {file_path} must be a json file."
 
         id_to_annotation = {}
 
@@ -351,7 +350,7 @@ class AnnotationSet:
 
     @staticmethod
     def from_cvat(file_path: Path, verbose: bool = False) -> "AnnotationSet":
-        assert file_path.is_file() and file_path.suffix == ".xml", f"CVAT annotation file {file_path} must be a xml file"
+        assert file_path.is_file() and file_path.suffix == ".xml", f"CVAT annotation file {file_path} must be a xml file."
         
         # TODO: Add error handling.
         with file_path.open() as f:

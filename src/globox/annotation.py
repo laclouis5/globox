@@ -187,7 +187,7 @@ class Annotation:
 
     def to_labelme(self, *, image_size: "tuple[int, int]" = None) -> dict:
         image_size = image_size or self.image_size
-        assert image_size is not None, "An image size should be provided either by argument or by `self.image_size`"
+        assert image_size is not None, "An image size should be provided either by argument or by `self.image_size`."
 
         return {
             "imagePath": self.image_id,
@@ -203,7 +203,7 @@ class Annotation:
 
     def to_xml(self, *, image_size: "tuple[int, int]" = None) -> et.Element:
         image_size = image_size or self.image_size
-        assert image_size is not None, "An image size should be provided either by argument or by `self.image_size`"
+        assert image_size is not None, "An image size should be provided either by argument or by `self.image_size`."
 
         ann_node = et.Element("annotation")
         et.SubElement(ann_node, "filename").text = self.image_id
@@ -226,7 +226,7 @@ class Annotation:
 
     def to_cvat(self, *, image_size: "tuple[int, int]" = None) -> et.Element:
         image_size = image_size or self.image_size
-        assert image_size is not None, "An image size should be provided either by argument or by `self.image_size`"
+        assert image_size is not None, "An image size should be provided either by argument or by `self.image_size`."
 
         img_node = et.Element("image", attrib={
             "name": self.image_id,
