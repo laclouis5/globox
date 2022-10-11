@@ -30,15 +30,22 @@ The library has three main components:
 The `AnnotationSet` class contains static methods to read different databases:
 
 ```python
-coco_gts = AnnotationSet.from_coco(file_path="path/to/json_file.json")
-xml_gts = AnnotationSet.from_xml(folder="path/to/xml_files/")  # PascalVOC
-yolo_preds = AnnotationSet.from_yolo(folder="path/to/txt_files/")
+# COCO
+coco_gts = AnnotationSet.from_coco(file_path="path/to/file.json")
+
+# Pascal VOC
+xml_gts = AnnotationSet.from_xml(folder="path/to/files/")
+
+# YOLO
+yolo_preds = AnnotationSet.from_yolo(
+    folder="path/to/files/",
+    image_folder="path/to/images/")
 ```
 
 `Annotation` offers file-level granularity for compatible datasets:
 
 ```python
-one_annotation = Annotation.from_labelme(file_path="path/to/xml_file.xml")
+annotation = Annotation.from_labelme(file_path="path/to/file.xml")
 ```
 
 For more specific implementations the `BoundingBox` class contains lots of utilities to parse bounding boxes in different formats, like the `create()` method.
@@ -47,7 +54,7 @@ For more specific implementations the `BoundingBox` class contains lots of utili
 
 ```python
 gts = coco_gts + xml_gts
-gts.add(one_annotation)
+gts.add(annotation)
 ```
 
 ### Inspect Databases
@@ -55,7 +62,7 @@ gts.add(one_annotation)
 Iterators and efficient `image_id` lookup are easy to use:
 
 ```python
-if one_annotation in gts:
+if annotation in gts:
     print("This annotation is in the DB.")
 
 for box in gts.all_boxes:
@@ -105,13 +112,18 @@ coco_gts.show_stats()
 
 ### Convert and Save to many Formats
 
-Datasets can be converted to other formats easily:
+Datasets can be converted to and savde in other formats easily:
 
 ```python
+# To Pascal VOC
 coco_gts.save_xml(save_dir="pascalVOC_db/")
+
+# TO CVAT
 coco_gts.save_cvat(path="train.xml")
+
+# To YOLO
 coco_gts.save_yolo(
-    save_dir="yolo_train", 
+    save_dir="yolo_train/", 
     label_to_id={"cat": 0, "dog": 1, "racoon": 2})
 ```
 
@@ -143,25 +155,25 @@ which outputs:
 
 ```
                               COCO Evaluation
-┏━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┳...┳━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┓
-┃ Label     ┃ AP 50:95 ┃   AP 50 ┃   AP 75 ┃   ┃    AR S ┃    AR M ┃    AR L ┃
-┡━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━╇...╇━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━┩
-│ airplane  │   22.72% │  25.25% │  25.25% │   │    nan% │  90.00% │   0.00% │
-│ apple     │   46.40% │  57.43% │  57.43% │   │  48.57% │    nan% │    nan% │
-│ backpack  │   54.82% │  85.15% │  38.28% │   │ 100.00% │  72.00% │   0.00% │
-│ banana    │   73.65% │  96.41% │  83.17% │   │    nan% │ 100.00% │  70.00% │
-.           .          .         .         .   .         .         .         .
-.           .          .         .         .   .         .         .         .
-.           .          .         .         .   .         .         .         .
-├───────────┼──────────┼─────────┼─────────┼...┼─────────┼─────────┼─────────┤
-│ Total     │   50.36% │  69.70% │  57.17% │   │  65.48% │  60.31% │  55.37% │
-└───────────┴──────────┴─────────┴─────────┴...┴─────────┴─────────┴─────────┘
+┏━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━┳...┳━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┓
+┃ Label     ┃ AP 50:95 ┃   AP 50 ┃   ┃    AR S ┃    AR M ┃    AR L ┃
+┡━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━╇...╇━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━┩
+│ airplane  │   22.72% │  25.25% │   │    nan% │  90.00% │   0.00% │
+│ apple     │   46.40% │  57.43% │   │  48.57% │    nan% │    nan% │
+│ backpack  │   54.82% │  85.15% │   │ 100.00% │  72.00% │   0.00% │
+│ banana    │   73.65% │  96.41% │   │    nan% │ 100.00% │  70.00% │
+.           .          .         .   .         .         .         .
+.           .          .         .   .         .         .         .
+.           .          .         .   .         .         .         .
+├───────────┼──────────┼─────────┼...┼─────────┼─────────┼─────────┤
+│ Total     │   50.36% │  69.70% │   │  65.48% │  60.31% │  55.37% │
+└───────────┴──────────┴─────────┴...┴─────────┴─────────┴─────────┘
 ```
 
 The array of results can be saved in CSV format:
 
 ```python
-evaluator.save_csv(Path("results.csv"))
+evaluator.save_csv("where/to/save/results.csv")
 ```
 
 Custom evaluations can be achieved with:
