@@ -107,3 +107,15 @@ def test_create():
     assert isclose(box.ymid, 100)
     assert isclose(box.width, 50)
     assert isclose(box.height, 200)
+
+
+def test_txt_conversion():
+    box = BoundingBox.create(label="dining table", coords=(0, 0, 10, 10))
+    with pytest.raises(AssertionError):
+        _ = box.to_txt()
+    box.to_txt(label_to_id={"dining table": "dining_table"})
+
+    box = BoundingBox.create(label="dining/ntable", coords=(0, 0, 10, 10))
+    with pytest.raises(AssertionError):
+        _ = box.to_txt()
+    box.to_txt(label_to_id={"dining/ntable": "dining_table"})

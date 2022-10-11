@@ -1,4 +1,4 @@
-from globox import Annotation, AnnotationSet
+from globox import Annotation, AnnotationSet, BoundingBox
 from globox.file_utils import glob
 from .constants import *
 import pytest
@@ -46,3 +46,12 @@ def test_annotation_set_2():
 
     with pytest.raises(AssertionError):
         set3.add(annotation)
+
+
+def test_openimage_conversion(tmp_path: Path):
+    box = BoundingBox.create(label="dining,table", coords=(0, 0, 10, 10))
+    annotation = Annotation(image_id="", boxes=[box])
+    annotationset = AnnotationSet(annotations=[annotation])
+
+    with pytest.raises(AssertionError):
+        _ = annotationset.save_openimage(tmp_path / "cvat.csv")
