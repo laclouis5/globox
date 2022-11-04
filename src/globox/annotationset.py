@@ -529,12 +529,10 @@ class AnnotationSet:
 
     def to_vit_json(self, path: Path, *, 
         image_folder: Path,
-        label_attribute: str = "label_id", 
-        confidence_attribute: str = "confidence",
+        label_key: str = "label_id", 
+        confidence_key: str = "confidence",
         verbose: bool = False
     ) -> dict:
-        assert image_folder.is_dir()
-
         if path.suffix == "":
             path = path.with_suffix(".json")
 
@@ -544,8 +542,8 @@ class AnnotationSet:
         for annotation in tqdm(self, desc="Saving", disable=not verbose):
             ann_dict = annotation.to_vit_json(
                 image_folder=image_folder,
-                label_attribute=label_attribute,
-                confidence_attribute=confidence_attribute
+                label_key=label_key,
+                confidence_key=confidence_key
             )
 
             key = f"{ann_dict['filename']}{ann_dict['size']}"
@@ -555,14 +553,14 @@ class AnnotationSet:
 
     def save_vit_json(self, path: Path, *, 
         image_folder: Path,
-        label_attribute: str = "label_id", 
-        confidence_attribute: str = "confidence",
+        label_key: str = "label_id", 
+        confidence_key: str = "confidence",
         verbose: bool = False
     ):
         output = self.to_vit_json(path,
             image_folder=image_folder,
-            label_attribute=label_attribute,
-            confidence_attribute=confidence_attribute,
+            label_key=label_key,
+            confidence_key=confidence_key,
             verbose=verbose
         )
 

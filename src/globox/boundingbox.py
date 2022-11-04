@@ -376,10 +376,10 @@ class BoundingBox:
         })
 
     def to_vit_json(self, *,
-        label_attribute: str = "label_id", 
-        confidence_attribute: str = "confidence"
+        label_key: str = "label_id", 
+        confidence_key: str = "confidence"
     ) -> dict:
-        assert label_attribute != confidence_attribute
+        assert label_key != confidence_key
 
         shape_attributes = {
             "name": "rect",
@@ -387,10 +387,10 @@ class BoundingBox:
             "width": self.width, "height": self.height,
         }
 
-        region_attributes = {label_attribute: self.label}
+        region_attributes = {label_key: self.label}
 
         if self.confidence is not None:
-            region_attributes[confidence_attribute] = self.confidence
+            region_attributes[confidence_key] = self.confidence
 
         return {
             "shape_attributes": shape_attributes,
