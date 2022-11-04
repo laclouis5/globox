@@ -7,7 +7,7 @@ from .atomic import open_atomic
 from .thread_utils import thread_map
 
 from typing import Dict, Callable, Iterator, Mapping, TypeVar, Iterable, Union
-from csv import DictReader, DictWriter
+import csv
 from pathlib import Path
 import xml.etree.ElementTree as et
 from collections import defaultdict
@@ -213,7 +213,7 @@ class AnnotationSet:
         annotations = AnnotationSet()
 
         with file_path.open(newline="") as f:
-            reader = DictReader(f)
+            reader = csv.DictReader(f)
 
             for row in tqdm(reader, desc="Parsing", disable=not verbose):
                 image_id = row["ImageID"]
@@ -488,7 +488,7 @@ class AnnotationSet:
             "IsTruncated", "IsGroupOf", "IsDepiction", "IsInside")
     
         with open_atomic(path, "w", newline="") as f:
-            writer = DictWriter(f, fieldnames=fields, restval="")
+            writer = csv.DictWriter(f, fieldnames=fields, restval="")
             writer.writeheader()
 
             for annotation in tqdm(self, desc="Saving", disable=not verbose):
@@ -527,6 +527,48 @@ class AnnotationSet:
         with open_atomic(path, "w") as f:
             f.write(content)
 
+    def to_vit_json(self, path: Path, *, 
+        image_folder: Path,
+        label_attribute: str = "label_id", 
+        confidence_attribute: str = "confidence",
+        verbose: bool = False
+    ) -> dict:
+        assert image_folder.is_dir()
+
+        if path.suffix == "":
+            path = path.with_suffix(".json")
+
+        assert path.suffix == ".json"
+
+        output = {}
+        for annotation in tqdm(self, desc="Saving", disable=not verbose):
+            ann_dict = annotation.to_vit_json(
+                image_folder=image_folder,
+                label_attribute=label_attribute,
+                confidence_attribute=confidence_attribute
+            )
+
+            key = f"{ann_dict['filename']}{ann_dict['size']}"
+            output[key] = ann_dict
+
+        return output
+
+    def save_vit_json(self, path: Path, *, 
+        image_folder: Path,
+        label_attribute: str = "label_id", 
+        confidence_attribute: str = "confidence",
+        verbose: bool = False
+    ):
+        output = self.to_vit_json(path,
+            image_folder=image_folder,
+            label_attribute=label_attribute,
+            confidence_attribute=confidence_attribute,
+            verbose=verbose
+        )
+
+        with open_atomic(path, "w") as f:
+            json.dump(output, fp=f)
+
     @staticmethod
     def parse_names_file(path: Path) -> "dict[str, str]":
         """Parse .names file.
@@ -542,7 +584,7 @@ class AnnotationSet:
     @staticmethod
     def parse_mid_file(path: Path) -> "dict[str, str]":
         with path.open() as f:
-            reader = DictReader(f, fieldnames=("LabelName", "DisplayName"))
+            reader = csv.DictReader(f, fieldnames=("LabelName", "DisplayName"))
             return {l["LabelName"]: l["DisplayName"] for l in reader}
 
     def show_stats(self, *, verbose: bool = False):

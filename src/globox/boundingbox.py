@@ -375,5 +375,27 @@ class BoundingBox:
             "ybr": f"{ybr}",
         })
 
+    def to_vit_json(self, *,
+        label_attribute: str = "label_id", 
+        confidence_attribute: str = "confidence"
+    ) -> dict:
+        assert label_attribute != confidence_attribute
+
+        shape_attributes = {
+            "name": "rect",
+            "x": self.xmin, "y": self.ymin,
+            "width": self.width, "height": self.height,
+        }
+
+        region_attributes = {label_attribute: self.label}
+
+        if self.confidence is not None:
+            region_attributes[confidence_attribute] = self.confidence
+
+        return {
+            "shape_attributes": shape_attributes,
+            "region_attributes": region_attributes
+        }
+
     def __repr__(self) -> str:
         return f"BoundingBox(label: {self.label}, xmin: {self._xmin}, ymin: {self._ymin}, xmax: {self._xmax}, ymax: {self._ymax}, confidence: {self._confidence})"

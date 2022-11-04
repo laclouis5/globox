@@ -238,5 +238,27 @@ class Annotation:
 
         return img_node
 
+    def to_vit_json(self, *, 
+        image_folder: Path,
+        label_attribute: str = "label_id", 
+        confidence_attribute: str = "confidence"
+    ) -> dict:
+        assert image_folder.is_dir()
+
+        image_id = self.image_id
+        image_path = image_folder / image_id
+        file_size = image_path.stat().st_size
+
+        regions = [box.to_vit_json(
+            label_attribute=label_attribute,
+            confidence_attribute=confidence_attribute
+        ) for box in self.boxes]
+
+        return {
+            "filename": image_id,
+            "size": file_size,
+            "regions": regions
+        }
+
     def __repr__(self) -> str:
         return f"Annotation(image_id: {self.image_id}, image_size: {self.image_size}, boxes: {self.boxes})"
