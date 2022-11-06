@@ -13,7 +13,7 @@ def test_conversion(tmp_path: Path):
     coco_path = tmp_path / "coco.json"
     labelme_dir = tmp_path / "labelme"
     openimage_path = tmp_path / "openimage.csv"
-    vit_json_path = tmp_path / "vit_json.json"
+    via_json_path = tmp_path / "via_json.json"
 
     boxes = AnnotationSet.from_coco(file_path=coco2_path)
 
@@ -24,7 +24,7 @@ def test_conversion(tmp_path: Path):
     boxes.save_coco(coco_path)
     boxes.save_labelme(labelme_dir)
     boxes.save_openimage(openimage_path)
-    boxes.save_vit_json(vit_json_path, image_folder=image_folder)
+    boxes.save_via_json(via_json_path, image_folder=image_folder)
 
     dets_sets = [
         AnnotationSet.from_txt(txt_dir, image_folder=image_folder),

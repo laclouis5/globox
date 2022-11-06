@@ -238,7 +238,7 @@ class Annotation:
 
         return img_node
 
-    def to_vit_json(self, *, 
+    def to_via_json(self, *, 
         image_folder: Path,
         label_key: str = "label_id", 
         confidence_key: str = "confidence"
@@ -250,7 +250,7 @@ class Annotation:
         file_size = image_path.stat().st_size
 
         regions = [
-            box.to_vit_json(label_key=label_key, confidence_key=confidence_key)
+            box.to_via_json(label_key=label_key, confidence_key=confidence_key)
             for box in self.boxes
         ]
 

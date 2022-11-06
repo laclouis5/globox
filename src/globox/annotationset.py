@@ -527,7 +527,7 @@ class AnnotationSet:
         with open_atomic(path, "w") as f:
             f.write(content)
 
-    def to_vit_json(self, path: Path, *, 
+    def to_via_json(self, path: Path, *, 
         image_folder: Path,
         label_key: str = "label_id", 
         confidence_key: str = "confidence",
@@ -540,7 +540,7 @@ class AnnotationSet:
 
         output = {}
         for annotation in tqdm(self, desc="Saving", disable=not verbose):
-            ann_dict = annotation.to_vit_json(
+            ann_dict = annotation.to_via_json(
                 image_folder=image_folder,
                 label_key=label_key,
                 confidence_key=confidence_key
@@ -551,13 +551,13 @@ class AnnotationSet:
 
         return output
 
-    def save_vit_json(self, path: Path, *, 
+    def save_via_json(self, path: Path, *, 
         image_folder: Path,
         label_key: str = "label_id", 
         confidence_key: str = "confidence",
         verbose: bool = False
     ):
-        output = self.to_vit_json(path,
+        output = self.to_via_json(path,
             image_folder=image_folder,
             label_key=label_key,
             confidence_key=confidence_key,

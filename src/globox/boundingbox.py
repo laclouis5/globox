@@ -375,7 +375,7 @@ class BoundingBox:
             "ybr": f"{ybr}",
         })
 
-    def to_vit_json(self, *,
+    def to_via_json(self, *,
         label_key: str = "label_id", 
         confidence_key: str = "confidence"
     ) -> dict:
