@@ -239,7 +239,8 @@ class BoundingBox:
         box_format = BoxFormat.LTRB,
         relative = False,
         image_size: "tuple[int, int]" = None,
-        separator: str = " "
+        separator: str = " ",
+        conf_last: bool = False
     ) -> "BoundingBox":
         values = string.strip().split(separator)
 
@@ -247,7 +248,10 @@ class BoundingBox:
             label, *coords = values  
             confidence = None 
         elif len(values) == 6:
-            label, confidence, *coords = values
+            if conf_last:
+                label, *coords, confidence = values
+            else:
+                label, confidence, *coords = values
         else:
             raise ParsingError(f"line '{string}' should have 5 or 6 values separated by whitespaces, not {len(values)}")
 
@@ -267,12 +271,17 @@ class BoundingBox:
             image_size=image_size)
 
     @staticmethod
-    def from_yolo(string: str, image_size: "tuple[int, int]") -> "BoundingBox":
+    def from_yolo(
+        string: str, 
+        image_size: "tuple[int, int]",
+        conf_last: bool = False
+    ) -> "BoundingBox":
         return BoundingBox.from_txt(string, 
             box_format=BoxFormat.XYWH, 
             relative=True, 
             image_size=image_size, 
-            separator=" ")
+            separator=" ",
+            conf_last=conf_last)
 
     @staticmethod
     def from_xml(node: et.Element) -> "BoundingBox":
@@ -310,7 +319,8 @@ class BoundingBox:
         box_format: BoxFormat = BoxFormat.LTRB, 
         relative = False, 
         image_size: "tuple[int, int]" = None,
-        separator: str = " "
+        separator: str = " ",
+        conf_last: bool = False
     ) -> str:
         if box_format is BoxFormat.LTRB:
             coords = self.ltrb
@@ -335,20 +345,26 @@ class BoundingBox:
             assert separator not in label, f"The box label '{label}' contains the character '{separator}' which is the same as the separtor character used for BoundingBox representation in TXT/YOLO format. This will corrupt the saved annotation file and likely make it unreadable. Use another character in the label name or `label_to_id` mapping, e.g. use and underscore instead of a whitespace."
 
         if self.is_ground_truth:
-            return separator.join(f"{v}" for v in (label, *coords))
+            line = (label, *coords)
+        elif conf_last:
+            line = (label, *coords, self._confidence)
         else:
-            return separator.join(f"{v}" for v in (label, self._confidence, *coords))
+            line = (label, self._confidence, *coords)
+        
+        return separator.join(f"{v}" for v in line)
 
     def to_yolo(self,
         image_size: "tuple[int, int]",
-        label_to_id: Mapping[str, Union[int, str]] = None
+        label_to_id: Mapping[str, Union[int, str]] = None,
+        conf_last: bool = False
     ) -> str:
         return self.to_txt(
             label_to_id=label_to_id, 
             box_format=BoxFormat.XYWH, 
             relative=True, 
             image_size=image_size, 
-            separator=" ")
+            separator=" ",
+            conf_last=conf_last)
 
     def to_labelme(self) -> dict:
         xmin, ymin, xmax, ymax = self.ltrb

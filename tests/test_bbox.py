@@ -34,19 +34,20 @@ def test_init():
 
 
 def test_confidence():
-    box = BoundingBox(label="", xmin=0, ymin=0, xmax=0, ymax=0, confidence=0.666)
-    assert box._confidence == 0.666
+    box = BoundingBox(label="", xmin=0, ymin=0, xmax=0, ymax=0, confidence=0.25)
+    assert box.confidence == 0.25
     assert box.is_detection
 
     box = BoundingBox(label="", xmin=0, ymin=0, xmax=0, ymax=0, confidence=0.0)
-    assert box._confidence == 0.0
+    assert box.confidence == 0.0
 
     box = BoundingBox(label="", xmin=0, ymin=0, xmax=0, ymax=0, confidence=1.0)
-    assert box._confidence == 1.0
+    assert box.confidence == 1.0
 
     box = BoundingBox(label="", xmin=0, ymin=0, xmax=0, ymax=0)
-    assert box._confidence is None
+    assert box.confidence is None
     assert box.is_ground_truth
+
 
 def test_iou():
     b1 = BoundingBox(label="", xmin=0, ymin=0, xmax=10, ymax=10)
@@ -118,3 +119,33 @@ def test_txt_conversion():
     box = BoundingBox.create(label="dining_table", coords=(0, 0, 10, 10))
     with pytest.raises(AssertionError):
         _ = box.to_txt(separator="\n")
+        
+
+def test_to_txt_conf_last():
+    box = BoundingBox.create(label="label", coords=(0, 0, 10, 10), confidence=0.5)
+    
+    line = box.to_txt(conf_last=True)
+    assert line == "label 0 0 10 10 0.5"
+
+    line = box.to_txt()
+    assert line == "label 0.5 0 0 10 10"
+    
+
+def test_to_yolo_conf_last():
+    box = BoundingBox.create(label="label", coords=(0, 0, 10, 10), confidence=0.25)
+    
+    line = box.to_yolo(image_size=(10, 10), conf_last=True)
+    assert line == "label 0.5 0.5 1.0 1.0 0.25"
+    
+    line = box.to_yolo(image_size=(10, 10))
+    assert line == "label 0.25 0.5 0.5 1.0 1.0"
+    
+
+def test_from_txt_conf_last():
+    line = "label 10 20 30 40 0.25"
+    box = BoundingBox.from_txt(line, conf_last=True)
+    assert box.confidence == 0.25
+    
+    line = "label 0.25 10 20 30 40"
+    box = BoundingBox.from_txt(line)
+    assert box.confidence == 0.25

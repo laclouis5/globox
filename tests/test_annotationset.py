@@ -1,4 +1,4 @@
-from globox import Annotation, AnnotationSet, BoundingBox
+from globox import Annotation, AnnotationSet, BoundingBox, BoxFormat
 from globox.file_utils import glob
 from .constants import *
 import pytest
@@ -55,3 +55,109 @@ def test_openimage_conversion(tmp_path: Path):
 
     with pytest.raises(AssertionError):
         _ = annotationset.save_openimage(tmp_path / "cvat.csv")
+        
+        
+def test_save_txt_conf_first(tmp_path: Path):
+    annotation = Annotation(
+        image_id="image_id",
+        boxes=[
+            BoundingBox(label="label", xmin=10, ymin=20, xmax=30, ymax=40, confidence=0.25),
+        ]
+    )
+    
+    annotationset = AnnotationSet(annotations=[annotation])
+    annotationset.save_txt(tmp_path)
+    
+    content = (tmp_path / "image_id.txt").read_text()
+    
+    assert content == "label 0.25 10 20 30 40"
+    
+    
+def test_save_txt_conf_last(tmp_path: Path):
+    annotation = Annotation(
+        image_id="image_id",
+        boxes=[
+            BoundingBox(label="label", xmin=10, ymin=20, xmax=30, ymax=40, confidence=0.25),
+        ]
+    )
+    
+    annotationset = AnnotationSet(annotations=[annotation])
+    annotationset.save_txt(tmp_path, conf_last=True)
+    
+    content = (tmp_path / "image_id.txt").read_text()
+    
+    assert content == "label 10 20 30 40 0.25"
+    
+    
+def test_save_yolo_conf_first(tmp_path: Path):
+    annotation = Annotation(
+        image_id="image_id",
+        image_size=(1_000, 1_000),
+        boxes=[
+            BoundingBox.create(
+                label="label", 
+                coords=(125, 250, 500, 1_000),
+                confidence=0.25,
+                box_format=BoxFormat.XYWH,
+            ),
+        ]
+    )
+    
+    annotationset = AnnotationSet(annotations=[annotation])
+    annotationset.save_yolo(tmp_path)
+    
+    content = (tmp_path / "image_id.txt").read_text()
+    
+    assert content == "label 0.25 0.125 0.25 0.5 1.0"
+    
+    
+def test_save_yolo_conf_last(tmp_path: Path):
+    annotation = Annotation(
+        image_id="image_id",
+        image_size=(1_000, 1_000),
+        boxes=[
+            BoundingBox.create(
+                label="label", 
+                coords=(125, 250, 500, 1_000),
+                confidence=0.25,
+                box_format=BoxFormat.XYWH,
+            ),
+        ]
+    )
+    
+    annotationset = AnnotationSet(annotations=[annotation])
+    annotationset.save_yolo(tmp_path, conf_last=True)
+    
+    content = (tmp_path / "image_id.txt").read_text()
+    
+    assert content == "label 0.125 0.25 0.5 1.0 0.25"
+    
+    
+def test_from_txt_conf_first(tmp_path: Path):
+    file_path = tmp_path / "txt_1.txt"
+    content = """label 0.25 10 20 30 40"""
+    file_path.write_text(content)
+    
+    annotationset = AnnotationSet.from_txt(tmp_path)
+    assert len(annotationset) == 1
+    
+    annotation = annotationset["txt_1.jpg"]
+    assert len(annotation.boxes) == 1
+    
+    box = annotation.boxes[0]
+    assert box.confidence == 0.25
+  
+  
+def test_from_txt_conf_last(tmp_path: Path):
+    file_path = tmp_path / "txt_2.txt"
+    content = """label 10 20 30 40 0.25"""
+    file_path.write_text(content)
+    
+    annotationset = AnnotationSet.from_txt(tmp_path, conf_last=True)
+    assert len(annotationset) == 1
+    
+    annotation = annotationset["txt_2.jpg"]
+    assert len(annotation.boxes) == 1
+    
+    box = annotation.boxes[0]
+    assert box.confidence == 0.25

@@ -56,7 +56,8 @@ class Annotation:
         box_format: BoxFormat = BoxFormat.LTRB,
         relative = False,
         image_size: "tuple[int, int]" = None,
-        separator: str = " "
+        separator: str = " ",
+        conf_last: bool = False,
     ) -> "Annotation":
         try:
             lines = file_path.read_text().splitlines()
@@ -64,9 +65,16 @@ class Annotation:
             raise FileParsingError(file_path, reason="cannot read file")
 
         try:
-            boxes = [BoundingBox.from_txt(
-                l, box_format, relative, image_size, separator)
-                for l in lines]
+            boxes = [
+                BoundingBox.from_txt(l, 
+                    box_format=box_format, 
+                    relative=relative, 
+                    image_size=image_size, 
+                    separator=separator, 
+                    conf_last=conf_last
+                )
+                for l in lines
+            ]
         except ParsingError as e:
             raise FileParsingError(file_path, e.reason)
 
@@ -77,13 +85,16 @@ class Annotation:
         file_path: Path,
         image_id: str,
         image_size: "tuple[int, int]",
+        conf_last: bool = False,
     ):
         return Annotation.from_txt(file_path, 
             image_id=image_id,
             box_format=BoxFormat.XYWH, 
             relative=True, 
             image_size=image_size, 
-            separator=" ")
+            separator=" ",
+            conf_last=conf_last
+        )
 
     @staticmethod
     def from_xml(file_path: Path) -> "Annotation":
@@ -146,41 +157,67 @@ class Annotation:
         box_format: BoxFormat = BoxFormat.LTRB, 
         relative = False,
         image_size: "tuple[int, int]" = None, 
-        separator: str = " "
+        separator: str = " ",
+        conf_last: bool = False,
     ) -> str:
         image_size = image_size or self.image_size
+        
         return "\n".join(
-            b.to_txt(label_to_id, box_format, relative, image_size, separator) for b in self.boxes)
+            box.to_txt(
+                label_to_id=label_to_id, 
+                box_format=box_format, 
+                relative=relative, 
+                image_size=image_size, 
+                separator=separator,
+                conf_last=conf_last
+            ) for box in self.boxes
+        )
 
     def to_yolo(self, *,
         label_to_id: Mapping[str, Union[int, str]] = None,
-        image_size: "tuple[int, int]" = None
+        image_size: "tuple[int, int]" = None,
+        conf_last: bool = False,
     ) -> str:
         image_size = image_size or self.image_size
-        return "\n".join(b.to_yolo(image_size, label_to_id) for b in self.boxes)
+        
+        return "\n".join(
+            box.to_yolo(
+                image_size=image_size, 
+                label_to_id=label_to_id,
+                conf_last=conf_last
+            ) for box in self.boxes
+        )
 
     def save_txt(self, path: Path, *,
         label_to_id: Mapping[str, Union[int, str]] = None,
         box_format: BoxFormat = BoxFormat.LTRB, 
         relative = False, 
         image_size: "tuple[int, int]" = None,
-        separator: str = " "
+        separator: str = " ",
+        conf_last: bool = False,
     ):
         content = self.to_txt(
             label_to_id=label_to_id, 
             box_format=box_format, 
             relative=relative, 
             image_size=image_size, 
-            separator=separator)
+            separator=separator,
+            conf_last=conf_last
+        )
 
         with open_atomic(path, "w") as f:
             f.write(content)
 
     def save_yolo(self, path: Path, *,
         label_to_id: Mapping[str, Union[int, str]] = None,
-        image_size: "tuple[int, int]" = None
+        image_size: "tuple[int, int]" = None,
+        conf_last: bool = False,
     ):
-        content = self.to_yolo(label_to_id=label_to_id, image_size=image_size)
+        content = self.to_yolo(
+            label_to_id=label_to_id, 
+            image_size=image_size,
+            conf_last=conf_last
+        )
         
         with open_atomic(path, "w") as f:
             f.write(content)
