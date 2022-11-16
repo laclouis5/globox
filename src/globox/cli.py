@@ -4,11 +4,13 @@ from .evalutation import COCOEvaluator
 
 import argparse
 from pathlib import Path
+from typing import Optional
 
 
 PARSE_CHOICES = {"coco", "yolo", "labelme", "pascalvoc", "openimage", "txt", "cvat"}
 PARSE_CHOICES_EXT = {*PARSE_CHOICES, "coco_result"}
-
+SAVE_CHOICES = PARSE_CHOICES.copy()
+SAVE_CHOICES.add("via-json")
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -60,7 +62,7 @@ def add_save_args(parser: argparse.ArgumentParser):
     parser.add_argument("output", type=Path)
 
     group = parser.add_argument_group("Save options")
-    group.add_argument("--save_fmt", "-F", type=str, choices=PARSE_CHOICES, dest="format_out")  # TODO: add PARSE_CHOICES_EXT
+    group.add_argument("--save_fmt", "-F", type=str, choices=SAVE_CHOICES, dest="format_out")  # TODO: add PARSE_CHOICES_EXT
     group.add_argument("--bb_fmt_out", "-B", type=str, choices=("ltrb", "ltwh", "xywh"), default="ltrb")
     group.add_argument("--norm_out", "-N", type=str, choices=("abs", "rel"), default="abs")
     group.add_argument("--sep_out", "-P", type=str, default=" ")
@@ -231,6 +233,10 @@ def save_annotations(args: argparse.Namespace, annotations: AnnotationSet):
         annotations.save_labelme(output, verbose=verbose)
     elif format_out == "cvat":
         annotations.save_cvat(output, verbose=verbose)
+    elif format_out == "via-json":
+        image_folder: Optional[Path] = args.img_folder
+        assert image_folder is not None, "The image folder must be provided with `--img_folder` for via-json conversion."
+        annotations.save_via_json(output, image_folder=image_folder, verbose=verbose)
     else:
         if format_out == "yolo":
             annotations.save_yolo(output, verbose=verbose)

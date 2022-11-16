@@ -238,5 +238,27 @@ class Annotation:
 
         return img_node
 
+    def to_via_json(self, *, 
+        image_folder: Path,
+        label_key: str = "label_id", 
+        confidence_key: str = "confidence"
+    ) -> dict:
+        assert image_folder.is_dir()
+
+        image_id = self.image_id
+        image_path = image_folder / image_id
+        file_size = image_path.stat().st_size
+
+        regions = [
+            box.to_via_json(label_key=label_key, confidence_key=confidence_key)
+            for box in self.boxes
+        ]
+
+        return {
+            "filename": image_id,
+            "size": file_size,
+            "regions": regions
+        }
+
     def __repr__(self) -> str:
         return f"Annotation(image_id: {self.image_id}, image_size: {self.image_size}, boxes: {self.boxes})"

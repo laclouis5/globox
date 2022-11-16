@@ -375,5 +375,27 @@ class BoundingBox:
             "ybr": f"{ybr}",
         })
 
+    def to_via_json(self, *,
+        label_key: str = "label_id", 
+        confidence_key: str = "confidence"
+    ) -> dict:
+        assert label_key != confidence_key
+
+        shape_attributes = {
+            "name": "rect",
+            "x": self.xmin, "y": self.ymin,
+            "width": self.width, "height": self.height,
+        }
+
+        region_attributes = {label_key: self.label}
+
+        if self.confidence is not None:
+            region_attributes[confidence_key] = self.confidence
+
+        return {
+            "shape_attributes": shape_attributes,
+            "region_attributes": region_attributes
+        }
+
     def __repr__(self) -> str:
         return f"BoundingBox(label: {self.label}, xmin: {self._xmin}, ymin: {self._ymin}, xmax: {self._xmax}, ymax: {self._ymax}, confidence: {self._confidence})"
