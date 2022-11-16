@@ -1,5 +1,6 @@
-from globox import BoundingBox, Annotation
+from globox import BoundingBox, Annotation, BoxFormat
 import pytest
+from pathlib import Path
 
 
 def test_init():
@@ -41,3 +42,133 @@ def test_map_labels():
 
     with pytest.raises(KeyError):
         annotation.map_labels({"B1": "b1"})  # B2 missing
+        
+        
+def test_from_txt_conf_first(tmp_path: Path):
+    file_path = tmp_path / "txt_1.txt"
+    content = """label 0.25 10 20 30 40"""
+    file_path.write_text(content)
+    
+    annotation = Annotation.from_txt(file_path, image_id="txt_1.jpg")
+    
+    assert len(annotation.boxes) == 1
+    assert annotation.boxes[0].confidence == 0.25
+  
+  
+def test_from_txt_conf_last(tmp_path: Path):  
+    file_path = tmp_path / "txt_2.txt"
+    content = """label 10 20 30 40 0.25"""
+    file_path.write_text(content)
+    
+    annotation = Annotation.from_txt(file_path, image_id="txt_2.jpg", conf_last=True)
+    
+    assert len(annotation.boxes) == 1
+    assert annotation.boxes[0].confidence == 0.25
+    
+
+def test_from_yolo_conf_first(tmp_path: Path):
+    file_path = tmp_path / "yolo_1.txt"
+    content = """label 0.25 0.1 0.2 0.3 0.4"""
+    file_path.write_text(content)
+    
+    annotation = Annotation.from_yolo(
+        file_path, 
+        image_size=(640, 480),
+        image_id="yolo_1.jpg"
+    )
+    
+    assert len(annotation.boxes) == 1
+    assert annotation.boxes[0].confidence == 0.25
+  
+  
+def test_from_yolo_conf_last(tmp_path: Path):  
+    file_path = tmp_path / "yolo_2.txt"
+    content = """label 0.1 0.2 0.3 0.4 0.25"""
+    file_path.write_text(content)
+    
+    annotation = Annotation.from_yolo(
+        file_path, 
+        image_size=(640, 480),
+        image_id="yolo_2.jpg",
+        conf_last=True
+    )
+    
+    assert len(annotation.boxes) == 1
+    assert annotation.boxes[0].confidence == 0.25
+    
+
+def test_save_txt_conf_first(tmp_path: Path):
+    file_path = tmp_path / "txt_first.txt"
+    
+    annotation = Annotation(
+        image_id="image_id",
+        boxes=[
+            BoundingBox(label="label", xmin=10, ymin=20, xmax=30, ymax=40, confidence=0.25),
+        ]
+    )
+    
+    annotation.save_txt(file_path)
+    content = file_path.read_text()
+    
+    assert content == "label 0.25 10 20 30 40"
+    
+    
+def test_save_txt_conf_last(tmp_path: Path):
+    file_path = tmp_path / "txt_first.txt"
+    
+    annotation = Annotation(
+        image_id="image_id",
+        boxes=[
+            BoundingBox(label="label", xmin=10, ymin=20, xmax=30, ymax=40, confidence=0.25),
+        ]
+    )
+    
+    annotation.save_txt(file_path, conf_last=True)
+    content = file_path.read_text()
+    
+    assert content == "label 10 20 30 40 0.25"
+    
+
+def test_save_yolo_conf_first(tmp_path: Path):
+    file_path = tmp_path / "txt_first.txt"
+    
+    annotation = Annotation(
+        image_id="image_id",
+        image_size=(1_000, 1_000),
+        boxes=[
+            BoundingBox.create(
+                label="label", 
+                coords=(125, 250, 500, 1_000),
+                confidence=0.25,
+                box_format=BoxFormat.XYWH,
+            )
+        ]
+    )
+    
+    annotation.save_yolo(file_path)
+    content = file_path.read_text()
+    
+    assert content == "label 0.25 0.125 0.25 0.5 1.0"
+    
+    
+def test_save_yolo_conf_last(tmp_path: Path):
+    file_path = tmp_path / "txt_last.txt"
+    
+    annotation = Annotation(
+        image_id="image_id",
+        image_size=(1_000, 1_000),
+        boxes=[
+            BoundingBox.create(
+                label="label", 
+                coords=(125, 250, 500, 1_000),
+                confidence=0.25,
+                box_format=BoxFormat.XYWH,
+            )
+        ]
+    )
+    
+    annotation.save_yolo(file_path, conf_last=True)
+    content = file_path.read_text()
+    
+    assert content == "label 0.125 0.25 0.5 1.0 0.25"
+    

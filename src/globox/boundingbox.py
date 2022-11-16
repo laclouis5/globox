@@ -239,7 +239,8 @@ class BoundingBox:
         box_format = BoxFormat.LTRB,
         relative = False,
         image_size: "tuple[int, int]" = None,
-        separator: str = " "
+        separator: str = " ",
+        conf_last: bool = False
     ) -> "BoundingBox":
         values = string.strip().split(separator)
 
@@ -247,7 +248,10 @@ class BoundingBox:
             label, *coords = values  
             confidence = None 
         elif len(values) == 6:
-            label, confidence, *coords = values
+            if conf_last:
+                label, *coords, confidence = values
+            else:
+                label, confidence, *coords = values
         else:
             raise ParsingError(f"line '{string}' should have 5 or 6 values separated by whitespaces, not {len(values)}")
 
@@ -267,12 +271,17 @@ class BoundingBox:
             image_size=image_size)
 
     @staticmethod
-    def from_yolo(string: str, image_size: "tuple[int, int]") -> "BoundingBox":
+    def from_yolo(
+        string: str, 
+        image_size: "tuple[int, int]",
+        conf_last: bool = False
+    ) -> "BoundingBox":
         return BoundingBox.from_txt(string, 
             box_format=BoxFormat.XYWH, 
             relative=True, 
             image_size=image_size, 
-            separator=" ")
+            separator=" ",
+            conf_last=conf_last)
 
     @staticmethod
     def from_xml(node: et.Element) -> "BoundingBox":

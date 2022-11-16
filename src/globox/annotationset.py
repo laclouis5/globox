@@ -145,7 +145,8 @@ class AnnotationSet:
         file_extension: str = ".txt",
         image_extension: str = ".jpg",
         separator: str = " ",
-        verbose: bool = False
+        conf_last: bool = False,
+        verbose: bool = False,
     ) -> "AnnotationSet":
         """This method won't try to retreive the image sizes by default. Specify `image_folder` if you need them. `image_folder` is required when `relative` is True."""
         # TODO: Add error handling
@@ -170,21 +171,25 @@ class AnnotationSet:
             
             return Annotation.from_txt(
                 file_path=file,
-                image_id=image_path.name,
+                image_id=file.with_suffix(image_extension).name,
                 box_format=box_format,
                 relative=relative,
                 image_size=image_size,
-                separator=separator)
+                separator=separator,
+                conf_last=conf_last,
+            )
 
         return AnnotationSet.from_folder(folder, 
             extension=file_extension, 
             parser=_get_annotation, 
-            verbose=verbose)
+            verbose=verbose,
+        )
 
     @staticmethod
     def from_yolo(folder: Path, *,
         image_folder: Path = None, 
         image_extension = ".jpg",
+        conf_last: bool = False,
         verbose: bool = False
     ) -> "AnnotationSet":
         return AnnotationSet.from_txt(folder, 
@@ -192,7 +197,9 @@ class AnnotationSet:
             box_format=BoxFormat.XYWH, 
             relative=True, 
             image_extension=image_extension,
-            verbose=verbose)
+            conf_last=conf_last,
+            verbose=verbose,
+        )
 
     @staticmethod
     def from_xml(folder: Path, verbose: bool = False) -> "AnnotationSet":
@@ -367,30 +374,35 @@ class AnnotationSet:
         relative: bool = False, 
         separator: str = " ",
         file_extension: str = ".txt",
-        verbose: bool = False
+        conf_last: bool = False,
+        verbose: bool = False,
     ):
         save_dir.mkdir(exist_ok=True)
 
         def _save(annotation: Annotation):
             image_id = annotation.image_id
             path = (save_dir / image_id).with_suffix(file_extension)
+            
             annotation.save_txt(path, 
                 label_to_id=label_to_id, 
                 box_format=box_format, 
                 relative=relative,
-                separator=separator)
+                separator=separator,
+                conf_last=conf_last
+            )
 
         self.save_from_it(_save, verbose=verbose)
 
     def save_yolo(self, save_dir: Path, *, 
         label_to_id: Mapping[str, Union[int, str]] = None,
-        verbose: bool = False
+        conf_last: bool = False,
+        verbose: bool = False,
     ):
         save_dir.mkdir(exist_ok=True)
 
         def _save(annotation: Annotation):
             path = save_dir / Path(annotation.image_id).with_suffix(".txt")
-            annotation.save_yolo(path, label_to_id=label_to_id)
+            annotation.save_yolo(path, label_to_id=label_to_id, conf_last=conf_last)
 
         self.save_from_it(_save, verbose=verbose)
 
