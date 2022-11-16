@@ -118,3 +118,23 @@ def test_txt_conversion():
     box = BoundingBox.create(label="dining_table", coords=(0, 0, 10, 10))
     with pytest.raises(AssertionError):
         _ = box.to_txt(separator="\n")
+        
+
+def test_to_txt_conf_last():
+    box = BoundingBox.create(label="label", coords=(0, 0, 10, 10), confidence=0.5)
+    
+    line = box.to_txt(conf_last=True)
+    assert line == "label 0 0 10 10 0.5"
+
+    line = box.to_txt()
+    assert line == "label 0.5 0 0 10 10"
+    
+
+def test_to_yolo_conf_last():
+    box = BoundingBox.create(label="label", coords=(0, 0, 10, 10), confidence=0.25)
+    
+    line = box.to_yolo(image_size=(10, 10), conf_last=True)
+    assert line == "label 0.5 0.5 1.0 1.0 0.25"
+    
+    line = box.to_yolo(image_size=(10, 10))
+    assert line == "label 0.25 0.5 0.5 1.0 1.0"

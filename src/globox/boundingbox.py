@@ -310,7 +310,8 @@ class BoundingBox:
         box_format: BoxFormat = BoxFormat.LTRB, 
         relative = False, 
         image_size: "tuple[int, int]" = None,
-        separator: str = " "
+        separator: str = " ",
+        conf_last: bool = False
     ) -> str:
         if box_format is BoxFormat.LTRB:
             coords = self.ltrb
@@ -335,20 +336,26 @@ class BoundingBox:
             assert separator not in label, f"The box label '{label}' contains the character '{separator}' which is the same as the separtor character used for BoundingBox representation in TXT/YOLO format. This will corrupt the saved annotation file and likely make it unreadable. Use another character in the label name or `label_to_id` mapping, e.g. use and underscore instead of a whitespace."
 
         if self.is_ground_truth:
-            return separator.join(f"{v}" for v in (label, *coords))
+            line = (label, *coords)
+        elif conf_last:
+            line = (label, *coords, self._confidence)
         else:
-            return separator.join(f"{v}" for v in (label, self._confidence, *coords))
+            line = (label, self._confidence, *coords)
+        
+        return separator.join(f"{v}" for v in line)
 
     def to_yolo(self,
         image_size: "tuple[int, int]",
-        label_to_id: Mapping[str, Union[int, str]] = None
+        label_to_id: Mapping[str, Union[int, str]] = None,
+        conf_last: bool = False
     ) -> str:
         return self.to_txt(
             label_to_id=label_to_id, 
             box_format=BoxFormat.XYWH, 
             relative=True, 
             image_size=image_size, 
-            separator=" ")
+            separator=" ",
+            conf_last=conf_last)
 
     def to_labelme(self) -> dict:
         xmin, ymin, xmax, ymax = self.ltrb
