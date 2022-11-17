@@ -259,7 +259,12 @@ def save_annotations(args: argparse.Namespace, annotations: AnnotationSet):
 
 def evaluate(args: argparse.Namespace, groundtruths: AnnotationSet, predictions: AnnotationSet):
     verbose: bool = not args.quiet
-    evaluator = COCOEvaluator(groundtruths, predictions)
+    
+    evaluator = COCOEvaluator(
+        ground_truths=groundtruths, 
+        predictions=predictions
+    )
+    
     evaluator.show_summary(verbose=verbose)
     
     if args.save_csv_path is not None:

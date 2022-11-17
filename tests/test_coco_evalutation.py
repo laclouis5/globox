@@ -7,7 +7,10 @@ def test_evaluation():
     coco_gt = AnnotationSet.from_coco(coco_gts_path)
     coco_det = coco_gt.from_results(coco_results_path)
 
-    evaluator = COCOEvaluator(coco_gt, coco_det)
+    evaluator = COCOEvaluator(
+        ground_truths=coco_gt, 
+        predictions=coco_det,
+    )
 
     # Official figures returned by pycocotools (see pycocotools_results.py)
     assert isclose(evaluator.ap(), 0.503647, abs_tol=1e-6)

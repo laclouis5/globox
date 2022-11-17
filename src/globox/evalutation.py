@@ -201,9 +201,9 @@ class COCOEvaluator:
 
     RECALL_STEPS = np.linspace(0.0, 1.0, 101)
 
-    def __init__(self, 
+    def __init__(self, *,
         ground_truths: AnnotationSet,
-        predictions: AnnotationSet ,
+        predictions: AnnotationSet,
         labels: Iterable[str] = None,
     ) -> None:
         self._predictions = predictions
@@ -243,7 +243,8 @@ class COCOEvaluator:
             iou_threshold, 
             max_detections, 
             size_range,
-            self.labels).evaluate()
+            self.labels
+        ).evaluate()
 
     def ap(self) -> float:
         return self.ap_evaluation().ap()
@@ -282,7 +283,11 @@ class COCOEvaluator:
         return self.large_evaluation().ar()
 
     def ap_evaluation(self) -> MultiThresholdEvaluation:
-        evaluations = [self.evaluate(t, 100, self.ALL_RANGE) for t in self.AP_THRESHOLDS]
+        evaluations = [
+            self.evaluate(t, 100, self.ALL_RANGE) 
+            for t in self.AP_THRESHOLDS
+        ]
+        
         return MultiThresholdEvaluation(evaluations)
 
     def ap_50_evaluation(self) -> Evaluation:
@@ -334,7 +339,9 @@ class COCOEvaluator:
             pred = predictions.get(image_id) or Annotation(image_id)
 
             evaluation += cls.evaluate_annotation(
-                pred, gt, iou_threshold, max_detections, size_range, labels)
+                pred, gt, iou_threshold, max_detections, size_range, labels
+            )
+            
         return evaluation
 
     @classmethod
@@ -358,7 +365,8 @@ class COCOEvaluator:
             gts = refs.get(label, [])
             
             evaluation[label] += cls.evaluate_boxes(
-                dets, gts, iou_threshold, max_detections, size_range)
+                dets, gts, iou_threshold, max_detections, size_range
+            )
 
         return evaluation
 
@@ -429,22 +437,26 @@ class COCOEvaluator:
     ):
         assert 0.0 <= iou_threshold <= 1.0
         assert max_detections >= 0
+        
         low, high = size_range
         assert low >= 0.0 and high >= low
 
     def clear_cache(self):
         self.evaluate.cache_clear()
 
-    def _evaluate_all(self, verbose: bool = False): 
+    def _evaluate_all(self, *, verbose: bool = False): 
         params = chain(
             product(
                 self.AP_THRESHOLDS, 
                 (100,),
-                (self.SMALL_RANGE, self.MEDIUM_RANGE, self.LARGE_RANGE, self.ALL_RANGE)),
+                (self.SMALL_RANGE, self.MEDIUM_RANGE, self.LARGE_RANGE, self.ALL_RANGE)
+            ),
             product(
                 self.AP_THRESHOLDS, 
                 (1, 10), 
-                (self.ALL_RANGE,)))
+                (self.ALL_RANGE,)
+            )
+        )
 
         for t, d, r in tqdm(params, desc="Evaluation", total=60, disable=not verbose):
             self.evaluate(t, d, r)
@@ -463,7 +475,8 @@ class COCOEvaluator:
             "AP 50:95": self.ap(), "AP 50": self.ap_50(), "AP 75": self.ap_75(), 
             "AP S": self.ap_small(), "AP M": self.ap_medium(), "AP L": self.ap_large(), 
             "AR 1": self.ar_1(), "AR 10": self.ar_10(), "AR 100": self.ar_100(), 
-            "AR S": self.ar_small(), "AR M": self.ar_medium(), "AR L": self.ar_large()}
+            "AR S": self.ar_small(), "AR M": self.ar_medium(), "AR L": self.ar_large()
+        }
 
         for metric_name, metric in metrics.items():
             table.add_column(metric_name, justify="right", footer=f"{metric:.2%}")
@@ -491,7 +504,8 @@ class COCOEvaluator:
                 f"{ap:.2%}", f"{ap_50:.2%}", f"{ap_75:.2%}", 
                 f"{ap_s:.2%}", f"{ap_m:.2%}", f"{ap_l:.2%}", 
                 f"{ar_1:.2%}", f"{ar_10:.2%}", f"{ar_100:.2%}", 
-                f"{ar_s:.2%}", f"{ar_m:.2%}", f"{ar_l:.2%}")
+                f"{ar_s:.2%}", f"{ar_m:.2%}", f"{ar_l:.2%}"
+            )
 
         table.header_style = "bold"
         table.footer_style = "bold"
@@ -501,14 +515,17 @@ class COCOEvaluator:
             c.style = "red"
             c.header_style = "red"
             c.footer_style = "red"
+            
         for c in table.columns[4:7]: 
             c.style = "magenta"
             c.header_style = "magenta"
             c.footer_style = "magenta"
+            
         for c in table.columns[7:10]: 
             c.style = "blue"
             c.header_style = "blue"
             c.footer_style = "blue"
+            
         for c in table.columns[10:13]: 
             c.style = "green"
             c.header_style = "green"
@@ -548,7 +565,8 @@ class COCOEvaluator:
                 f"{ap}", f"{ap_50}", f"{ap_75}", 
                 f"{ap_s}", f"{ap_m}", f"{ap_l}", 
                 f"{ar_1}", f"{ar_10}", f"{ar_100}", 
-                f"{ar_s}", f"{ar_m}", f"{ar_l}")))
+                f"{ar_s}", f"{ar_m}", f"{ar_l}"
+            )))
 
         return "\n".join((",".join(headers), *rows))
 
