@@ -1,7 +1,7 @@
 from .errors import ParsingError
 
 from enum import Enum, auto
-from typing import Mapping, Union, Tuple
+from typing import Mapping, Union, Tuple, Optional
 import xml.etree.ElementTree as et
 
 
@@ -58,12 +58,12 @@ class BoundingBox:
         ymin: float, 
         xmax: float,
         ymax: float,
-        confidence: float = None
+        confidence: Optional[float] = None
     ) -> None:
         assert xmin <= xmax, "`xmax` must be greater than `xmin`."
         assert ymin <= ymax, "`ymax` must be greater than `ymin`."
 
-        if confidence: 
+        if confidence is not None: 
             assert 0.0 <= confidence <= 1.0, \
                 f"Confidence ({confidence}) should be in [0, 1]."
 
@@ -75,12 +75,13 @@ class BoundingBox:
         self._confidence = confidence
 
     @property
-    def confidence(self) -> float:
+    def confidence(self) -> Optional[float]:
         return self._confidence
 
     @confidence.setter
-    def confidence(self, confidence: float):
-        assert 0.0 <= confidence <= 1.0, \
+    def confidence(self, confidence: Optional[float]):
+        if confidence is not None:
+            assert 0.0 <= confidence <= 1.0, \
                 f"Confidence ({confidence}) should be in [0, 1]."
         self._confidence = confidence
 
