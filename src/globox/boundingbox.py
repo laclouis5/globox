@@ -257,18 +257,18 @@ class BoundingBox:
             else:
                 label, confidence, *coords = values
         else:
-            raise ParsingError(f"line '{string}' should have 5 or 6 values separated by whitespaces, not {len(values)}")
+            raise ParsingError(f"Syntax error in txt annotation file.")
 
         try:
-            coords = [float(c) for c in coords]
+            coords = tuple(float(c) for c in coords)
             if confidence is not None:
                 confidence = float(confidence)
-        except ValueError as e:
-            raise ParsingError(f"{e} in line '{string}'")
+        except ValueError:
+            raise ParsingError(f"Syntax error in txt annotation file.")
 
         return BoundingBox.create(
             label=label, 
-            coords=tuple(coords), 
+            coords=coords, 
             confidence=confidence, 
             box_format=box_format, 
             relative=relative, 
@@ -292,38 +292,55 @@ class BoundingBox:
 
     @staticmethod
     def from_xml(node: et.Element) -> "BoundingBox":
+        
+        label = node.findtext("name")
+        box_node = node.find("bndbox")
+        
+        if label is None or box_node is None:
+            raise ValueError("Syntax error in imagenet annotation format")
+        
+        l, t, r, b = (
+            box_node.findtext("xmin"), 
+            box_node.findtext("ymin"), 
+            box_node.findtext("xmax"), 
+            box_node.findtext("ymax")
+        )
+        
+        if (l is None) or (t is None) or (r is None) or (b is None):
+            raise ValueError("Syntax error in imagenet annotation format")
+        
         try:
-            label = node.findtext("name")
-            box_node = node.find("bndbox")
-            coords = (
-                float(box_node.findtext(c)) 
-                for c in ("xmin", "ymin", "xmax", "ymax")
-            )
-        except et.ParseError as e:
-            line, _ = e.position
-            raise ParsingError(f"syntax error at line {line}")
-        except ValueError as e:
-            raise ParsingError(f"{e}")
+            coords = tuple(float(c) for c in (l, t, r, b))
+        except ValueError:
+            raise ParsingError("Syntax error in imagenet annotation format")
 
         return BoundingBox.create(label=label, coords=tuple(coords))
 
     @staticmethod
-    def from_labelme(node: dict) -> "BoundingBox":
-        # TODO: Add error handling
-        # TODO: Handle if 'shape_type' is not rectangle
-        label = str(node["label"])
-        (xmin, ymin), (xmax, ymax) = node["points"]
-        coords = (float(c) for c in (xmin, ymin, xmax, ymax))
+    def from_labelme(node: dict) -> "BoundingBox":            
+        try:
+            label = str(node["label"])
+            (xmin, ymin), (xmax, ymax) = node["points"]
+            coords = tuple(float(c) for c in (xmin, ymin, xmax, ymax))
+        except (ValueError, KeyError):
+            raise ParsingError("Syntax error in labelme annotation file.")    
         
-        return BoundingBox.create(label=label, coords=tuple(coords))
+        return BoundingBox.create(label=label, coords=coords)
 
     @staticmethod
     def from_cvat(node: et.Element) -> "BoundingBox":
-        # TODO: Add error handling
         label = node.get("label")
-        coords = (float(node.get(c)) for c in ("xtl", "ytl", "xbr", "ybr"))
+        l, t, r, b = node.get("xtl"), node.get("ytl"), node.get("xbr"), node.get("ybr")
         
-        return BoundingBox.create(label=label, coords=tuple(coords))
+        if (label is None) or (l is None) or( t is None) or (r is None) or (b is None):
+            raise ParsingError(f"Syntax error in CVAT annotation file.")
+        
+        try:
+            coords = tuple(float(c) for c in (l, t, r, b))
+        except ValueError:
+            raise ParsingError(f"Syntax error in CVAT annotation file.")
+        
+        return BoundingBox.create(label=label, coords=coords)
 
     def to_txt(self, *,
         label_to_id: Optional[Mapping[str, Union[int, str]]] = None,

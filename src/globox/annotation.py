@@ -101,58 +101,80 @@ class Annotation:
         try:
             with file_path.open() as f:
                 root = et.parse(f).getroot()
+        except (OSError, et.ParseError):
+            raise ParsingError("Syntax error in imagenet annotation file.")
             
-            image_id = root.findtext("filename")
-            size_node = root.find("size")
-            width = size_node.findtext("width")
-            height = size_node.findtext("height")
+        image_id = root.findtext("filename")
+        size_node = root.find("size")
+        
+        if (image_id is None) or (size_node is None):
+            raise ParsingError("Syntax error in imagenet annotation file.")
+        
+        width = size_node.findtext("width")
+        height = size_node.findtext("height")
+        
+        if (width is None) or (height is None):
+            raise ParsingError("Syntax error in imagenet annotation file.")
+            
+        try:
             image_size = int(width), int(height) 
-            boxes = [BoundingBox.from_xml(n) for n in root.iter("object")]
-        except OSError:
-            raise FileParsingError(file_path, reason="cannot read file")
-        except et.ParseError as e:
-            line, _ = e.position
-            raise FileParsingError(file_path, reason=f"syntax error at line {line}")
-        except ParsingError as e:
-            raise FileParsingError(file_path, reason=e.reason)
-        except ValueError as e:
-            raise ParsingError(f"{e}")
+        except ValueError:
+            raise ParsingError("Syntax error in imagenet annotation file.")
+        
+        boxes = [BoundingBox.from_xml(n) for n in root.iter("object")]
 
         return Annotation(image_id, image_size, boxes)
         
     @staticmethod
     def from_labelme(file_path: Path) -> "Annotation":
-        # TODO: Add error handling.
-        with file_path.open() as f:
-            content = json.load(f)
-            if "imageData" in content: 
-                del content["imageData"]
+        try:
+            with file_path.open() as f:
+                content = json.load(f)
+                if "imageData" in content: 
+                    del content["imageData"]
+        except (OSError, json.JSONDecodeError):
+            raise ParsingError("Syntax error in labelme annotation file.")
 
-        image_id = str(content["imagePath"])
-        width = int(content["imageWidth"])
-        height = int(content["imageHeight"])
-        boxes = [
-            BoundingBox.from_labelme(n) 
-            for n in content["shapes"]
-            if n["shape_type"] == "rectangle"
-        ]
+        try:
+            image_id = str(content["imagePath"])
+            width = int(content["imageWidth"])
+            height = int(content["imageHeight"])
+            boxes = [
+                BoundingBox.from_labelme(n) 
+                for n in content["shapes"]
+                if n["shape_type"] == "rectangle"
+            ]
+        except (KeyError, ValueError):
+            raise ParsingError("Syntax error in labelme annotation file.")
         
-        return Annotation(image_id, (width, height), boxes)
+        return Annotation(image_id, image_size=(width, height), boxes=boxes)
 
     @staticmethod
     def _from_coco_partial(node: dict) -> "Annotation":
-        # TODO: Add error handling
-        image_id = str(node["file_name"])
-        image_size = int(node["width"]), int(node["height"])
+        try:
+            image_id = str(node["file_name"])
+            image_size = int(node["width"]), int(node["height"])
+        except (ValueError, KeyError):
+            raise ParsingError("Syntax error in COCO annotation file.")
+        
         return Annotation(image_id, image_size)
 
     @staticmethod
     def from_cvat(node: et.Element) -> "Annotation":
-        # TODO: Add error handling
         image_id = node.get("name")
-        image_size = int(node.get("width")), int(node.get("height"))
+        width, height = node.get("width"), node.get("height")
+        
+        if (image_id is None) or (width is None) or (height is None):
+            raise ParsingError("Syntax error in CVAT annotation file.")
+        
+        try:
+            img_size = int(width), int(height)
+        except ValueError:
+            raise ParsingError("Syntax error in CVAT annotation file.")
+        
         boxes = [BoundingBox.from_cvat(n) for n in node.iter("box")]
-        return Annotation(image_id, image_size, boxes)
+        
+        return Annotation(image_id, image_size=img_size, boxes=boxes)
 
     def to_txt(self, *,
         label_to_id: Optional[Mapping[str, Union[int, str]]] = None,

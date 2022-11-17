@@ -1,6 +1,6 @@
 from .boundingbox import BoundingBox, BoxFormat
 from .annotation import Annotation
-from .errors import UnknownImageFormat, FileParsingError
+from .errors import UnknownImageFormat, FileParsingError, ParsingError
 from .file_utils import glob
 from .image_utils import get_image_size
 from .atomic import open_atomic
@@ -167,11 +167,11 @@ class AnnotationSet:
             
             if image_folder is not None:
                 image_path = image_folder / image_id
+                assert image_path.is_file(), f"File {image_path} does not exists, unable to read the image size."
                 try:
                     image_size = get_image_size(image_path)
                 except UnknownImageFormat:
-                    raise FileParsingError(image_path, 
-                        reason=f"Unable to read image file '{image_path}' to get the image size.")
+                    raise ParsingError(f"Unable to read image size of file {image_path}. The file may be corrupted or the file format not supported.")
             else:
                 image_size = None
             
@@ -213,7 +213,8 @@ class AnnotationSet:
         return AnnotationSet.from_folder(folder, 
             extension=".xml", 
             parser=Annotation.from_xml,
-            verbose=verbose)      
+            verbose=verbose
+        )      
 
     @staticmethod
     def from_openimage(
@@ -224,7 +225,9 @@ class AnnotationSet:
         assert file_path.is_file() and file_path.suffix == ".csv", f"OpenImage annotation file {file_path} must be a csv file."
         assert image_folder.is_dir(), f"Image folder {image_folder} must be a valid directory."
         
-        # TODO: Add error handling.
+        # TODO: Error handling.
+        # OSError, DictReader error, Key/Value Error
+        
         annotations = AnnotationSet()
 
         with file_path.open(newline="") as f:
@@ -269,7 +272,8 @@ class AnnotationSet:
     def from_coco(file_path: Path, *, verbose: bool = False) -> "AnnotationSet":
         assert file_path.is_file() and file_path.suffix == ".json", f"COCO annotation file {file_path} must be a json file."
 
-        # TODO: Add error handling
+        # TODO: Error handling.
+        # OSError, JsonDecoderError, Key/ValueError
         with file_path.open() as f:
             content = json.load(f)
 
@@ -283,10 +287,12 @@ class AnnotationSet:
             for d in content["images"]
         }
         
-        for element in tqdm(content["annotations"], desc="Parsing", disable=not verbose):
+        elements = content["annotations"]
+        
+        for element in tqdm(elements, desc="Parsing", disable=not verbose):
             annotation = id_to_annotation[int(element["image_id"])]
             label = id_to_label[int(element["category_id"])]
-            coords = (float(c) for c in element["bbox"])
+            coords = tuple(float(c) for c in element["bbox"])
             confidence = element.get("score")
     
             if confidence is not None:
@@ -294,7 +300,7 @@ class AnnotationSet:
 
             annotation.add(BoundingBox.create(
                 label=label, 
-                coords=tuple(coords), 
+                coords=coords, 
                 confidence=confidence, 
                 box_format=BoxFormat.LTWH
             ))
@@ -306,6 +312,7 @@ class AnnotationSet:
         return annotation_set
 
     def from_results(self, file_path: Path, *, verbose: bool = False) -> "AnnotationSet":
+        # TODO: Error handling.
         assert file_path.is_file() and file_path.suffix == ".json", f"COCO annotation file {file_path} must be a json file."
 
         id_to_label = self._id_to_label
@@ -330,12 +337,12 @@ class AnnotationSet:
                 annotation = id_to_annotation[image_id]
 
             label = id_to_label[int(element["category_id"])]
-            coords = (float(c) for c in element["bbox"])
+            coords = tuple(float(c) for c in element["bbox"])
             confidence = float(element["score"])
 
             annotation.add(BoundingBox.create(
                 label=label, 
-                coords=tuple(coords), 
+                coords=coords, 
                 confidence=confidence, 
                 box_format=BoxFormat.LTWH
             ))     
@@ -353,6 +360,7 @@ class AnnotationSet:
         id_to_imageid: "dict[int, str]",
         verbose: bool = False
     ) -> "AnnotationSet":
+        # TODO: Error handling.
         assert file_path.is_file() and file_path.suffix == ".json", f"COCO annotation file {file_path} must be a json file."
 
         id_to_annotation = {}
@@ -371,12 +379,12 @@ class AnnotationSet:
                 annotation = id_to_annotation[image_id]
 
             label = id_to_label[int(element["category_id"])]
-            coords = (float(c) for c in element["bbox"])
+            coords = tuple(float(c) for c in element["bbox"])
             confidence = float(element["score"])
 
             annotation.add(BoundingBox.create(
                 label=label, 
-                coords=tuple(coords), 
+                coords=coords, 
                 confidence=confidence, 
                 box_format=BoxFormat.LTWH
             ))      
@@ -391,10 +399,12 @@ class AnnotationSet:
     def from_cvat(file_path: Path, *, verbose: bool = False) -> "AnnotationSet":
         assert file_path.is_file() and file_path.suffix == ".xml", f"CVAT annotation file {file_path} must be a xml file."
         
-        # TODO: Add error handling.
+        # TODO: Error handling.
         with file_path.open() as f:
             root = et.parse(f).getroot()
+            
         image_nodes = list(root.iter("image"))
+        
         return AnnotationSet.from_iter(Annotation.from_cvat, image_nodes, verbose=verbose)
 
     def save_from_it(self, save_fn: Callable[[Annotation], None], *, verbose: bool = False):        
@@ -473,6 +483,7 @@ class AnnotationSet:
             label_to_id = {l: i for i, l in enumerate(sorted(self._labels()))}
             imageid_to_id = {im: i for i, im in enumerate(sorted(self.image_ids))}
         else:
+            # TODO: Convert to ConversionError.
             raise ValueError("For COCO, mappings from labels and image ids to integer ids are required. They can be provided either by argument or automatically by the `AnnotationSet` instance if it was created with `AnnotationSet.from_coco()` or `AnnotationSet.from_coco_results()`. You can also set `auto_ids` to True to automatically create image and label ids (warning: this could cause unexpected compatibility issues with other COCO datasets).")
 
         annotations = []
