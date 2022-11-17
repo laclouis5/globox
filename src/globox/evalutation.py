@@ -537,11 +537,14 @@ class COCOEvaluator:
         """Compute and show the standard COCO metrics."""
         self._evaluate_all(verbose=verbose)
         labels = self.labels or sorted(self.ap_evaluation().keys())
+        
         headers = ("label",
             "AP 50:95", "AP 50", "AP 75", 
             "AP S", "AP M", "AP L", 
             "AR 1", "AR 10", "AR 100", 
-            "AR S", "AR M", "AR L")
+            "AR S", "AR M", "AR L"
+        )
+        s
         rows = []
 
         for label in labels:
