@@ -545,6 +545,7 @@ class AnnotationSet:
             writer.writeheader()
 
             for annotation in tqdm(self, desc="Saving", disable=not verbose):
+                image_id = annotation.image_id
                 image_size = annotation.image_size
                 
                 if image_size is None:
@@ -555,12 +556,11 @@ class AnnotationSet:
                     
                     if "," in label:
                         raise ValueError(f"The box label '{label}' contains the character ',' which is the same as the separtor character used for BoundingBox representation in OpenImage format (CSV). This will corrupt the saved annotation file and likely make it unreadable. Use another character in the label name, e.g. use and underscore instead of a comma.")
-        
 
                     xmin, ymin, xmax, ymax = BoundingBox.abs_to_rel(coords=box.ltrb, size=image_size)
                     
                     row = {
-                        "ImageID": annotation.image_id,
+                        "ImageID": image_id,
                         "LabelName": label,
                         "XMin": xmin, "XMax": xmax, "YMin": ymin, "YMax": ymax
                     }
