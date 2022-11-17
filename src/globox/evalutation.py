@@ -501,10 +501,10 @@ class COCOEvaluator:
             ar_l = self.large_evaluation()[label]["ar"]
 
             table.add_row(label, 
-                f"{ap:.2%}", f"{ap_50:.2%}", f"{ap_75:.2%}", 
-                f"{ap_s:.2%}", f"{ap_m:.2%}", f"{ap_l:.2%}", 
-                f"{ar_1:.2%}", f"{ar_10:.2%}", f"{ar_100:.2%}", 
-                f"{ar_s:.2%}", f"{ar_m:.2%}", f"{ar_l:.2%}"
+                f"{ap:.1%}", f"{ap_50:.1%}", f"{ap_75:.1%}", 
+                f"{ap_s:.1%}", f"{ap_m:.1%}", f"{ap_l:.1%}", 
+                f"{ar_1:.1%}", f"{ar_10:.1%}", f"{ar_100:.1%}", 
+                f"{ar_s:.1%}", f"{ar_m:.1%}", f"{ar_l:.1%}"
             )
 
         table.header_style = "bold"
