@@ -320,8 +320,8 @@ class BoundingBox:
     @staticmethod
     def from_cvat(node: et.Element) -> "BoundingBox":
         # TODO: Add error handling
-        label = node.attrib["label"]
-        coords = (float(node.attrib[c]) for c in ("xtl", "ytl", "xbr", "ybr"))
+        label = node.get("label")
+        coords = (float(node.get(c)) for c in ("xtl", "ytl", "xbr", "ybr"))
         
         return BoundingBox.create(label=label, coords=tuple(coords))
 
