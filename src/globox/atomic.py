@@ -1,10 +1,14 @@
 import os
 import tempfile as tmp
 from contextlib import contextmanager
+from typing import Optional
 
 
 @contextmanager
-def _tempfile(suffix: str = "~", dir: os.PathLike = None):
+def _tempfile(
+    suffix: str = "~", 
+    dir: Optional[os.PathLike] = None
+):
     tmp_file = tmp.NamedTemporaryFile(delete=False, suffix=suffix, dir=dir)
     tmp_name = tmp_file.name
     tmp_file.file.close()

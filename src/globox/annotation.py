@@ -17,7 +17,7 @@ class Annotation:
     def __init__(self, 
         image_id: str, 
         image_size: Optional["tuple[int, int]"] = None, 
-        boxes: "list[BoundingBox]" = None
+        boxes: Optional["list[BoundingBox]"] = None
     ) -> None:
         if image_size is not None:
             img_w, img_h = image_size
@@ -30,11 +30,11 @@ class Annotation:
 
     @property
     def image_width(self) -> Optional[int]:
-        return self.image_size[0]
+        return self.image_size[0] if self.image_size is not None else None
 
     @property
     def image_height(self) -> Optional[int]:
-        return self.image_size[1]
+        return self.image_size[1] if self.image_size is not None else None
 
     def add(self, box: BoundingBox):
         self.boxes.append(box)
@@ -55,7 +55,7 @@ class Annotation:
         image_id: str,
         box_format: BoxFormat = BoxFormat.LTRB,
         relative = False,
-        image_size: "tuple[int, int]" = None,
+        image_size: Optional["tuple[int, int]"] = None,
         separator: str = " ",
         conf_last: bool = False,
     ) -> "Annotation":
@@ -156,10 +156,10 @@ class Annotation:
         return Annotation(image_id, image_size, boxes)
 
     def to_txt(self, *,
-        label_to_id: Mapping[str, Union[int, str]] = None,
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
         box_format: BoxFormat = BoxFormat.LTRB, 
         relative = False,
-        image_size: "tuple[int, int]" = None, 
+        image_size: Optional["tuple[int, int]"] = None, 
         separator: str = " ",
         conf_last: bool = False,
     ) -> str:
@@ -177,11 +177,14 @@ class Annotation:
         )
 
     def to_yolo(self, *,
-        label_to_id: Mapping[str, Union[int, str]] = None,
-        image_size: "tuple[int, int]" = None,
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
+        image_size: Optional["tuple[int, int]"] = None,
         conf_last: bool = False,
     ) -> str:
         image_size = image_size or self.image_size
+        
+        if image_size is None:
+            raise ValueError("Either `image_size` shoud be provided as argument or stored in the Annotation object for conversion to YOLO format.")
         
         return "\n".join(
             box.to_yolo(
@@ -193,10 +196,10 @@ class Annotation:
 
     def save_txt(self, 
         path: Path, *,
-        label_to_id: Mapping[str, Union[int, str]] = None,
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
         box_format: BoxFormat = BoxFormat.LTRB, 
-        relative = False, 
-        image_size: "tuple[int, int]" = None,
+        relative: bool = False, 
+        image_size: Optional["tuple[int, int]"] = None,
         separator: str = " ",
         conf_last: bool = False,
     ):
@@ -213,8 +216,8 @@ class Annotation:
             f.write(content)
 
     def save_yolo(self, path: Path, *,
-        label_to_id: Mapping[str, Union[int, str]] = None,
-        image_size: "tuple[int, int]" = None,
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
+        image_size: Optional["tuple[int, int]"] = None,
         conf_last: bool = False,
     ):
         content = self.to_yolo(
@@ -226,7 +229,7 @@ class Annotation:
         with open_atomic(path, "w") as f:
             f.write(content)
 
-    def to_labelme(self, *, image_size: "tuple[int, int]" = None) -> dict:
+    def to_labelme(self, *, image_size: Optional["tuple[int, int]"] = None) -> dict:
         image_size = image_size or self.image_size
         assert image_size is not None, "An image size should be provided either by argument or by `self.image_size`."
 
@@ -238,12 +241,12 @@ class Annotation:
             "shapes": [b.to_labelme() for b in self.boxes]
         }
 
-    def save_labelme(self, path: Path, *, image_size: "tuple[int, int]" = None):
+    def save_labelme(self, path: Path, *, image_size: Optional["tuple[int, int]"] = None):
         content = self.to_labelme(image_size=image_size)
         with open_atomic(path, "w") as f:
             json.dump(content, fp=f, allow_nan=False)
 
-    def to_xml(self, *, image_size: "tuple[int, int]" = None) -> et.Element:
+    def to_xml(self, *, image_size: Optional["tuple[int, int]"] = None) -> et.Element:
         image_size = image_size or self.image_size
         assert image_size is not None, "An image size should be provided either by argument or by `self.image_size`."
 
@@ -259,14 +262,14 @@ class Annotation:
 
         return ann_node
 
-    def save_xml(self, path: Path, *, image_size: "tuple[int, int]" = None):
+    def save_xml(self, path: Path, *, image_size: Optional["tuple[int, int]"] = None):
         content = self.to_xml(image_size=image_size)
         content = et.tostring(content, encoding="unicode")
         
         with open_atomic(path, "w") as f:
             f.write(content)
 
-    def to_cvat(self, *, image_size: "tuple[int, int]" = None) -> et.Element:
+    def to_cvat(self, *, image_size: Optional["tuple[int, int]"] = None) -> et.Element:
         image_size = image_size or self.image_size
         assert image_size is not None, "An image size should be provided either by argument or by `self.image_size`."
 

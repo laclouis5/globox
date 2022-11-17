@@ -81,13 +81,13 @@ def _get_image_metadata_from_bytesio(input, size: int) -> "tuple[int, int]":
                 if (ord(b) >= 0xC0 and ord(b) <= 0xC3):
                     input.read(3)
                     h, w = unpack(">HH", input.read(4))
+                    width = int(w)
+                    height = int(h)
                     break
                 else:
                     input.read(
-                        int(unpack(">H", input.read(2))[0]) - 2)
+                        int(unpack(">H", input.read(2))[0]) - 2) 
                 b = input.read(1)
-            width = int(w)
-            height = int(h)
         except struct_error:
             raise UnknownImageFormat("StructError" + msg)
         except ValueError:

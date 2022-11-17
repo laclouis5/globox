@@ -6,7 +6,7 @@ from .image_utils import get_image_size
 from .atomic import open_atomic
 from .thread_utils import thread_map
 
-from typing import Dict, Callable, Iterator, Mapping, TypeVar, Iterable, Union
+from typing import Dict, Callable, Iterator, Mapping, TypeVar, Iterable, Union, Optional, Literal, Any
 import csv
 from pathlib import Path
 import xml.etree.ElementTree as et
@@ -26,7 +26,7 @@ class AnnotationSet:
         operator)."""
 
     def __init__(self, 
-        annotations: Iterable[Annotation] = None, *, 
+        annotations: Optional[Iterable[Annotation]] = None, *, 
         override = False,
     ):
         # TODO: Add optional addition of labels found during
@@ -40,14 +40,14 @@ class AnnotationSet:
             for annotation in annotations:
                 self.add(annotation, override=override)
 
-        self._id_to_label: "dict[int, str]" = None
-        self._id_to_imageid: "dict[int, str]" = None
+        self._id_to_label: Optional["dict[int, str]"] = None
+        self._id_to_imageid: Optional["dict[int, str]"] = None
 
     def __getitem__(self, image_id: str) -> Annotation:
         return self._annotations[image_id]
 
-    def get(self, image_id: str, *, default: Annotation = None) -> Annotation:
-        return self._annotations.get(image_id, default)
+    def get(self, image_id: str) -> Optional[Annotation]:
+        return self._annotations.get(image_id)
 
     def __len__(self) -> int:
         return len(self._annotations)
@@ -143,7 +143,7 @@ class AnnotationSet:
     @staticmethod
     def from_txt(
         folder: Path, *,
-        image_folder: Path = None,
+        image_folder: Optional[Path] = None,
         box_format = BoxFormat.LTRB,
         relative = False,
         file_extension: str = ".txt",
@@ -194,7 +194,7 @@ class AnnotationSet:
     @staticmethod
     def from_yolo(
         folder: Path, *,
-        image_folder: Path = None, 
+        image_folder: Optional[Path] = None, 
         image_extension = ".jpg",
         conf_last: bool = False,
         verbose: bool = False
@@ -249,7 +249,7 @@ class AnnotationSet:
                 annotation = annotations[image_id]
                 annotation.add(BoundingBox.create(
                     label=label, 
-                    coords=coords, 
+                    coords=tuple(coords), 
                     confidence=confidence, 
                     relative=True, 
                     image_size=annotation.image_size
@@ -294,7 +294,7 @@ class AnnotationSet:
 
             annotation.add(BoundingBox.create(
                 label=label, 
-                coords=coords, 
+                coords=tuple(coords), 
                 confidence=confidence, 
                 box_format=BoxFormat.LTWH
             ))
@@ -324,7 +324,7 @@ class AnnotationSet:
             gt_ann = self[image_id]
 
             if image_id not in id_to_annotation:
-                annotation = Annotation(image_id, (gt_ann.image_width, gt_ann.image_height))
+                annotation = Annotation(image_id, image_size=gt_ann.image_size)
                 id_to_annotation[image_id] = annotation
             else:
                 annotation = id_to_annotation[image_id]
@@ -335,7 +335,7 @@ class AnnotationSet:
 
             annotation.add(BoundingBox.create(
                 label=label, 
-                coords=coords, 
+                coords=tuple(coords), 
                 confidence=confidence, 
                 box_format=BoxFormat.LTWH
             ))     
@@ -376,7 +376,7 @@ class AnnotationSet:
 
             annotation.add(BoundingBox.create(
                 label=label, 
-                coords=coords, 
+                coords=tuple(coords), 
                 confidence=confidence, 
                 box_format=BoxFormat.LTWH
             ))      
@@ -402,7 +402,7 @@ class AnnotationSet:
 
     def save_txt(self, 
         save_dir: Path, *,
-        label_to_id: Mapping[str, Union[int, str]] = None,
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
         box_format: BoxFormat = BoxFormat.LTRB, 
         relative: bool = False, 
         separator: str = " ",
@@ -428,7 +428,7 @@ class AnnotationSet:
 
     def save_yolo(self, 
         save_dir: Path, *, 
-        label_to_id: Mapping[str, Union[int, str]] = None,
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
         conf_last: bool = False,
         verbose: bool = False,
     ):
@@ -459,20 +459,21 @@ class AnnotationSet:
         self.save_from_it(_save, verbose=verbose)
 
     def to_coco(self, *,
-        label_to_id: "dict[str, int]" = None, 
-        imageid_to_id: "dict[str, int]" = None,
+        label_to_id: Optional["dict[str, int]"] = None, 
+        imageid_to_id: Optional["dict[str, int]"] = None,
         auto_ids: bool = False,
         verbose: bool = False,
     ) -> dict:
-        native_ids = (label_to_id or self._id_to_label) and (imageid_to_id or self._id_to_imageid)
-        assert native_ids or auto_ids, "For COCO, mappings from labels and image ids to integer ids are required. They can be provided either by argument or automatically by the `AnnotationSet` instance if it was created with `AnnotationSet.from_coco()` or `AnnotationSet.from_coco_results()`. You can also set `auto_ids` to True to automatically create image and label ids (warning: this could cause unexpected compatibility issues with other COCO datasets)."
-
-        if native_ids:  # native_ids takes precedence over auto_ids
-            label_to_id = label_to_id or {v: k for k, v in self._id_to_label.items()}
-            imageid_to_id = imageid_to_id or {v: k for k, v in self._id_to_imageid.items()}
-        else:
+        if (label_to_id is not None) and (imageid_to_id is not None):
+            pass
+        elif (self._id_to_label is not None) and (self._id_to_imageid is not None):
+            label_to_id = {v: k for k, v in self._id_to_label.items()}
+            imageid_to_id = {v: k for k, v in self._id_to_imageid.items()}
+        elif auto_ids:
             label_to_id = {l: i for i, l in enumerate(sorted(self._labels()))}
             imageid_to_id = {im: i for i, im in enumerate(sorted(self.image_ids))}
+        else:
+            raise ValueError("For COCO, mappings from labels and image ids to integer ids are required. They can be provided either by argument or automatically by the `AnnotationSet` instance if it was created with `AnnotationSet.from_coco()` or `AnnotationSet.from_coco_results()`. You can also set `auto_ids` to True to automatically create image and label ids (warning: this could cause unexpected compatibility issues with other COCO datasets).")
 
         annotations = []
         ann_id_count = 0
@@ -507,8 +508,8 @@ class AnnotationSet:
 
     def save_coco(self, 
         path: Path, *,
-        label_to_id: "dict[str, int]" = None, 
-        imageid_to_id: "dict[str, int]" = None,
+        label_to_id: Optional["dict[str, int]"] = None, 
+        imageid_to_id: Optional["dict[str, int]"] = None,
         auto_ids: bool = False,
         verbose: bool = False
     ):
@@ -544,12 +545,19 @@ class AnnotationSet:
             writer.writeheader()
 
             for annotation in tqdm(self, desc="Saving", disable=not verbose):
+                image_size = annotation.image_size
+                
+                if image_size is None:
+                    raise ValueError("The image size should be present in the annotation for `save_openimage`. One should parse the annotations specifying the image folder or populate the `image_size` attribute.")
+                
                 for box in annotation.boxes:
                     label = box.label
                     
-                    assert "," not in label, f"The box label '{label}' contains the character ',' which is the same as the separtor character used for BoundingBox representation in OpenImage format (CSV). This will corrupt the saved annotation file and likely make it unreadable. Use another character in the label name, e.g. use and underscore instead of a comma."
+                    if "," in label:
+                        raise ValueError(f"The box label '{label}' contains the character ',' which is the same as the separtor character used for BoundingBox representation in OpenImage format (CSV). This will corrupt the saved annotation file and likely make it unreadable. Use another character in the label name, e.g. use and underscore instead of a comma.")
+        
 
-                    xmin, ymin, xmax, ymax = BoundingBox.abs_to_rel(coords=box.ltrb, size=annotation.image_size)
+                    xmin, ymin, xmax, ymax = BoundingBox.abs_to_rel(coords=box.ltrb, size=image_size)
                     
                     row = {
                         "ImageID": annotation.image_id,
@@ -557,10 +565,10 @@ class AnnotationSet:
                         "XMin": xmin, "XMax": xmax, "YMin": ymin, "YMax": ymax
                     }
                     
-                    if box.is_detection:
+                    if box.confidence is not None:
                         row["Confidence"] = box.confidence
                     
-                    writer.writerow(row)
+                    writer.writerow(row)  # type: ignore
 
     def to_cvat(self, *, verbose: bool = False) -> et.Element:
         def _create_node(annotation: Annotation) -> et.Element:

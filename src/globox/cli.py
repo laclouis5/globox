@@ -30,7 +30,11 @@ def parse_args():
     return parser.parse_args()
 
 
-def add_parse_args(parser: argparse.ArgumentParser, metavar: str = "input", label: str = None):
+def add_parse_args(
+    parser: argparse.ArgumentParser, 
+    metavar: str = "input", 
+    label: Optional[str] = None,
+):
     parser.add_argument("input", type=Path, metavar=metavar)
     
     group = parser.add_argument_group("Parse options" if label is None else label)
@@ -106,37 +110,37 @@ def parse_annotations(args: argparse.Namespace) -> AnnotationSet:
         return AnnotationSet.from_xml(input, verbose=verbose)
     elif format_in == "openimage":
         assert args.img_folder is not None, "The image directory must be provided for openimage format (required for reading the image size)."
-        image_dir: Path = args.img_folder.expanduser().resolve()
-        return AnnotationSet.from_openimage(input, image_folder=image_dir, verbose=verbose)
+        img_dir: Path = args.img_folder.expanduser().resolve()
+        return AnnotationSet.from_openimage(input, image_folder=img_dir, verbose=verbose)
     elif format_in == "labelme":
         return AnnotationSet.from_labelme(input, verbose=verbose)
     elif format_in == "cvat":
         return AnnotationSet.from_cvat(input, verbose=verbose)
     else:
         img_ext: str = args.img_ext_in
+        image_dir: Optional[Path] = None
+        
         if args.img_folder is not None:
-            image_dir: Path = args.img_folder.expanduser().resolve()
-        else:
-            image_dir = None
-
+            image_dir = args.img_folder.expanduser().resolve()
+            
         if format_in == "yolo":
             annotations = AnnotationSet.from_yolo(input, 
                 image_folder=image_dir, 
                 image_extension=img_ext, 
                 verbose=verbose)    
         elif format_in == "txt":
-            format_in = BoxFormat.from_string(args.bb_fmt_in)
+            format = BoxFormat.from_string(args.bb_fmt_in)
             relative: bool = args.norm_in == "rel"
             extension: str = args.ext_in
             sep: str = args.sep_in
 
             annotations = AnnotationSet.from_txt(input, 
                 image_folder=image_dir, 
-                box_format=format_in, 
+                box_format=format, 
                 relative=relative,
                 file_extension=extension, 
                 image_extension=img_ext, 
-                separtor=sep, 
+                separator=sep, 
                 verbose=verbose)
         else:
             raise ValueError(f"Input format '{format_in}' unknown")
@@ -149,7 +153,10 @@ def parse_annotations(args: argparse.Namespace) -> AnnotationSet:
         return annotations
 
 
-def parse_dets_annotations(args: argparse.Namespace, coco_gts: AnnotationSet = None) -> AnnotationSet:
+def parse_dets_annotations(
+    args: argparse.Namespace,
+    coco_gts: Optional[AnnotationSet] = None,
+) -> AnnotationSet:
     input: Path = args.predictions.expanduser().resolve()
     format_dets: str = args.format_dets
     verbose: bool = not args.quiet
@@ -164,18 +171,18 @@ def parse_dets_annotations(args: argparse.Namespace, coco_gts: AnnotationSet = N
         return AnnotationSet.from_xml(input, verbose=verbose)
     elif format_dets == "openimage":
         assert args.image_dir_dets is not None, "The image directory must be provided for openimage format (required for reading the image size)."
-        image_dir: Path = args.img_folder_dets.expanduser().resolve()
-        return AnnotationSet.from_openimage(input, image_folder=image_dir, verbose=verbose)
+        img_dir: Path = args.img_folder_dets.expanduser().resolve()
+        return AnnotationSet.from_openimage(input, image_folder=img_dir, verbose=verbose)
     elif format_dets == "labelme":
         return AnnotationSet.from_labelme(input, verbose=verbose)
     elif format_dets == "cvat":
         return AnnotationSet.from_cvat(input, verbose=verbose)
     else:
         img_ext: str = args.img_ext_dets
+        image_dir: Optional[Path] = None
+        
         if args.image_dir is not None:
-            image_dir: Path = args.img_folder_dets.expanduser().resolve()
-        else:
-            image_dir = None
+            image_dir = args.img_folder_dets.expanduser().resolve()
 
         if format_dets == "yolo":
             annotations = AnnotationSet.from_yolo(input, 

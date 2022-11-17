@@ -1,7 +1,7 @@
 from .errors import ParsingError
 
 from enum import Enum, auto
-from typing import Mapping, Union, Tuple, Optional
+from typing import Mapping, Union, Tuple, Optional, Any
 import xml.etree.ElementTree as et
 
 
@@ -215,10 +215,10 @@ class BoundingBox:
     def create(cls, *,
         label: str, 
         coords: Coordinates, 
-        confidence: float = None,
+        confidence: Optional[float] = None,
         box_format = BoxFormat.LTRB,
         relative = False,
-        image_size: "tuple[int, int]" = None, 
+        image_size: Optional["tuple[int, int]"] = None, 
     ) -> "BoundingBox":
         if relative:
             assert image_size is not None, "For relative coordinates `image_size` should be provided."
@@ -242,7 +242,7 @@ class BoundingBox:
         string: str, *,
         box_format = BoxFormat.LTRB,
         relative = False,
-        image_size: "tuple[int, int]" = None,
+        image_size: Optional["tuple[int, int]"] = None,
         separator: str = " ",
         conf_last: bool = False
     ) -> "BoundingBox":
@@ -260,7 +260,7 @@ class BoundingBox:
             raise ParsingError(f"line '{string}' should have 5 or 6 values separated by whitespaces, not {len(values)}")
 
         try:
-            coords = (float(c) for c in coords)
+            coords = [float(c) for c in coords]
             if confidence is not None:
                 confidence = float(confidence)
         except ValueError as e:
@@ -268,7 +268,7 @@ class BoundingBox:
 
         return BoundingBox.create(
             label=label, 
-            coords=coords, 
+            coords=tuple(coords), 
             confidence=confidence, 
             box_format=box_format, 
             relative=relative, 
@@ -305,7 +305,7 @@ class BoundingBox:
         except ValueError as e:
             raise ParsingError(f"{e}")
 
-        return BoundingBox.create(label=label, coords=coords)
+        return BoundingBox.create(label=label, coords=tuple(coords))
 
     @staticmethod
     def from_labelme(node: dict) -> "BoundingBox":
@@ -315,7 +315,7 @@ class BoundingBox:
         (xmin, ymin), (xmax, ymax) = node["points"]
         coords = (float(c) for c in (xmin, ymin, xmax, ymax))
         
-        return BoundingBox.create(label=label, coords=coords)
+        return BoundingBox.create(label=label, coords=tuple(coords))
 
     @staticmethod
     def from_cvat(node: et.Element) -> "BoundingBox":
@@ -323,13 +323,13 @@ class BoundingBox:
         label = node.attrib["label"]
         coords = (float(node.attrib[c]) for c in ("xtl", "ytl", "xbr", "ybr"))
         
-        return BoundingBox.create(label=label, coords=coords)
+        return BoundingBox.create(label=label, coords=tuple(coords))
 
     def to_txt(self, *,
-        label_to_id: Mapping[str, Union[int, str]] = None,
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
         box_format: BoxFormat = BoxFormat.LTRB, 
         relative = False, 
-        image_size: "tuple[int, int]" = None,
+        image_size: Optional["tuple[int, int]"] = None,
         separator: str = " ",
         conf_last: bool = False
     ) -> str:
@@ -366,7 +366,7 @@ class BoundingBox:
 
     def to_yolo(self, *,
         image_size: "tuple[int, int]",
-        label_to_id: Mapping[str, Union[int, str]] = None,
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
         conf_last: bool = False
     ) -> str:
         return self.to_txt(
@@ -419,7 +419,7 @@ class BoundingBox:
             "width": self.width, "height": self.height,
         }
 
-        region_attributes = {label_key: self.label}
+        region_attributes: dict[str, Any] = {label_key: self.label}
 
         if self.confidence is not None:
             region_attributes[confidence_key] = self.confidence

@@ -4,7 +4,7 @@ from .annotationset import AnnotationSet
 from .utils import grouping, all_equal, mean
 from .atomic import open_atomic
 
-from typing import DefaultDict, Dict, Mapping, Optional, Sequence, Union, Iterable
+from typing import DefaultDict, Dict, Mapping, Optional, Sequence, Iterable, Union, Any
 from collections import defaultdict
 import numpy as np
 from copy import copy
@@ -15,6 +15,7 @@ from itertools import chain, product
 from functools import lru_cache
 from tqdm import tqdm
 
+
 class RecallSteps(Enum):
     ELEVEN = auto()
     ALL = auto()
@@ -23,14 +24,14 @@ class RecallSteps(Enum):
 class PartialEvaluationItem:
 
     def __init__(self, 
-        tps: "list[bool]" = None,
-        scores: "list[float]" = None,
+        tps: Optional["list[bool]"] = None,
+        scores: Optional["list[float]"] = None,
         npos: int = 0
     ) -> None:
         self._tps = tps or []
         self._scores = scores or []
         self._npos = npos
-        self._cache = {}
+        self._cache: dict[str, Any] = {}
 
         assert self._npos >= 0
         assert len(self._tps) == len(self._scores)
@@ -90,7 +91,7 @@ class EvaluationItem:
 
     __slots__ = ("tp", "ndet", "npos", "ap", "ar")
     
-    def __init__(self, tp: int, ndet: int, npos: int, ap: Union[float, None], ar: Union[float, None]) -> None:
+    def __init__(self, tp: int, ndet: int, npos: int, ap: Optional[float], ar: Optional[float]) -> None:
         self.tp = tp
         self.ndet = ndet
         self.npos = npos
@@ -101,7 +102,7 @@ class EvaluationItem:
 class PartialEvaluation(DefaultDict[str, PartialEvaluationItem]):
     """Do not mutate this excepted with defined methods."""
 
-    def __init__(self, items: Mapping[str, PartialEvaluationItem] = None):
+    def __init__(self, items: Optional[Mapping[str, PartialEvaluationItem]] = None):
         super().__init__(lambda: PartialEvaluationItem())
         if items is not None:
             self.update(items)
@@ -126,7 +127,7 @@ class PartialEvaluation(DefaultDict[str, PartialEvaluationItem]):
         self._cache["ap"] = ap
         return ap
 
-    def ar(self) -> float:
+    def ar(self) -> Optional[float]:
         ar = self._cache.get("ar")
         if ar is not None:
             return ar
@@ -141,11 +142,11 @@ class PartialEvaluation(DefaultDict[str, PartialEvaluationItem]):
         return Evaluation(self)
 
 
-class Evaluation(DefaultDict[str, EvaluationItem]):
+class Evaluation(Dict[str, EvaluationItem]):
     """Evaluation of COCO metrics for multiple labels."""
 
     def __init__(self, evaluation: PartialEvaluation) -> None:
-        super().__init__(lambda: PartialEvaluation())
+        super().__init__()
         self.update({label: ev.evaluate() for label, ev in evaluation.items()})
         
         self._ap = evaluation.ap()
@@ -165,13 +166,18 @@ class MultiThresholdEvaluation(Dict[str, Dict[str, float]]):
 
     def __init__(self, evaluations: "list[Evaluation]") -> None:
         result: "defaultdict[str, list[EvaluationItem]]" = defaultdict(list)
+        
         for evaluation in evaluations:
             for label, ev_item in evaluation.items():
                 result[label].append(ev_item)
 
         super().__init__({
-            label: {"ap": mean(ev.ap for ev in evs if not isnan(ev.ap)), "ar": mean(ev.ar for ev in evs if not isnan(ev.ar))} 
-                for label, evs in result.items()})
+            label: {
+                "ap": mean(ev.ap for ev in evs if not isnan(ev.ap)), 
+                "ar": mean(ev.ar for ev in evs if not isnan(ev.ar))
+            } 
+            for label, evs in result.items()
+        })
 
     def ap(self) -> float:
         return mean(ev["ap"] for ev in self.values() if not isnan(ev["ap"]))
@@ -204,7 +210,7 @@ class COCOEvaluator:
     def __init__(self, *,
         ground_truths: AnnotationSet,
         predictions: AnnotationSet,
-        labels: Iterable[str] = None,
+        labels: Optional[Iterable[str]] = None,
     ) -> None:
         self._predictions = predictions
         self._ground_truths = ground_truths
@@ -329,7 +335,7 @@ class COCOEvaluator:
         iou_threshold: float,
         max_detections: int,
         size_range: "tuple[float, float]",
-        labels: Sequence[str] = None,
+        labels: Optional[Sequence[str]] = None,
     ) -> PartialEvaluation:
         image_ids = ground_truths.image_ids | predictions.image_ids
         evaluation = PartialEvaluation()
@@ -351,7 +357,7 @@ class COCOEvaluator:
         iou_threshold: float,
         max_detections: int,
         size_range: "tuple[float, float]",
-        labels: Sequence[str] = None
+        labels: Optional[Iterable[str]] = None
     ) -> PartialEvaluation:
         assert prediction.image_id == ground_truth.image_id
 
@@ -385,7 +391,7 @@ class COCOEvaluator:
 
         cls._assert_params(iou_threshold, max_detections, size_range)
 
-        dets = sorted(predictions, key=lambda box: box._confidence, reverse=True)
+        dets = sorted(predictions, key=lambda box: box._confidence, reverse=True)  # type: ignore
         dets = dets[:max_detections]
 
         gts = sorted(ground_truths, key=lambda box: not box.area_in(size_range))
@@ -589,17 +595,17 @@ class COCOEvaluator:
             return float("nan")
 
         # sort in descending score order
-        scores = np.array(scores, dtype=float)
-        matched = np.array(matched, dtype=bool)
-        inds = np.argsort(-scores, kind="stable")
+        scores_ = np.array(scores, dtype=float)
+        matched_ = np.array(matched, dtype=bool)
+        inds = np.argsort(-scores_, kind="stable")
 
-        scores = scores[inds]
-        matched = matched[inds]
+        scores_ = scores_[inds]
+        matched_ = matched_[inds]
 
-        tp = np.cumsum(matched)
+        tp = np.cumsum(matched_)
 
         rc = tp / NP
-        pr = tp / np.arange(1, matched.size + 1)
+        pr = tp / np.arange(1, matched_.size + 1)
         # make precision monotonically decreasing
         i_pr = np.maximum.accumulate(pr[::-1])[::-1]
         rec_idx = np.searchsorted(rc, cls.RECALL_STEPS, side="left")

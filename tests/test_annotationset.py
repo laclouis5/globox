@@ -53,9 +53,19 @@ def test_openimage_conversion(tmp_path: Path):
     annotation = Annotation(image_id="", boxes=[box])
     annotationset = AnnotationSet(annotations=[annotation])
 
-    with pytest.raises(AssertionError):
+    # "," in label
+    with pytest.raises(ValueError):
         _ = annotationset.save_openimage(tmp_path / "cvat.csv")
         
+    box.label = "dining_table"
+    
+    # No image_size specified
+    with pytest.raises(ValueError):
+        _ = annotationset.save_openimage(tmp_path / "cvat.csv")
+        
+    annotation.image_size = (640, 480)
+    _ = annotationset.save_openimage(tmp_path / "cvat.csv")
+     
         
 def test_save_txt_conf_first(tmp_path: Path):
     annotation = Annotation(
