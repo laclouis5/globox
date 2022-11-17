@@ -86,7 +86,7 @@ class Annotation:
         image_id: str,
         image_size: "tuple[int, int]",
         conf_last: bool = False,
-    ):
+    ) -> "Annotation":
         return Annotation.from_txt(file_path, 
             image_id=image_id,
             box_format=BoxFormat.XYWH, 
