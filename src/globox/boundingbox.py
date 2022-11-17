@@ -332,6 +332,8 @@ class BoundingBox:
         separator: str = " ",
         conf_last: bool = False
     ) -> str:
+        assert "\n" not in separator, "The newline character '\\n' cannot be used as the separator character."
+        
         if box_format is BoxFormat.LTRB:
             coords = self.ltrb
         elif box_format is BoxFormat.XYWH:
@@ -340,12 +342,10 @@ class BoundingBox:
             coords = self.ltwh
         else:
             raise ValueError(f"Unknown BoxFormat '{box_format}'")
-        
+
         if relative:
             assert image_size is not None, "For relative coordinates, `image_size` should be provided."
             coords = BoundingBox.abs_to_rel(coords, image_size)
-
-        assert "\n" not in separator, "The newline character '\\n' cannot be used as the separator character."
 
         label = self.label
         if label_to_id is not None:
