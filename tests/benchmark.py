@@ -7,6 +7,8 @@ from rich import print as rich_print
 from argparse import ArgumentParser
 from tempfile import TemporaryDirectory
 
+import constants as cst
+
 
 def benchmark(repetitions: int = 5):
     base = (Path(__file__).parent / "globox_test_data/coco_val_5k/").resolve()
@@ -16,6 +18,14 @@ def benchmark(repetitions: int = 5):
     gts = AnnotationSet.from_coco(coco)
     labels = sorted(gts._labels())
     label_to_id = {l: i for i, l in enumerate(labels)}
+
+    coco_gt = AnnotationSet.from_coco(cst.coco_gts_path)
+    coco_det = coco_gt.from_results(cst.coco_results_path)
+
+    evaluator = COCOEvaluator(
+        ground_truths=coco_gt, 
+        predictions=coco_det,
+    )
 
     with TemporaryDirectory() as tmp:
         tmp = Path(tmp)
@@ -46,6 +56,8 @@ def benchmark(repetitions: int = 5):
         yolo_p = timeit(lambda: AnnotationSet.from_yolo(yolo, image_folder=images), number=repetitions) / repetitions
         txt_p = timeit(lambda: AnnotationSet.from_txt(txt, image_folder=images), number=repetitions) / repetitions
 
+    eval_t = timeit(lambda: evaluator._evaluate_all(), number=repetitions) / repetitions
+
     stats_t = timeit(lambda: gts.show_stats(), number=repetitions) / repetitions
 
     stop = perf_counter()
@@ -64,8 +76,9 @@ def benchmark(repetitions: int = 5):
 
     rich_print(table)
 
-    print(f"Statistics time: {stats_t:.2f} s")
-    print(f"Total benchmark time: {(stop - start):.2f} s")
+    print(f"Show stats time: {stats_t:.2f} s")
+    print(f"Evaluation time: {eval_t:.2f} s")
+    print(f"Total benchmark duration: {(stop - start):.2f} s")
 
 
 if __name__ == "__main__":

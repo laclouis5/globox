@@ -544,7 +544,7 @@ class COCOEvaluator:
             "AR 1", "AR 10", "AR 100", 
             "AR S", "AR M", "AR L"
         )
-        s
+        
         rows = []
 
         for label in labels:
