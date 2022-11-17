@@ -38,7 +38,7 @@ class AnnotationSet:
 
         if annotations is not None:
             for annotation in annotations:
-                self.add(annotation, override)
+                self.add(annotation, override=override)
 
         self._id_to_label: "dict[int, str]" = None
         self._id_to_imageid: "dict[int, str]" = None
