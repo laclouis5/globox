@@ -66,7 +66,7 @@ def add_save_args(parser: argparse.ArgumentParser):
     group.add_argument("--bb_fmt_out", "-B", type=str, choices=("ltrb", "ltwh", "xywh"), default="ltrb")
     group.add_argument("--norm_out", "-N", type=str, choices=("abs", "rel"), default="abs")
     group.add_argument("--sep_out", "-P", type=str, default=" ")
-    group.add_argument("--ext_out", "-E", type=str, default=" ")
+    group.add_argument("--ext_out", "-E", type=str, default=".txt")
     group.add_argument("--coco_auto_ids", "-A", action="store_true")
 
     mapping_group = group.add_mutually_exclusive_group()
