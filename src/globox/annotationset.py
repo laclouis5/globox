@@ -15,7 +15,6 @@ import json
 from tqdm import tqdm
 
 T = TypeVar("T")
-D = TypeVar("D")
 
 
 class AnnotationSet:
@@ -26,7 +25,10 @@ class AnnotationSet:
         set or dictionary and has similar methods (contains, update, iterator, + 
         operator)."""
 
-    def __init__(self, annotations: Iterable[Annotation] = None, override = False):
+    def __init__(self, 
+        annotations: Iterable[Annotation] = None, *, 
+        override = False,
+    ):
         # TODO: Add optional addition of labels found during
         # parsing, for instance COCO names and YOLO `.names`.
         # Could also add a (lazy) computed accessor that 
@@ -44,7 +46,7 @@ class AnnotationSet:
     def __getitem__(self, image_id: str) -> Annotation:
         return self._annotations[image_id]
 
-    def get(self, image_id: str, default: D = None) -> Union[Annotation, D]:
+    def get(self, image_id: str, *, default: Annotation = None) -> Annotation:
         return self._annotations.get(image_id, default)
 
     def __len__(self) -> int:
@@ -59,7 +61,7 @@ class AnnotationSet:
     def __contains__(self, annotation: Annotation) -> bool:
         return annotation.image_id in self._annotations.keys()
 
-    def add(self, annotation: Annotation, override = False):
+    def add(self, annotation: Annotation, *, override = False):
         """Add an annotation to the set. The annotation 'image_id'
         should not already be present in the set.
         
@@ -73,7 +75,7 @@ class AnnotationSet:
                 f"The annotation with id '{annotation.image_id}' is already present in the set (set `override` to True to remove this assertion)."
         self._annotations[annotation.image_id] = annotation
 
-    def update(self, other: "AnnotationSet", override = False) -> "AnnotationSet":
+    def update(self, other: "AnnotationSet", *, override = False) -> "AnnotationSet":
         """Add annotations from another set to this set.
         
         Parameters:
@@ -121,24 +123,26 @@ class AnnotationSet:
     def from_iter(
         parser: Callable[[T], Annotation],
         iterable: Iterable[T], *,
-        verbose: bool = False
+        verbose: bool = False,
     ) -> "AnnotationSet":
         annotations = thread_map(parser, iterable, desc="Parsing", verbose=verbose)
         return AnnotationSet(annotations)
 
     @staticmethod
-    def from_folder(folder: Path, *,
+    def from_folder(
+        folder: Path, *,
         extension: str,
         parser: Callable[[Path], Annotation],
         recursive=False,
-        verbose: bool = False
+        verbose: bool = False,
     ) -> "AnnotationSet":
         assert folder.is_dir()
         files = list(glob(folder, extension, recursive=recursive))
         return AnnotationSet.from_iter(parser, files, verbose=verbose)
 
     @staticmethod
-    def from_txt(folder: Path, *,
+    def from_txt(
+        folder: Path, *,
         image_folder: Path = None,
         box_format = BoxFormat.LTRB,
         relative = False,
@@ -188,7 +192,8 @@ class AnnotationSet:
         )
 
     @staticmethod
-    def from_yolo(folder: Path, *,
+    def from_yolo(
+        folder: Path, *,
         image_folder: Path = None, 
         image_extension = ".jpg",
         conf_last: bool = False,
@@ -211,9 +216,10 @@ class AnnotationSet:
             verbose=verbose)      
 
     @staticmethod
-    def from_openimage(file_path: Path, *, 
+    def from_openimage(
+        file_path: Path, *, 
         image_folder: Path,
-        verbose: bool = False
+        verbose: bool = False,
     ) -> "AnnotationSet":
         assert file_path.is_file() and file_path.suffix == ".csv", f"OpenImage annotation file {file_path} must be a csv file."
         assert image_folder.is_dir(), f"Image folder {image_folder} must be a valid directory."
@@ -241,35 +247,41 @@ class AnnotationSet:
                     annotations.add(Annotation(image_id=image_id, image_size=image_size))
                 
                 annotation = annotations[image_id]
-                annotation.add(
-                    BoundingBox.create(
-                        label=label, 
-                        coords=coords, 
-                        confidence=confidence, 
-                        relative=True, 
-                        image_size=annotation.image_size))
+                annotation.add(BoundingBox.create(
+                    label=label, 
+                    coords=coords, 
+                    confidence=confidence, 
+                    relative=True, 
+                    image_size=annotation.image_size
+                ))
 
         return annotations
 
     @staticmethod
-    def from_labelme(folder: Path, verbose: bool = False) -> "AnnotationSet":
+    def from_labelme(folder: Path, *, verbose: bool = False) -> "AnnotationSet":
         return AnnotationSet.from_folder(folder, 
             extension=".json", 
             parser=Annotation.from_labelme,
-            verbose=verbose)
+            verbose=verbose
+        )
 
     @staticmethod
-    def from_coco(file_path: Path, verbose: bool = False) -> "AnnotationSet":
+    def from_coco(file_path: Path, *, verbose: bool = False) -> "AnnotationSet":
         assert file_path.is_file() and file_path.suffix == ".json", f"COCO annotation file {file_path} must be a json file."
 
         # TODO: Add error handling
         with file_path.open() as f:
             content = json.load(f)
 
-        id_to_label = {int(d["id"]): str(d["name"]) 
-            for d in content["categories"]}
-        id_to_annotation = {int(d["id"]): Annotation._from_coco_partial(d)
-                for d in content["images"]}
+        id_to_label = {
+            int(d["id"]): str(d["name"]) 
+            for d in content["categories"]
+        }
+        
+        id_to_annotation = {
+            int(d["id"]): Annotation._from_coco_partial(d)
+            for d in content["images"]
+        }
         
         for element in tqdm(content["annotations"], desc="Parsing", disable=not verbose):
             annotation = id_to_annotation[int(element["image_id"])]
@@ -280,7 +292,12 @@ class AnnotationSet:
             if confidence is not None:
                 confidence = float(confidence)
 
-            annotation.add(BoundingBox.create(label=label, coords=coords, confidence=confidence, box_format=BoxFormat.LTWH))
+            annotation.add(BoundingBox.create(
+                label=label, 
+                coords=coords, 
+                confidence=confidence, 
+                box_format=BoxFormat.LTWH
+            ))
 
         annotation_set = AnnotationSet(id_to_annotation.values())
         annotation_set._id_to_label = id_to_label
@@ -288,7 +305,7 @@ class AnnotationSet:
 
         return annotation_set
 
-    def from_results(self, file_path: Path, verbose: bool = False) -> "AnnotationSet":
+    def from_results(self, file_path: Path, *, verbose: bool = False) -> "AnnotationSet":
         assert file_path.is_file() and file_path.suffix == ".json", f"COCO annotation file {file_path} must be a json file."
 
         id_to_label = self._id_to_label
@@ -316,15 +333,22 @@ class AnnotationSet:
             coords = (float(c) for c in element["bbox"])
             confidence = float(element["score"])
 
-            annotation.add(BoundingBox.create(label=label, coords=coords, confidence=confidence, box_format=BoxFormat.LTWH))     
+            annotation.add(BoundingBox.create(
+                label=label, 
+                coords=coords, 
+                confidence=confidence, 
+                box_format=BoxFormat.LTWH
+            ))     
 
         annotation_set = AnnotationSet(id_to_annotation.values())
         annotation_set._id_to_label = id_to_label
         annotation_set._id_to_imageid = id_to_imageid
+        
         return annotation_set
 
     @staticmethod
-    def from_coco_results(file_path: Path, *,
+    def from_coco_results(
+        file_path: Path, *,
         id_to_label: "dict[int, str]", 
         id_to_imageid: "dict[int, str]",
         verbose: bool = False
@@ -350,15 +374,21 @@ class AnnotationSet:
             coords = (float(c) for c in element["bbox"])
             confidence = float(element["score"])
 
-            annotation.add(BoundingBox.create(label=label, coords=coords, confidence=confidence, box_format=BoxFormat.LTWH))      
+            annotation.add(BoundingBox.create(
+                label=label, 
+                coords=coords, 
+                confidence=confidence, 
+                box_format=BoxFormat.LTWH
+            ))      
 
         annotation_set = AnnotationSet(id_to_annotation.values())
         annotation_set._id_to_label = id_to_label
         annotation_set._id_to_imageid = id_to_imageid
+        
         return annotation_set
 
     @staticmethod
-    def from_cvat(file_path: Path, verbose: bool = False) -> "AnnotationSet":
+    def from_cvat(file_path: Path, *, verbose: bool = False) -> "AnnotationSet":
         assert file_path.is_file() and file_path.suffix == ".xml", f"CVAT annotation file {file_path} must be a xml file."
         
         # TODO: Add error handling.
@@ -370,7 +400,8 @@ class AnnotationSet:
     def save_from_it(self, save_fn: Callable[[Annotation], None], *, verbose: bool = False):        
         thread_map(save_fn, self, desc="Saving", verbose=verbose)
 
-    def save_txt(self, save_dir: Path, *,
+    def save_txt(self, 
+        save_dir: Path, *,
         label_to_id: Mapping[str, Union[int, str]] = None,
         box_format: BoxFormat = BoxFormat.LTRB, 
         relative: bool = False, 
@@ -395,7 +426,8 @@ class AnnotationSet:
 
         self.save_from_it(_save, verbose=verbose)
 
-    def save_yolo(self, save_dir: Path, *, 
+    def save_yolo(self, 
+        save_dir: Path, *, 
         label_to_id: Mapping[str, Union[int, str]] = None,
         conf_last: bool = False,
         verbose: bool = False,
@@ -430,7 +462,7 @@ class AnnotationSet:
         label_to_id: "dict[str, int]" = None, 
         imageid_to_id: "dict[str, int]" = None,
         auto_ids: bool = False,
-        verbose: bool = False
+        verbose: bool = False,
     ) -> dict:
         native_ids = (label_to_id or self._id_to_label) and (imageid_to_id or self._id_to_imageid)
         assert native_ids or auto_ids, "For COCO, mappings from labels and image ids to integer ids are required. They can be provided either by argument or automatically by the `AnnotationSet` instance if it was created with `AnnotationSet.from_coco()` or `AnnotationSet.from_coco_results()`. You can also set `auto_ids` to True to automatically create image and label ids (warning: this could cause unexpected compatibility issues with other COCO datasets)."
@@ -451,7 +483,8 @@ class AnnotationSet:
                     "image_id": imageid_to_id[annotation.image_id],
                     "bbox": box.ltwh,
                     "category_id": label_to_id[box.label],
-                    "id": ann_id_count}
+                    "id": ann_id_count
+                }
 
                 if box.is_detection:
                     box_annotation["score"] = box.confidence
@@ -464,13 +497,16 @@ class AnnotationSet:
             "id": imageid_to_id[a.image_id], 
             "file_name": a.image_id, 
             "width": a.image_width, 
-            "height": a.image_height} for a in self]
+            "height": a.image_height} 
+            for a in self
+        ]
 
         categories = [{"supercategory": "none", "id": i, "name": l} for l, i in label_to_id.items()]
 
         return {"images": images, "annotations": annotations, "categories": categories}
 
-    def save_coco(self, path: Path, *,
+    def save_coco(self, 
+        path: Path, *,
         label_to_id: "dict[str, int]" = None, 
         imageid_to_id: "dict[str, int]" = None,
         auto_ids: bool = False,
@@ -485,7 +521,8 @@ class AnnotationSet:
             label_to_id=label_to_id, 
             imageid_to_id=imageid_to_id, 
             auto_ids=auto_ids, 
-            verbose=verbose)
+            verbose=verbose
+        )
 
         with open_atomic(path, "w") as f:
             json.dump(content, fp=f, allow_nan=False)
@@ -499,7 +536,8 @@ class AnnotationSet:
         fields = (
             "ImageID", "Source", "LabelName", "Confidence", 
             "XMin", "XMax", "YMin", "YMax", "IsOccluded", 
-            "IsTruncated", "IsGroupOf", "IsDepiction", "IsInside")
+            "IsTruncated", "IsGroupOf", "IsDepiction", "IsInside"
+        )
     
         with open_atomic(path, "w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=fields, restval="")
@@ -516,7 +554,8 @@ class AnnotationSet:
                     row = {
                         "ImageID": annotation.image_id,
                         "LabelName": label,
-                        "XMin": xmin, "XMax": xmax, "YMin": ymin, "YMax": ymax}
+                        "XMin": xmin, "XMax": xmax, "YMin": ymin, "YMax": ymax
+                    }
                     
                     if box.is_detection:
                         row["Confidence"] = box.confidence
@@ -530,22 +569,27 @@ class AnnotationSet:
         sub_nodes = thread_map(_create_node, self, desc="Saving", verbose=verbose)
         node = et.Element("annotations")
         node.extend(sub_nodes)
+        
         return node
 
     def save_cvat(self, path: Path, *, verbose: bool = False):
         if path.suffix == "":
             path = path.with_suffix(".xml")
+        
         assert path.suffix == ".xml"
+        
         content = self.to_cvat(verbose=verbose)
         content = et.tostring(content, encoding="unicode")
+        
         with open_atomic(path, "w") as f:
             f.write(content)
 
-    def to_via_json(self, path: Path, *, 
+    def to_via_json(self, 
+        path: Path, *, 
         image_folder: Path,
         label_key: str = "label_id", 
         confidence_key: str = "confidence",
-        verbose: bool = False
+        verbose: bool = False,
     ) -> dict:
         if path.suffix == "":
             path = path.with_suffix(".json")
@@ -565,7 +609,8 @@ class AnnotationSet:
 
         return output
 
-    def save_via_json(self, path: Path, *, 
+    def save_via_json(self, 
+        path: Path, *, 
         image_folder: Path,
         label_key: str = "label_id", 
         confidence_key: str = "confidence",

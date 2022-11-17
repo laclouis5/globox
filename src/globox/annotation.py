@@ -51,7 +51,7 @@ class Annotation:
 
     @staticmethod
     def from_txt(
-        file_path: Path,
+        file_path: Path, *,
         image_id: str,
         box_format: BoxFormat = BoxFormat.LTRB,
         relative = False,
@@ -82,7 +82,7 @@ class Annotation:
 
     @staticmethod
     def from_yolo(
-        file_path: Path,
+        file_path: Path, *,
         image_id: str,
         image_size: "tuple[int, int]",
         conf_last: bool = False,
@@ -131,8 +131,11 @@ class Annotation:
         image_id = str(content["imagePath"])
         width = int(content["imageWidth"])
         height = int(content["imageHeight"])
-        boxes = [BoundingBox.from_labelme(n) for n in content["shapes"]
-            if n["shape_type"] == "rectangle"]
+        boxes = [
+            BoundingBox.from_labelme(n) 
+            for n in content["shapes"]
+            if n["shape_type"] == "rectangle"
+        ]
         
         return Annotation(image_id, (width, height), boxes)
 
@@ -188,7 +191,8 @@ class Annotation:
             ) for box in self.boxes
         )
 
-    def save_txt(self, path: Path, *,
+    def save_txt(self, 
+        path: Path, *,
         label_to_id: Mapping[str, Union[int, str]] = None,
         box_format: BoxFormat = BoxFormat.LTRB, 
         relative = False, 
@@ -231,7 +235,8 @@ class Annotation:
             "imageWidth": image_size[0],
             "imageHeight": image_size[1],
             "imageData": None,
-            "shapes": [b.to_labelme() for b in self.boxes]}
+            "shapes": [b.to_labelme() for b in self.boxes]
+        }
 
     def save_labelme(self, path: Path, *, image_size: "tuple[int, int]" = None):
         content = self.to_labelme(image_size=image_size)
