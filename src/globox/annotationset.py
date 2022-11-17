@@ -6,7 +6,7 @@ from .image_utils import get_image_size
 from .atomic import open_atomic
 from .thread_utils import thread_map
 
-from typing import Dict, Callable, Iterator, Mapping, TypeVar, Iterable, Union, Optional, Literal, Any
+from typing import Dict, Callable, Iterator, Mapping, TypeVar, Iterable, Union, Optional
 import csv
 from pathlib import Path
 import xml.etree.ElementTree as et
