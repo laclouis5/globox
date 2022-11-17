@@ -159,8 +159,10 @@ class AnnotationSet:
             assert image_folder.is_dir()
 
         def _get_annotation(file: Path) -> Annotation:
+            image_id = file.with_suffix(image_extension).name
+            
             if image_folder is not None:
-                image_path = image_folder / file.with_suffix(image_extension).name
+                image_path = image_folder / image_id
                 try:
                     image_size = get_image_size(image_path)
                 except UnknownImageFormat:
@@ -171,7 +173,7 @@ class AnnotationSet:
             
             return Annotation.from_txt(
                 file_path=file,
-                image_id=file.with_suffix(image_extension).name,
+                image_id=image_id,
                 box_format=box_format,
                 relative=relative,
                 image_size=image_size,
