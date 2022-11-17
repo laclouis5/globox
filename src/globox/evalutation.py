@@ -221,7 +221,7 @@ class COCOEvaluator:
             self.labels = list(labels)
 
     @lru_cache(maxsize=60 * 4)  # Enough room for 4 times all standard metrics
-    def evaluate(self,
+    def evaluate(self, *,
         iou_threshold: float,
         max_detections: int,
         size_range: "tuple[float, float]"
@@ -290,17 +290,29 @@ class COCOEvaluator:
 
     def ap_evaluation(self) -> MultiThresholdEvaluation:
         evaluations = [
-            self.evaluate(t, 100, self.ALL_RANGE) 
+            self.evaluate(
+                iou_threshold=t, 
+                max_detections=100, 
+                size_range=self.ALL_RANGE
+            ) 
             for t in self.AP_THRESHOLDS
         ]
         
         return MultiThresholdEvaluation(evaluations)
 
     def ap_50_evaluation(self) -> Evaluation:
-        return self.evaluate(0.5, 100, self.ALL_RANGE)
+        return self.evaluate(
+            iou_threshold=0.5, 
+            max_detections=100, 
+            size_range=self.ALL_RANGE
+        )
 
     def ap_75_evaluation(self) -> Evaluation:
-        return self.evaluate(0.75, 100, self.ALL_RANGE)
+        return self.evaluate(
+            iou_threshold=0.75, 
+            max_detections=100, 
+            size_range=self.ALL_RANGE
+        )
 
     def small_evaluation(self) -> MultiThresholdEvaluation:
         return self._range_evalation(self.SMALL_RANGE)
@@ -321,11 +333,19 @@ class COCOEvaluator:
         return self._ndets_evaluation(100)
 
     def _range_evalation(self, range_: "tuple[float, float]") -> MultiThresholdEvaluation:
-        evaluations = [self.evaluate(t, 100, range_) for t in self.AP_THRESHOLDS]
+        evaluations = [
+            self.evaluate(iou_threshold=t, max_detections=100, size_range=range_) 
+            for t in self.AP_THRESHOLDS
+        ]
+        
         return MultiThresholdEvaluation(evaluations)
 
     def _ndets_evaluation(self, max_dets: int) -> MultiThresholdEvaluation:
-        evaluations = [self.evaluate(t, max_dets, self.ALL_RANGE) for t in self.AP_THRESHOLDS]
+        evaluations = [
+            self.evaluate(iou_threshold=t, max_detections=max_dets, size_range=self.ALL_RANGE) 
+            for t in self.AP_THRESHOLDS
+        ]
+        
         return MultiThresholdEvaluation(evaluations)
 
     @classmethod
@@ -465,7 +485,7 @@ class COCOEvaluator:
         )
 
         for t, d, r in tqdm(params, desc="Evaluation", total=60, disable=not verbose):
-            self.evaluate(t, d, r)
+            self.evaluate(iou_threshold=t, max_detections=d, size_range=r)
 
     def show_summary(self, *, verbose: bool = False):
         """Compute and show the standard COCO metrics."""
