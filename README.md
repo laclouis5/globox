@@ -39,7 +39,8 @@ xml_gts = AnnotationSet.from_xml(folder="path/to/files/")
 # YOLO
 yolo_preds = AnnotationSet.from_yolo(
     folder="path/to/files/",
-    image_folder="path/to/images/")
+    image_folder="path/to/images/"
+)
 ```
 
 `Annotation` offers file-level granularity for compatible datasets:
@@ -57,7 +58,7 @@ gts = coco_gts + xml_gts
 gts.add(annotation)
 ```
 
-### Inspect Databases
+### Inspect Datasets
 
 Iterators and efficient `image_id` lookup are easy to use:
 
@@ -124,7 +125,8 @@ coco_gts.save_cvat(path="train.xml")
 # To YOLO
 coco_gts.save_yolo(
     save_dir="yolo_train/", 
-    label_to_id={"cat": 0, "dog": 1, "racoon": 2})
+    label_to_id={"cat": 0, "dog": 1, "racoon": 2}
+)
 ```
 
 ### COCO Evaluation
@@ -132,7 +134,11 @@ coco_gts.save_yolo(
 Evaluating is as easy as:
 
 ```python
-evaluator = COCOEvaluator(coco_gts, yolo_preds)
+evaluator = COCOEvaluator(
+    ground_truths=coco_gts, 
+    predictions=yolo_preds
+)
+
 ap = evaluator.ap()
 ```
 
@@ -182,7 +188,8 @@ Custom evaluations can be achieved with:
 evaluation = evaluator.evaluate(
     iou_threshold=0.33,
     max_detections=1_000,
-    size_range=(0.0, 10_000))
+    size_range=(0.0, 10_000)
+)
 
 ap = evaluation.ap()
 cat_ar = evaluation["cat"].ar
