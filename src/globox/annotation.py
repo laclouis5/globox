@@ -3,7 +3,7 @@ from .errors import ParsingError, FileParsingError
 from .atomic import open_atomic
 
 from pathlib import Path
-from typing import Mapping, Optional, Union
+from typing import Mapping, Optional, Union, overload
 import xml.etree.ElementTree as et
 import json
 
@@ -52,13 +52,18 @@ class Annotation:
     @staticmethod
     def from_txt(
         file_path: Path, *,
-        image_id: str,
+        image_id: Optional[str] = None,
+        image_extension: str = ".jpg",
         box_format: BoxFormat = BoxFormat.LTRB,
-        relative = False,
+        relative: bool = False,
         image_size: Optional["tuple[int, int]"] = None,
         separator: str = " ",
         conf_last: bool = False,
     ) -> "Annotation":
+        if image_id is None:
+            assert image_extension.startswith(".")
+            image_id = file_path.with_suffix(image_extension).name
+            
         try:
             lines = file_path.read_text().splitlines()
         except OSError:
@@ -83,12 +88,14 @@ class Annotation:
     @staticmethod
     def from_yolo(
         file_path: Path, *,
-        image_id: str,
         image_size: "tuple[int, int]",
+        image_id: Optional[str] = None,
+        image_extension: str = ".jpg",
         conf_last: bool = False,
     ) -> "Annotation":
         return Annotation.from_txt(file_path, 
             image_id=image_id,
+            image_extension=image_extension,
             box_format=BoxFormat.XYWH, 
             relative=True, 
             image_size=image_size, 
