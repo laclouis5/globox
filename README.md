@@ -30,22 +30,25 @@ The library has three main components:
 The `AnnotationSet` class contains static methods to read different databases:
 
 ```python
+from globox import Annotation, AnnotationSet
+from pathlib import Path
+
 # COCO
-coco_gts = AnnotationSet.from_coco(file_path="path/to/file.json")
+coco_gts = AnnotationSet.from_coco(file_path=Path("path/to/file.json"))
 
 # Pascal VOC
-xml_gts = AnnotationSet.from_xml(folder="path/to/files/")
+xml_gts = AnnotationSet.from_xml(folder=Path("path/to/files/"))
 
 # YOLO
 yolo_preds = AnnotationSet.from_yolo(
-    folder="path/to/files/",
-    image_folder="path/to/images/")
+    folder=Path("path/to/files/"),
+    image_folder=Path("path/to/images/"))
 ```
 
 `Annotation` offers file-level granularity for compatible datasets:
 
 ```python
-annotation = Annotation.from_labelme(file_path="path/to/file.xml")
+annotation = Annotation.from_labelme(file_path=Path("path/to/file.xml"))
 ```
 
 For more specific implementations the `BoundingBox` class contains lots of utilities to parse bounding boxes in different formats, like the `create()` method.
@@ -116,14 +119,14 @@ Datasets can be converted to and savde in other formats easily:
 
 ```python
 # To Pascal VOC
-coco_gts.save_xml(save_dir="pascalVOC_db/")
+coco_gts.save_xml(save_dir=Path("pascalVOC_db/"))
 
 # TO CVAT
-coco_gts.save_cvat(path="train.xml")
+coco_gts.save_cvat(path=Path("train.xml"))
 
 # To YOLO
 coco_gts.save_yolo(
-    save_dir="yolo_train/", 
+    save_dir=Path("yolo_train/"), 
     label_to_id={"cat": 0, "dog": 1, "racoon": 2})
 ```
 
@@ -132,6 +135,8 @@ coco_gts.save_yolo(
 Evaluating is as easy as:
 
 ```python
+from globox import COCOEvaluator
+
 evaluator = COCOEvaluator(coco_gts, yolo_preds)
 ap = evaluator.ap()
 ```
@@ -173,7 +178,7 @@ which outputs:
 The array of results can be saved in CSV format:
 
 ```python
-evaluator.save_csv("where/to/save/results.csv")
+evaluator.save_csv(Path("where/to/save/results.csv"))
 ```
 
 Custom evaluations can be achieved with:
