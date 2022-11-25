@@ -14,7 +14,7 @@ def test_init():
     assert len(b.boxes) == 1
 
     b2 = BoundingBox(label="b2", xmin=5, ymin=0, xmax=10, ymax=10)
-    c = Annotation(image_id="c", image_size=(20.0, 10.0), boxes=[b1, b2])
+    c = Annotation(image_id="c", image_size=(20, 10), boxes=[b1, b2])
     assert c.image_width == 20 and c.image_height == 10
     assert len(c.boxes) == 2
 
@@ -27,7 +27,7 @@ def test_image_size():
         _ = Annotation(image_id="_a", image_size=(-1, 10))
 
     with pytest.raises(AssertionError):
-        _ = Annotation(image_id="_a", image_size=(10.1, 10))
+        _ = Annotation(image_id="_a", image_size=(10, 10))
 
 
 def test_map_labels():
