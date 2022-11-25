@@ -3,13 +3,13 @@ from .annotation import Annotation
 from .annotationset import AnnotationSet
 from .utils import grouping, all_equal, mean
 from .atomic import open_atomic
+from .file_utils import PathLike
 
-from typing import DefaultDict, Dict, Mapping, Optional, Sequence, Iterable, Union, Any
+from typing import DefaultDict, Dict, Mapping, Optional, Sequence, Iterable, Any
 from collections import defaultdict
 import numpy as np
 from copy import copy
 from math import isnan
-from pathlib import Path
 from enum import Enum, auto
 from itertools import chain, product
 from functools import lru_cache
@@ -599,7 +599,7 @@ class COCOEvaluator:
 
         return "\n".join((",".join(headers), *rows))
 
-    def save_csv(self, path: Path, *, verbose: bool = False):
+    def save_csv(self, path: PathLike, *, verbose: bool = False):
         csv_data = self.to_csv(verbose=verbose)
         with open_atomic(path, "w") as f:
             f.write(csv_data)

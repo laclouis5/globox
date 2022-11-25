@@ -1,7 +1,7 @@
 from .boundingbox import BoundingBox, BoxFormat
 from .annotation import Annotation
-from .errors import UnknownImageFormat, FileParsingError, ParsingError
-from .file_utils import glob
+from .errors import UnknownImageFormat, ParsingError
+from .file_utils import glob, PathLike
 from .image_utils import get_image_size
 from .atomic import open_atomic
 from .thread_utils import thread_map
@@ -130,20 +130,23 @@ class AnnotationSet:
 
     @staticmethod
     def from_folder(
-        folder: Path, *,
+        folder: PathLike, *,
         extension: str,
         parser: Callable[[Path], Annotation],
         recursive=False,
         verbose: bool = False,
     ) -> "AnnotationSet":
+        folder = Path(folder).expanduser().resolve()
+        
         assert folder.is_dir()
+        
         files = list(glob(folder, extension, recursive=recursive))
         return AnnotationSet.from_iter(parser, files, verbose=verbose)
 
     @staticmethod
     def from_txt(
-        folder: Path, *,
-        image_folder: Optional[Path] = None,
+        folder: PathLike, *,
+        image_folder: Optional[PathLike] = None,
         box_format = BoxFormat.LTRB,
         relative = False,
         file_extension: str = ".txt",
@@ -154,19 +157,24 @@ class AnnotationSet:
     ) -> "AnnotationSet":
         """This method won't try to retreive the image sizes by default. Specify `image_folder` if you need them. `image_folder` is required when `relative` is True."""
         # TODO: Add error handling
+        
+        folder = Path(folder).expanduser().resolve()
+        
         assert folder.is_dir()
         assert image_extension.startswith(".")
 
         if relative:
             assert image_folder is not None, "When `relative` is set to True, `image_folder` must be provided to read image sizes."
+            
         if image_folder is not None:
+            image_folder = Path(image_folder).expanduser().resolve()
             assert image_folder.is_dir()
-
+            
         def _get_annotation(file: Path) -> Annotation:
             image_id = file.with_suffix(image_extension).name
             
             if image_folder is not None:
-                image_path = image_folder / image_id
+                image_path = image_folder / image_id  # type: ignore
                 assert image_path.is_file(), f"File {image_path} does not exists, unable to read the image size."
                 try:
                     image_size = get_image_size(image_path)
@@ -193,8 +201,8 @@ class AnnotationSet:
 
     @staticmethod
     def from_yolo(
-        folder: Path, *,
-        image_folder: Optional[Path] = None, 
+        folder: PathLike, *,
+        image_folder: Optional[PathLike] = None, 
         image_extension = ".jpg",
         conf_last: bool = False,
         verbose: bool = False
@@ -209,7 +217,7 @@ class AnnotationSet:
         )
 
     @staticmethod
-    def from_xml(folder: Path, verbose: bool = False) -> "AnnotationSet":
+    def from_xml(folder: PathLike, verbose: bool = False) -> "AnnotationSet":
         return AnnotationSet.from_folder(folder, 
             extension=".xml", 
             parser=Annotation.from_xml,
@@ -218,11 +226,14 @@ class AnnotationSet:
 
     @staticmethod
     def from_openimage(
-        file_path: Path, *, 
-        image_folder: Path,
+        file_path: PathLike, *, 
+        image_folder: PathLike,
         verbose: bool = False,
     ) -> "AnnotationSet":
+        file_path = Path(file_path).expanduser().resolve()
         assert file_path.is_file() and file_path.suffix == ".csv", f"OpenImage annotation file {file_path} must be a csv file."
+        
+        image_folder = Path(image_folder).expanduser().resolve()
         assert image_folder.is_dir(), f"Image folder {image_folder} must be a valid directory."
         
         # TODO: Error handling.
@@ -261,7 +272,7 @@ class AnnotationSet:
         return annotations
 
     @staticmethod
-    def from_labelme(folder: Path, *, verbose: bool = False) -> "AnnotationSet":
+    def from_labelme(folder: PathLike, *, verbose: bool = False) -> "AnnotationSet":
         return AnnotationSet.from_folder(folder, 
             extension=".json", 
             parser=Annotation.from_labelme,
@@ -269,7 +280,8 @@ class AnnotationSet:
         )
 
     @staticmethod
-    def from_coco(file_path: Path, *, verbose: bool = False) -> "AnnotationSet":
+    def from_coco(file_path: PathLike, *, verbose: bool = False) -> "AnnotationSet":
+        file_path = Path(file_path).expanduser().resolve()
         assert file_path.is_file() and file_path.suffix == ".json", f"COCO annotation file {file_path} must be a json file."
 
         # TODO: Error handling.
@@ -311,7 +323,8 @@ class AnnotationSet:
 
         return annotation_set
 
-    def from_results(self, file_path: Path, *, verbose: bool = False) -> "AnnotationSet":
+    def from_results(self, file_path: PathLike, *, verbose: bool = False) -> "AnnotationSet":
+        file_path = Path(file_path).expanduser().resolve()
         # TODO: Error handling.
         assert file_path.is_file() and file_path.suffix == ".json", f"COCO annotation file {file_path} must be a json file."
 
@@ -355,12 +368,14 @@ class AnnotationSet:
 
     @staticmethod
     def from_coco_results(
-        file_path: Path, *,
+        file_path: PathLike, *,
         id_to_label: "dict[int, str]", 
         id_to_imageid: "dict[int, str]",
         verbose: bool = False
     ) -> "AnnotationSet":
         # TODO: Error handling.
+        
+        file_path = Path(file_path).expanduser().resolve()
         assert file_path.is_file() and file_path.suffix == ".json", f"COCO annotation file {file_path} must be a json file."
 
         id_to_annotation = {}
@@ -396,7 +411,8 @@ class AnnotationSet:
         return annotation_set
 
     @staticmethod
-    def from_cvat(file_path: Path, *, verbose: bool = False) -> "AnnotationSet":
+    def from_cvat(file_path: PathLike, *, verbose: bool = False) -> "AnnotationSet":
+        file_path = Path(file_path).expanduser().resolve()
         assert file_path.is_file() and file_path.suffix == ".xml", f"CVAT annotation file {file_path} must be a xml file."
         
         # TODO: Error handling.
@@ -411,7 +427,7 @@ class AnnotationSet:
         thread_map(save_fn, self, desc="Saving", verbose=verbose)
 
     def save_txt(self, 
-        save_dir: Path, *,
+        save_dir: PathLike, *,
         label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
         box_format: BoxFormat = BoxFormat.LTRB, 
         relative: bool = False, 
@@ -420,6 +436,7 @@ class AnnotationSet:
         conf_last: bool = False,
         verbose: bool = False,
     ):
+        save_dir = Path(save_dir).expanduser().resolve()
         save_dir.mkdir(exist_ok=True)
 
         def _save(annotation: Annotation):
@@ -437,11 +454,12 @@ class AnnotationSet:
         self.save_from_it(_save, verbose=verbose)
 
     def save_yolo(self, 
-        save_dir: Path, *, 
+        save_dir: PathLike, *, 
         label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
         conf_last: bool = False,
         verbose: bool = False,
     ):
+        save_dir = Path(save_dir).expanduser().resolve()
         save_dir.mkdir(exist_ok=True)
 
         def _save(annotation: Annotation):
@@ -450,7 +468,8 @@ class AnnotationSet:
 
         self.save_from_it(_save, verbose=verbose)
 
-    def save_labelme(self, save_dir: Path, *, verbose: bool = False):
+    def save_labelme(self, save_dir: PathLike, *, verbose: bool = False):
+        save_dir = Path(save_dir).expanduser().resolve()
         save_dir.mkdir(exist_ok=True)
         
         def _save(annotation: Annotation):
@@ -459,7 +478,8 @@ class AnnotationSet:
 
         self.save_from_it(_save, verbose=verbose)
 
-    def save_xml(self, save_dir: Path, *, verbose: bool = False):
+    def save_xml(self, save_dir: PathLike, *, verbose: bool = False):
+        save_dir = Path(save_dir).expanduser().resolve()
         save_dir.mkdir(exist_ok=True)
         
         def _save(annotation: Annotation):
@@ -518,12 +538,14 @@ class AnnotationSet:
         return {"images": images, "annotations": annotations, "categories": categories}
 
     def save_coco(self, 
-        path: Path, *,
+        path: PathLike, *,
         label_to_id: Optional["dict[str, int]"] = None, 
         imageid_to_id: Optional["dict[str, int]"] = None,
         auto_ids: bool = False,
         verbose: bool = False
     ):
+        path = Path(path).expanduser().resolve()
+        
         if path.suffix == "":
             path = path.with_suffix(".json")
 
@@ -539,7 +561,9 @@ class AnnotationSet:
         with open_atomic(path, "w") as f:
             json.dump(content, fp=f, allow_nan=False)
 
-    def save_openimage(self, path: Path, *, verbose: bool = False):
+    def save_openimage(self, path: PathLike, *, verbose: bool = False):
+        path = Path(path).expanduser().resolve()
+        
         if path.suffix == "":
             path = path.with_suffix(".csv")
 
@@ -591,7 +615,9 @@ class AnnotationSet:
         
         return node
 
-    def save_cvat(self, path: Path, *, verbose: bool = False):
+    def save_cvat(self, path: PathLike, *, verbose: bool = False):
+        path = Path(path).expanduser().resolve()
+
         if path.suffix == "":
             path = path.with_suffix(".xml")
         
@@ -603,19 +629,14 @@ class AnnotationSet:
         with open_atomic(path, "w") as f:
             f.write(content)
 
-    def to_via_json(self, 
-        path: Path, *, 
+    def to_via_json(self, *, 
         image_folder: Path,
         label_key: str = "label_id", 
         confidence_key: str = "confidence",
         verbose: bool = False,
     ) -> dict:
-        if path.suffix == "":
-            path = path.with_suffix(".json")
-
-        assert path.suffix == ".json"
-
         output = {}
+        
         for annotation in tqdm(self, desc="Saving", disable=not verbose):
             ann_dict = annotation.to_via_json(
                 image_folder=image_folder,
@@ -629,13 +650,20 @@ class AnnotationSet:
         return output
 
     def save_via_json(self, 
-        path: Path, *, 
+        path: PathLike, *, 
         image_folder: Path,
         label_key: str = "label_id", 
         confidence_key: str = "confidence",
         verbose: bool = False
     ):
-        output = self.to_via_json(path,
+        path = Path(path).expanduser().resolve()
+        
+        if path.suffix == "":
+            path = path.with_suffix(".json")
+
+        assert path.suffix == ".json"
+        
+        output = self.to_via_json(
             image_folder=image_folder,
             label_key=label_key,
             confidence_key=confidence_key,
@@ -646,7 +674,7 @@ class AnnotationSet:
             json.dump(output, fp=f)
 
     @staticmethod
-    def parse_names_file(path: Path) -> "dict[str, str]":
+    def parse_names_file(path: PathLike) -> "dict[str, str]":
         """Parse .names file.
         
         Parameters:
@@ -655,10 +683,14 @@ class AnnotationSet:
         Returns: 
         - A dictionary mapping label number with label names."""
         # TODO: Add error handling
+        path = Path(path).expanduser().resolve()
+
         return {str(i): v for i, v in enumerate(path.read_text().splitlines())}
 
     @staticmethod
-    def parse_mid_file(path: Path) -> "dict[str, str]":
+    def parse_mid_file(path: PathLike) -> "dict[str, str]":
+        path = Path(path).expanduser().resolve()
+        
         with path.open() as f:
             reader = csv.DictReader(f, fieldnames=("LabelName", "DisplayName"))
             return {l["LabelName"]: l["DisplayName"] for l in reader}

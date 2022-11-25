@@ -1,6 +1,7 @@
 from .boundingbox import BoundingBox, BoxFormat
 from .errors import ParsingError, FileParsingError
 from .atomic import open_atomic
+from .file_utils import PathLike
 
 from pathlib import Path
 from typing import Mapping, Optional, Union, overload
@@ -51,7 +52,7 @@ class Annotation:
 
     @staticmethod
     def from_txt(
-        file_path: Path, *,
+        file_path: PathLike, *,
         image_id: Optional[str] = None,
         image_extension: str = ".jpg",
         box_format: BoxFormat = BoxFormat.LTRB,
@@ -60,14 +61,16 @@ class Annotation:
         separator: str = " ",
         conf_last: bool = False,
     ) -> "Annotation":
+        path = Path(file_path).expanduser().resolve()
+        
         if image_id is None:
             assert image_extension.startswith(".")
-            image_id = file_path.with_suffix(image_extension).name
+            image_id = path.with_suffix(image_extension).name
             
         try:
-            lines = file_path.read_text().splitlines()
+            lines = path.read_text().splitlines()
         except OSError:
-            raise FileParsingError(file_path, reason="cannot read file")
+            raise FileParsingError(path, reason="cannot read file")
 
         try:
             boxes = [
@@ -81,13 +84,13 @@ class Annotation:
                 for l in lines
             ]
         except ParsingError as e:
-            raise FileParsingError(file_path, e.reason)
+            raise FileParsingError(path, e.reason)
 
         return Annotation(image_id, image_size, boxes)
 
     @staticmethod
     def from_yolo(
-        file_path: Path, *,
+        file_path: PathLike, *,
         image_size: "tuple[int, int]",
         image_id: Optional[str] = None,
         image_extension: str = ".jpg",
@@ -104,9 +107,11 @@ class Annotation:
         )
 
     @staticmethod
-    def from_xml(file_path: Path) -> "Annotation":
+    def from_xml(file_path: PathLike) -> "Annotation":
+        path = Path(file_path).expanduser().resolve()
+        
         try:
-            with file_path.open() as f:
+            with path.open() as f:
                 root = et.parse(f).getroot()
         except (OSError, et.ParseError):
             raise ParsingError("Syntax error in imagenet annotation file.")
@@ -133,9 +138,10 @@ class Annotation:
         return Annotation(image_id, image_size, boxes)
         
     @staticmethod
-    def from_labelme(file_path: Path) -> "Annotation":
+    def from_labelme(file_path: PathLike) -> "Annotation":
+        path = Path(file_path).expanduser().resolve()
         try:
-            with file_path.open() as f:
+            with path.open() as f:
                 content = json.load(f)
                 if "imageData" in content: 
                     del content["imageData"]
@@ -223,7 +229,7 @@ class Annotation:
         )
 
     def save_txt(self, 
-        path: Path, *,
+        path: PathLike, *,
         label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
         box_format: BoxFormat = BoxFormat.LTRB, 
         relative: bool = False, 
@@ -243,7 +249,7 @@ class Annotation:
         with open_atomic(path, "w") as f:
             f.write(content)
 
-    def save_yolo(self, path: Path, *,
+    def save_yolo(self, path: PathLike, *,
         label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
         image_size: Optional["tuple[int, int]"] = None,
         conf_last: bool = False,
@@ -269,7 +275,7 @@ class Annotation:
             "shapes": [b.to_labelme() for b in self.boxes]
         }
 
-    def save_labelme(self, path: Path, *, image_size: Optional["tuple[int, int]"] = None):
+    def save_labelme(self, path: PathLike, *, image_size: Optional["tuple[int, int]"] = None):
         content = self.to_labelme(image_size=image_size)
         with open_atomic(path, "w") as f:
             json.dump(content, fp=f, allow_nan=False)
@@ -290,7 +296,7 @@ class Annotation:
 
         return ann_node
 
-    def save_xml(self, path: Path, *, image_size: Optional["tuple[int, int]"] = None):
+    def save_xml(self, path: PathLike, *, image_size: Optional["tuple[int, int]"] = None):
         content = self.to_xml(image_size=image_size)
         content = et.tostring(content, encoding="unicode")
         
@@ -312,14 +318,16 @@ class Annotation:
         return img_node
 
     def to_via_json(self, *, 
-        image_folder: Path,
+        image_folder: PathLike,
         label_key: str = "label_id", 
         confidence_key: str = "confidence"
     ) -> dict:
-        assert image_folder.is_dir()
+        path = Path(image_folder).expanduser().resolve()
+        
+        assert path.is_dir()
 
         image_id = self.image_id
-        image_path = image_folder / image_id
+        image_path = path / image_id
         file_size = image_path.stat().st_size
 
         regions = [

@@ -1,5 +1,5 @@
 from .errors import UnknownImageFormat
-
+from .file_utils import PathLike
 from pathlib import Path
 from struct import unpack, error as struct_error
 from os import path
@@ -18,7 +18,7 @@ Source: https://github.com/scardine/image_size
 """
 
 
-def get_image_size(file_path: Path) -> "tuple[int, int]":
+def get_image_size(file_path: PathLike) -> "tuple[int, int]":
     """Compute the size of an image without loading into
     memory, which could result in faster speed.
 
@@ -27,6 +27,8 @@ def get_image_size(file_path: Path) -> "tuple[int, int]":
     Returns:
         - The image size (width, height)
     """
+    file_path = Path(file_path).expanduser().resolve()
+    
     size = path.getsize(file_path)
 
     # be explicit with open arguments - we need binary mode

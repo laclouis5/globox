@@ -1,3 +1,5 @@
+from .file_utils import PathLike
+
 import os
 import tempfile as tmp
 from contextlib import contextmanager
@@ -7,7 +9,7 @@ from typing import Optional
 @contextmanager
 def _tempfile(
     suffix: str = "~", 
-    dir: Optional[os.PathLike] = None
+    dir: Optional[PathLike] = None
 ):
     tmp_file = tmp.NamedTemporaryFile(delete=False, suffix=suffix, dir=dir)
     tmp_name = tmp_file.name
@@ -24,8 +26,9 @@ def _tempfile(
             else:
                 raise
 
+
 @contextmanager
-def open_atomic(file_path: os.PathLike, *args, **kwargs):
+def open_atomic(file_path: PathLike, *args, **kwargs):
     fsync = kwargs.pop('fsync', False)
 
     with _tempfile(dir=os.path.dirname(os.path.abspath(file_path))) as tmp_path:
