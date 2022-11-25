@@ -51,5 +51,3 @@ def tests_parsing():
     for i, s in enumerate(gts_sets):
         for b in s.all_boxes:
             assert b._confidence is None, f"dataset: {i}, Conf: {type(b._confidence)}"
-            for c, s in zip(box.ltrb, annotation.image_size*2):
-                assert c < s, f"dataset {i}, {c}, {annotation.image_size}, {annotation.image_id}"
