@@ -27,7 +27,7 @@ def test_image_size():
         _ = Annotation(image_id="_a", image_size=(-1, 10))
 
     with pytest.raises(AssertionError):
-        _ = Annotation(image_id="_a", image_size=(10, 10))
+        _ = Annotation(image_id="_a", image_size=(10, 10.0))  # type: ignore
 
 
 def test_map_labels():
