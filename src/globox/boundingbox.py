@@ -446,5 +446,18 @@ class BoundingBox:
             "region_attributes": region_attributes
         }
 
+    def __eq__(self, other):
+        if not isinstance(other, BoundingBox):
+            raise NotImplementedError
+        
+        return (
+            self.label == other.label
+            and self.xmin == other.xmin
+            and self.ymin == other.ymin
+            and self.xmax == other.xmax
+            and self.ymax == other.ymax
+            and self.confidence == other.confidence
+        )
+
     def __repr__(self) -> str:
         return f"BoundingBox(label: {self.label}, xmin: {self._xmin}, ymin: {self._ymin}, xmax: {self._xmax}, ymax: {self._ymax}, confidence: {self._confidence})"

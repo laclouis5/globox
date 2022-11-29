@@ -6,7 +6,7 @@ from .image_utils import get_image_size
 from .atomic import open_atomic
 from .thread_utils import thread_map
 
-from typing import Dict, Callable, Iterator, Mapping, TypeVar, Iterable, Union, Optional
+from typing import Dict, Callable, Iterator, Mapping, TypeVar, Iterable, Union, Optional, Any
 import csv
 from pathlib import Path
 import xml.etree.ElementTree as et
@@ -40,8 +40,8 @@ class AnnotationSet:
             for annotation in annotations:
                 self.add(annotation, override=override)
 
-        self._id_to_label: Optional["dict[int, str]"] = None
-        self._id_to_imageid: Optional["dict[int, str]"] = None
+        self._id_to_label: Optional["dict[Any, str]"] = None
+        self._id_to_imageid: Optional["dict[Any, str]"] = None
 
     def __getitem__(self, image_id: str) -> Annotation:
         return self._annotations[image_id]
@@ -290,19 +290,19 @@ class AnnotationSet:
             content = json.load(f)
 
         id_to_label = {
-            int(d["id"]): str(d["name"]) 
+            d["id"]: str(d["name"]) 
             for d in content["categories"]
         }
         
         id_to_annotation = {
-            int(d["id"]): Annotation._from_coco_partial(d)
+            d["id"]: Annotation._from_coco_partial(d)
             for d in content["images"]
         }
         
         elements = content["annotations"]
         
         for element in tqdm(elements, desc="Parsing", disable=not verbose):
-            annotation = id_to_annotation[int(element["image_id"])]
+            annotation = id_to_annotation[element["image_id"]]
             label = id_to_label[int(element["category_id"])]
             coords = tuple(float(c) for c in element["bbox"])
             confidence = element.get("score")
