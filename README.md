@@ -39,7 +39,8 @@ xml_gts = AnnotationSet.from_xml(folder="path/to/files/")
 # YOLO
 yolo_preds = AnnotationSet.from_yolo(
     folder="path/to/files/",
-    image_folder="path/to/images/"
+    image_folder="path/to/images/",
+    conf_last=True
 )
 ```
 
