@@ -4,7 +4,7 @@ from .atomic import open_atomic
 from .file_utils import PathLike
 
 from pathlib import Path
-from typing import Mapping, Optional, Union, overload
+from typing import Mapping, Optional, Union
 import xml.etree.ElementTree as et
 import json
 
