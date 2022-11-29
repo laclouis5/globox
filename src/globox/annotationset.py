@@ -290,19 +290,19 @@ class AnnotationSet:
             content = json.load(f)
 
         id_to_label = {
-            int(d["id"]): str(d["name"]) 
+            d["id"]: str(d["name"]) 
             for d in content["categories"]
         }
         
         id_to_annotation = {
-            int(d["id"]): Annotation._from_coco_partial(d)
+            d["id"]: Annotation._from_coco_partial(d)
             for d in content["images"]
         }
         
         elements = content["annotations"]
         
         for element in tqdm(elements, desc="Parsing", disable=not verbose):
-            annotation = id_to_annotation[int(element["image_id"])]
+            annotation = id_to_annotation[element["image_id"]]
             label = id_to_label[int(element["category_id"])]
             coords = tuple(float(c) for c in element["bbox"])
             confidence = element.get("score")
