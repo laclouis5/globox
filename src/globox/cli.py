@@ -9,8 +9,8 @@ from typing import Optional
 
 PARSE_CHOICES = {"coco", "yolo", "labelme", "pascalvoc", "openimage", "txt", "cvat"}
 PARSE_CHOICES_EXT = {*PARSE_CHOICES, "coco_result"}
-SAVE_CHOICES = PARSE_CHOICES.copy()
-SAVE_CHOICES.add("via-json")
+SAVE_CHOICES = {*PARSE_CHOICES, "via-json"}
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
