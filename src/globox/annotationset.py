@@ -204,7 +204,7 @@ class AnnotationSet:
         folder: PathLike, *,
         image_folder: Optional[PathLike] = None, 
         image_extension = ".jpg",
-        conf_last: bool = False,
+        conf_last: bool = True,
         verbose: bool = False
     ) -> "AnnotationSet":
         return AnnotationSet.from_txt(folder, 
