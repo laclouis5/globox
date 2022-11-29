@@ -8,7 +8,7 @@ dets_path = data_path / "dets/"
 image_folder = data_path / "images/"
 names_file = gts_path / "yolo_format/obj.names"
 
-coco_str_id_path = gts_path / "coco_format_str_id/test.json"
+coco_str_id_path = gts_path / "coco_format_v3/instances_v3.json"
 coco1_path = gts_path / "coco_format_v1/instances_default.json"
 coco2_path = gts_path / "coco_format_v2/instances_v2.json"
 coco_gts_path = data_path / "coco_eval/ground_truths.json"

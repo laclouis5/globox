@@ -174,14 +174,14 @@ def test_from_txt_conf_last(tmp_path: Path):
 
 def test_from_coco_id_string(tmp_path: Path):
     gts = AnnotationSet.from_coco(coco_str_id_path)
-    assert len(gts) == 190 # images defined in coco_file
-    assert gts["8715817020470_4_ucb.jpg"] is not None
-    gts_box = gts["8715817020470_4_ucb.jpg"].boxes[0]
+    assert len(gts) == 100 # images defined in coco_file
+    assert gts["2007_001585.jpg"] is not None
+    gts_box = gts["2007_001585.jpg"].boxes[0]
     coco_box = BoundingBox(
-        label="market_name", 
-        xmin=float(1784), 
-        ymin=float(2348), 
-        xmax=float(1784 + 360), 
-        ymax=float(2348 + 124)
+        label="bottle", 
+        xmin=58.0,
+        ymin=158.0,
+        xmax=58.0 + 14.0,
+        ymax=158 + 33.0
     )
     assert gts_box == coco_box
