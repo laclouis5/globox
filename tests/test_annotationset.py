@@ -172,11 +172,15 @@ def test_from_txt_conf_last(tmp_path: Path):
     box = annotation.boxes[0]
     assert box.confidence == 0.25
 
-def test_from_coco_id_string(tmp_path: Path):
+
+def test_from_coco_id_string():
     gts = AnnotationSet.from_coco(coco_str_id_path)
+    
     assert len(gts) == 100 # images defined in coco_file
     assert gts["2007_001585.jpg"] is not None
+    
     gts_box = gts["2007_001585.jpg"].boxes[0]
+    
     coco_box = BoundingBox(
         label="bottle", 
         xmin=58.0,
@@ -184,4 +188,5 @@ def test_from_coco_id_string(tmp_path: Path):
         xmax=58.0 + 14.0,
         ymax=158 + 33.0
     )
+    
     assert gts_box == coco_box

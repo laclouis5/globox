@@ -6,7 +6,7 @@ from .image_utils import get_image_size
 from .atomic import open_atomic
 from .thread_utils import thread_map
 
-from typing import Dict, Callable, Iterator, Mapping, TypeVar, Iterable, Union, Optional
+from typing import Dict, Callable, Iterator, Mapping, TypeVar, Iterable, Union, Optional, Any
 import csv
 from pathlib import Path
 import xml.etree.ElementTree as et
@@ -40,8 +40,8 @@ class AnnotationSet:
             for annotation in annotations:
                 self.add(annotation, override=override)
 
-        self._id_to_label: Optional["dict[int, str]"] = None
-        self._id_to_imageid: Optional["dict[int, str]"] = None
+        self._id_to_label: Optional["dict[Any, str]"] = None
+        self._id_to_imageid: Optional["dict[Any, str]"] = None
 
     def __getitem__(self, image_id: str) -> Annotation:
         return self._annotations[image_id]

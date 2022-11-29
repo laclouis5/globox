@@ -149,3 +149,78 @@ def test_from_txt_conf_last():
     line = "label 0.25 10 20 30 40"
     box = BoundingBox.from_txt(line)
     assert box.confidence == 0.25
+    
+    
+def test_eq():
+    box = BoundingBox(
+        label="image_0.jpg",
+        xmin=1.0,
+        ymin=2.0,
+        xmax=4.0,
+        ymax=8.0,
+        confidence=0.5
+    )
+    
+    # Same
+    b1 = BoundingBox(
+        label="image_0.jpg",
+        xmin=1.0,
+        ymin=2.0,
+        xmax=4.0,
+        ymax=8.0,
+        confidence=0.5
+    )
+    
+    assert box == b1
+    
+    # Different label
+    b2 = BoundingBox(
+        label="image_1.jpg",
+        xmin=1.0,
+        ymin=2.0,
+        xmax=4.0,
+        ymax=8.0,
+        confidence=0.5
+    )
+    
+    assert box != b2
+    
+    # Different coords
+    b3 = BoundingBox(
+        label="image_0.jpg",
+        xmin=0.0,
+        ymin=2.0,
+        xmax=4.0,
+        ymax=8.0,
+        confidence=0.5
+    )
+    
+    assert box != b3
+    
+    # Different confidence
+    b4 = BoundingBox(
+        label="image_0.jpg",
+        xmin=1.0,
+        ymin=2.0,
+        xmax=4.0,
+        ymax=8.0,
+        confidence=0.25
+    )
+    
+    assert box != b4
+    
+    # No confidence
+    b5 = BoundingBox(
+        label="image_0.jpg",
+        xmin=1.0,
+        ymin=2.0,
+        xmax=4.0,
+        ymax=8.0,
+        confidence=None
+    )
+    
+    assert box != b5
+    
+    # Different object
+    with pytest.raises(NotImplementedError):
+        _ = box == "Different object"
