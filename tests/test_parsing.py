@@ -10,10 +10,10 @@ def tests_parsing():
     coco_gts_set = AnnotationSet.from_coco(coco_gts_path)
     yolo_set = AnnotationSet.from_yolo(yolo_path, image_folder=image_folder).map_labels(id_to_label)
     cvat_set = AnnotationSet.from_cvat(cvat_path)
-    imagenet_set = AnnotationSet.from_xml(imagenet_path)
+    imagenet_set = AnnotationSet.from_imagenet(imagenet_path)
     labelme_set = AnnotationSet.from_labelme(labelme_path)
     openimage_set = AnnotationSet.from_openimage(openimage_path, image_folder=image_folder)
-    pascal_set = AnnotationSet.from_xml(pascal_path)
+    pascal_set = AnnotationSet.from_pascal_voc(pascal_path)
 
     abs_ltrb_set = AnnotationSet.from_txt(abs_ltrb, image_folder=image_folder).map_labels(id_to_label)
     abs_ltwh_set = AnnotationSet.from_txt(abs_ltwh, image_folder=image_folder, box_format=BoxFormat.LTWH).map_labels(id_to_label)

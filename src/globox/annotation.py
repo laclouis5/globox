@@ -138,6 +138,14 @@ class Annotation:
         return Annotation(image_id, image_size, boxes)
         
     @staticmethod
+    def from_pascal_voc(file_path: PathLike) -> "Annotation":
+        return Annotation.from_xml(file_path)
+    
+    @staticmethod
+    def from_imagenet(file_path: PathLike) -> "Annotation":
+        return Annotation.from_xml(file_path)
+        
+    @staticmethod
     def from_labelme(file_path: PathLike) -> "Annotation":
         path = Path(file_path).expanduser().resolve()
         try:
@@ -296,12 +304,24 @@ class Annotation:
 
         return ann_node
 
+    def to_pascal_voc(self, *, image_size: Optional["tuple[int, int]"] = None) -> et.Element:
+        return self.to_xml(image_size=image_size)
+    
+    def to_imagenet(self, *, image_size: Optional["tuple[int, int]"] = None) -> et.Element:
+        return self.to_xml(image_size=image_size)
+
     def save_xml(self, path: PathLike, *, image_size: Optional["tuple[int, int]"] = None):
         content = self.to_xml(image_size=image_size)
         content = et.tostring(content, encoding="unicode")
         
         with open_atomic(path, "w") as f:
             f.write(content)
+
+    def save_pascal_voc(self, path: PathLike, *, image_size: Optional["tuple[int, int]"] = None):
+        self.save_xml(path, image_size=image_size)
+        
+    def save_imagenet(self, path: PathLike, *, image_size: Optional["tuple[int, int]"] = None):
+        self.save_xml(path, image_size=image_size)
 
     def to_cvat(self, *, image_size: Optional["tuple[int, int]"] = None) -> et.Element:
         image_size = image_size or self.image_size

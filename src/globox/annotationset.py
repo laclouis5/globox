@@ -217,12 +217,23 @@ class AnnotationSet:
         )
 
     @staticmethod
-    def from_xml(folder: PathLike, verbose: bool = False) -> "AnnotationSet":
+    def from_xml(
+        folder: PathLike, *,
+        verbose: bool = False
+    ) -> "AnnotationSet":
         return AnnotationSet.from_folder(folder, 
             extension=".xml", 
             parser=Annotation.from_xml,
             verbose=verbose
         )      
+
+    @staticmethod
+    def from_pascal_voc(folder: PathLike, *, verbose: bool = False) -> "AnnotationSet":
+        return AnnotationSet.from_xml(folder, verbose=verbose)
+    
+    @staticmethod
+    def from_imagenet(folder: PathLike, *, verbose: bool = False) -> "AnnotationSet":
+        return AnnotationSet.from_xml(folder, verbose=verbose)
 
     @staticmethod
     def from_openimage(
@@ -487,6 +498,12 @@ class AnnotationSet:
             annotation.save_xml(path)
 
         self.save_from_it(_save, verbose=verbose)
+
+    def save_pascal_voc(self, save_dir: PathLike, *, verbose: bool = False):
+        self.save_xml(save_dir, verbose=verbose)
+    
+    def save_imagenet(self, save_dir: PathLike, *, verbose: bool = False):
+        self.save_xml(save_dir, verbose=verbose)
 
     def to_coco(self, *,
         label_to_id: Optional["dict[str, int]"] = None, 
