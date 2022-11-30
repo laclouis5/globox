@@ -4,15 +4,19 @@ import pytest
 
 
 def test_init():
+    # xmax < xmin
     with pytest.raises(AssertionError):
         box = BoundingBox(label="", xmin=10, ymin=10, xmax=5, ymax=10)
 
+    # ymax < ymin
     with pytest.raises(AssertionError):
         box = BoundingBox(label="", xmin=10, ymin=10, xmax=15, ymax=9)
 
+    # Negative confidence
     with pytest.raises(AssertionError):
         box = BoundingBox(label="", xmin=0, ymin=0, xmax=0, ymax=0, confidence=-0.1)
 
+    # Confidence > 1.0
     with pytest.raises(AssertionError):
         box = BoundingBox(label="", xmin=0, ymin=0, xmax=0, ymax=0, confidence=1.1)
 

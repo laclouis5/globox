@@ -43,7 +43,6 @@ def tests_parsing():
             for box in annotation.boxes:
                 assert isinstance(box.label, str)
                 assert all(isinstance(c, float) for c in box.ltrb)
-                assert any(c > 1 for c in box.ltrb), f"dataset {i}, {box.ltrb}"
 
     for s in dets_sets:
         for b in s.all_boxes:
