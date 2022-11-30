@@ -1,7 +1,7 @@
 from .errors import ParsingError
 
 from enum import Enum, auto
-from typing import Mapping, Union, Tuple
+from typing import Mapping, Union, Tuple, Optional, Any
 import xml.etree.ElementTree as et
 
 
@@ -52,18 +52,18 @@ class BoundingBox:
 
     __slots__ = ("label", "_xmin", "_ymin", "_xmax", "_ymax", "_confidence")
 
-    def __init__(self,
+    def __init__(self, *,
         label: str, 
         xmin: float, 
         ymin: float, 
         xmax: float,
-        ymax: float, *,
-        confidence: float = None
+        ymax: float,
+        confidence: Optional[float] = None
     ) -> None:
         assert xmin <= xmax, "`xmax` must be greater than `xmin`."
         assert ymin <= ymax, "`ymax` must be greater than `ymin`."
 
-        if confidence: 
+        if confidence is not None: 
             assert 0.0 <= confidence <= 1.0, \
                 f"Confidence ({confidence}) should be in [0, 1]."
 
@@ -75,12 +75,13 @@ class BoundingBox:
         self._confidence = confidence
 
     @property
-    def confidence(self) -> float:
+    def confidence(self) -> Optional[float]:
         return self._confidence
 
     @confidence.setter
-    def confidence(self, confidence: float):
-        assert 0.0 <= confidence <= 1.0, \
+    def confidence(self, confidence: Optional[float]):
+        if confidence is not None:
+            assert 0.0 <= confidence <= 1.0, \
                 f"Confidence ({confidence}) should be in [0, 1]."
         self._confidence = confidence
 
@@ -128,6 +129,7 @@ class BoundingBox:
     def pascal_area(self) -> int:
         width = int(self._xmax) - int(self._xmin) + 1
         height = int(self._ymax) - int(self._ymin) + 1
+        
         return width * height
 
     def iou(self, other: "BoundingBox") -> float:
@@ -178,13 +180,13 @@ class BoundingBox:
     def rel_to_abs(coords: Coordinates, size: "tuple[int, int]") -> Coordinates:
         a, b, c, d = coords
         w, h = size
-        return a*w, b*h, c*w, d*h
+        return a * w, b * h, c * w, d * h
     
     @staticmethod
     def abs_to_rel(coords: Coordinates, size: "tuple[int, int]") -> Coordinates:
         a, b, c, d = coords
         w, h = size
-        return a/w, b/h, c/w, d/h
+        return a / w, b / h, c / w, d / h
 
     @staticmethod
     def ltwh_to_ltrb(coords: Coordinates) -> Coordinates:
@@ -194,7 +196,7 @@ class BoundingBox:
     @staticmethod
     def xywh_to_ltrb(coords: Coordinates) -> Coordinates:
         xmid, ymid, width, height = coords
-        w_h, h_h = width/2, height/2
+        w_h, h_h = width / 2, height / 2
         return xmid-w_h, ymid-h_h, xmid+w_h, ymid+h_h
 
     @property
@@ -213,10 +215,10 @@ class BoundingBox:
     def create(cls, *,
         label: str, 
         coords: Coordinates, 
-        confidence: float = None,
+        confidence: Optional[float] = None,
         box_format = BoxFormat.LTRB,
         relative = False,
-        image_size: "tuple[int, int]" = None, 
+        image_size: Optional["tuple[int, int]"] = None, 
     ) -> "BoundingBox":
         if relative:
             assert image_size is not None, "For relative coordinates `image_size` should be provided."
@@ -231,14 +233,16 @@ class BoundingBox:
         else:
             raise ValueError(f"Unknown BoxFormat '{box_format}'.")
 
-        return cls(label, *coords, confidence=confidence)
+        xmin, ymin, xmax, ymax = coords
+        
+        return cls(label=label, xmin=xmin, ymin=ymin, xmax=xmax, ymax=ymax, confidence=confidence)
 
     @staticmethod
     def from_txt(
-        string: str,
+        string: str, *,
         box_format = BoxFormat.LTRB,
         relative = False,
-        image_size: "tuple[int, int]" = None,
+        image_size: Optional["tuple[int, int]"] = None,
         separator: str = " ",
         conf_last: bool = False
     ) -> "BoundingBox":
@@ -253,14 +257,14 @@ class BoundingBox:
             else:
                 label, confidence, *coords = values
         else:
-            raise ParsingError(f"line '{string}' should have 5 or 6 values separated by whitespaces, not {len(values)}")
+            raise ParsingError(f"Syntax error in txt annotation file.")
 
         try:
-            coords = (float(c) for c in coords)
+            coords = tuple(float(c) for c in coords)
             if confidence is not None:
                 confidence = float(confidence)
-        except ValueError as e:
-            raise ParsingError(f"{e} in line '{string}'")
+        except ValueError:
+            raise ParsingError(f"Syntax error in txt annotation file.")
 
         return BoundingBox.create(
             label=label, 
@@ -268,60 +272,107 @@ class BoundingBox:
             confidence=confidence, 
             box_format=box_format, 
             relative=relative, 
-            image_size=image_size)
+            image_size=image_size
+        )
 
     @staticmethod
     def from_yolo(
-        string: str, 
+        string: str, *, 
         image_size: "tuple[int, int]",
         conf_last: bool = False
     ) -> "BoundingBox":
-        return BoundingBox.from_txt(string, 
+        return BoundingBox.from_txt(
+            string, 
             box_format=BoxFormat.XYWH, 
             relative=True, 
             image_size=image_size, 
             separator=" ",
-            conf_last=conf_last)
+            conf_last=conf_last
+        )
+
+    @staticmethod
+    def from_yolo_darknet(
+        string: str, *, 
+        image_size: "tuple[int, int]",
+    ) -> "BoundingBox":
+        return BoundingBox.from_yolo(string, image_size=image_size, conf_last=False)
+
+    @staticmethod
+    def from_yolo_v5(
+        string: str, *, 
+        image_size: "tuple[int, int]",
+    ) -> "BoundingBox":
+        return BoundingBox.from_yolo(string, image_size=image_size, conf_last=True)
+    
+    @staticmethod
+    def from_yolo_v7(
+        string: str, *, 
+        image_size: "tuple[int, int]",
+    ) -> "BoundingBox":
+        return BoundingBox.from_yolo_v7(string, image_size=image_size)
 
     @staticmethod
     def from_xml(node: et.Element) -> "BoundingBox":
+        
+        label = node.findtext("name")
+        box_node = node.find("bndbox")
+        
+        if label is None or box_node is None:
+            raise ValueError("Syntax error in imagenet annotation format")
+        
+        l, t, r, b = (
+            box_node.findtext("xmin"), 
+            box_node.findtext("ymin"), 
+            box_node.findtext("xmax"), 
+            box_node.findtext("ymax")
+        )
+        
+        if (l is None) or (t is None) or (r is None) or (b is None):
+            raise ValueError("Syntax error in imagenet annotation format")
+        
         try:
-            label = node.findtext("name")
-            box_node = node.find("bndbox")
-            coords = (float(box_node.findtext(c)) 
-                for c in ("xmin", "ymin", "xmax", "ymax"))
-        except et.ParseError as e:
-            line, _ = e.position
-            raise ParsingError(f"syntax error at line {line}")
-        except ValueError as e:
-            raise ParsingError(f"{e}")
+            coords = tuple(float(c) for c in (l, t, r, b))
+        except ValueError:
+            raise ParsingError("Syntax error in imagenet annotation format")
 
-        return BoundingBox(label, *coords)
+        return BoundingBox.create(label=label, coords=tuple(coords))
 
     @staticmethod
-    def from_labelme(node: dict) -> "BoundingBox":
-        # TODO: Add error handling
-        # TODO: Handle if 'shape_type' is not rectangle
-        label = str(node["label"])
-        (xmin, ymin), (xmax, ymax) = node["points"]
-        coords = (float(c) for c in (xmin, ymin, xmax, ymax))
-        return BoundingBox(label, *coords)
+    def from_labelme(node: dict) -> "BoundingBox":            
+        try:
+            label = str(node["label"])
+            (xmin, ymin), (xmax, ymax) = node["points"]
+            coords = tuple(float(c) for c in (xmin, ymin, xmax, ymax))
+        except (ValueError, KeyError):
+            raise ParsingError("Syntax error in labelme annotation file.")    
+        
+        return BoundingBox.create(label=label, coords=coords)
 
     @staticmethod
     def from_cvat(node: et.Element) -> "BoundingBox":
-        # TODO: Add error handling
-        label = node.attrib["label"]
-        coords = (float(node.attrib[c]) for c in ("xtl", "ytl", "xbr", "ybr"))
-        return BoundingBox(label, *coords)
+        label = node.get("label")
+        l, t, r, b = node.get("xtl"), node.get("ytl"), node.get("xbr"), node.get("ybr")
+        
+        if (label is None) or (l is None) or( t is None) or (r is None) or (b is None):
+            raise ParsingError(f"Syntax error in CVAT annotation file.")
+        
+        try:
+            coords = tuple(float(c) for c in (l, t, r, b))
+        except ValueError:
+            raise ParsingError(f"Syntax error in CVAT annotation file.")
+        
+        return BoundingBox.create(label=label, coords=coords)
 
-    def to_txt(self, 
-        label_to_id: Mapping[str, Union[int, str]] = None,
+    def to_txt(self, *,
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
         box_format: BoxFormat = BoxFormat.LTRB, 
         relative = False, 
-        image_size: "tuple[int, int]" = None,
+        image_size: Optional["tuple[int, int]"] = None,
         separator: str = " ",
         conf_last: bool = False
     ) -> str:
+        assert "\n" not in separator, "The newline character '\\n' cannot be used as the separator character."
+        
         if box_format is BoxFormat.LTRB:
             coords = self.ltrb
         elif box_format is BoxFormat.XYWH:
@@ -330,12 +381,10 @@ class BoundingBox:
             coords = self.ltwh
         else:
             raise ValueError(f"Unknown BoxFormat '{box_format}'")
-        
+
         if relative:
             assert image_size is not None, "For relative coordinates, `image_size` should be provided."
             coords = BoundingBox.abs_to_rel(coords, image_size)
-
-        assert "\n" not in separator, "The newline character '\\n' cannot be used as the separator character."
 
         label = self.label
         if label_to_id is not None:
@@ -353,9 +402,9 @@ class BoundingBox:
         
         return separator.join(f"{v}" for v in line)
 
-    def to_yolo(self,
+    def to_yolo(self, *,
         image_size: "tuple[int, int]",
-        label_to_id: Mapping[str, Union[int, str]] = None,
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
         conf_last: bool = False
     ) -> str:
         return self.to_txt(
@@ -364,21 +413,44 @@ class BoundingBox:
             relative=True, 
             image_size=image_size, 
             separator=" ",
-            conf_last=conf_last)
+            conf_last=conf_last
+        )
+
+    def to_yolo_darknet(self, *,
+        image_size: "tuple[int, int]",
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
+    ) -> str:
+        return self.to_yolo(image_size=image_size, label_to_id=label_to_id, conf_last=False)
+    
+    def to_yolo_v5(self, *,
+        image_size: "tuple[int, int]",
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
+    ) -> str:
+        return self.to_yolo(image_size=image_size, label_to_id=label_to_id, conf_last=True)
+    
+    def to_yolo_v7(self, *,
+        image_size: "tuple[int, int]",
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
+    ) -> str:
+        return self.to_yolo_v5(image_size=image_size, label_to_id=label_to_id)
 
     def to_labelme(self) -> dict:
         xmin, ymin, xmax, ymax = self.ltrb
+        
         return {
             "label": self.label, 
             "points": [[xmin, ymin], [xmax, ymax]], 
-            "shape_type": "rectangle"}
+            "shape_type": "rectangle"
+        }
 
     def to_xml(self) -> et.Element:
         obj_node = et.Element("object")
         et.SubElement(obj_node, "name").text = self.label
         box_node = et.SubElement(obj_node, "bndbox")
+        
         for tag, coord in zip(("xmin", "ymin", "xmax", "ymax"), self.ltrb):
             et.SubElement(box_node, tag).text = f"{coord}"
+        
         return obj_node
 
     def to_cvat(self) -> et.Element:
@@ -403,7 +475,7 @@ class BoundingBox:
             "width": self.width, "height": self.height,
         }
 
-        region_attributes = {label_key: self.label}
+        region_attributes: dict[str, Any] = {label_key: self.label}
 
         if self.confidence is not None:
             region_attributes[confidence_key] = self.confidence
@@ -412,6 +484,19 @@ class BoundingBox:
             "shape_attributes": shape_attributes,
             "region_attributes": region_attributes
         }
+
+    def __eq__(self, other):
+        if not isinstance(other, BoundingBox):
+            raise NotImplementedError
+        
+        return (
+            self.label == other.label
+            and self.xmin == other.xmin
+            and self.ymin == other.ymin
+            and self.xmax == other.xmax
+            and self.ymax == other.ymax
+            and self.confidence == other.confidence
+        )
 
     def __repr__(self) -> str:
         return f"BoundingBox(label: {self.label}, xmin: {self._xmin}, ymin: {self._ymin}, xmax: {self._xmax}, ymax: {self._ymax}, confidence: {self._confidence})"

@@ -1,11 +1,13 @@
 from .boundingbox import BoundingBox, BoxFormat
 from .errors import ParsingError, FileParsingError
 from .atomic import open_atomic
+from .file_utils import PathLike
 
 from pathlib import Path
 from typing import Mapping, Optional, Union
 import xml.etree.ElementTree as et
 import json
+from warnings import warn
 
 
 class Annotation: 
@@ -17,7 +19,7 @@ class Annotation:
     def __init__(self, 
         image_id: str, 
         image_size: Optional["tuple[int, int]"] = None, 
-        boxes: "list[BoundingBox]" = None
+        boxes: Optional["list[BoundingBox]"] = None
     ) -> None:
         if image_size is not None:
             img_w, img_h = image_size
@@ -30,11 +32,11 @@ class Annotation:
 
     @property
     def image_width(self) -> Optional[int]:
-        return self.image_size[0]
+        return self.image_size[0] if self.image_size is not None else None
 
     @property
     def image_height(self) -> Optional[int]:
-        return self.image_size[1]
+        return self.image_size[1] if self.image_size is not None else None
 
     def add(self, box: BoundingBox):
         self.boxes.append(box)
@@ -51,18 +53,25 @@ class Annotation:
 
     @staticmethod
     def from_txt(
-        file_path: Path,
-        image_id: str,
+        file_path: PathLike, *,
+        image_id: Optional[str] = None,
+        image_extension: str = ".jpg",
         box_format: BoxFormat = BoxFormat.LTRB,
-        relative = False,
-        image_size: "tuple[int, int]" = None,
+        relative: bool = False,
+        image_size: Optional["tuple[int, int]"] = None,
         separator: str = " ",
         conf_last: bool = False,
     ) -> "Annotation":
+        path = Path(file_path).expanduser().resolve()
+        
+        if image_id is None:
+            assert image_extension.startswith(".")
+            image_id = path.with_suffix(image_extension).name
+            
         try:
-            lines = file_path.read_text().splitlines()
+            lines = path.read_text().splitlines()
         except OSError:
-            raise FileParsingError(file_path, reason="cannot read file")
+            raise FileParsingError(path, reason="cannot read file")
 
         try:
             boxes = [
@@ -76,19 +85,27 @@ class Annotation:
                 for l in lines
             ]
         except ParsingError as e:
-            raise FileParsingError(file_path, e.reason)
+            raise FileParsingError(path, e.reason)
 
         return Annotation(image_id, image_size, boxes)
 
     @staticmethod
     def from_yolo(
-        file_path: Path,
-        image_id: str,
+        file_path: PathLike, *,
         image_size: "tuple[int, int]",
+        image_id: Optional[str] = None,
+        image_extension: str = ".jpg",
         conf_last: bool = False,
-    ):
+    ) -> "Annotation":
+        warn(
+            "'from_yolo' is deprecated. Please use `from_yolo_darknet` or `from_yolo_v5`", 
+            category=DeprecationWarning, 
+            stacklevel=2
+        )
+        
         return Annotation.from_txt(file_path, 
             image_id=image_id,
+            image_extension=image_extension,
             box_format=BoxFormat.XYWH, 
             relative=True, 
             image_size=image_size, 
@@ -97,66 +114,145 @@ class Annotation:
         )
 
     @staticmethod
-    def from_xml(file_path: Path) -> "Annotation":
+    def from_yolo_darknet(
+        file_path: PathLike, *,
+        image_size: "tuple[int, int]",
+        image_id: Optional[str] = None,
+        image_extension: str = ".jpg",
+    ) -> "Annotation":
+        return Annotation.from_yolo(
+            file_path,
+            image_size=image_size,
+            image_id=image_id,
+            image_extension=image_extension,
+            conf_last=False
+        )
+        
+    @staticmethod
+    def from_yolo_v5(
+        file_path: PathLike, *,
+        image_size: "tuple[int, int]",
+        image_id: Optional[str] = None,
+        image_extension: str = ".jpg",
+    ) -> "Annotation":
+        return Annotation.from_yolo(
+            file_path,
+            image_size=image_size,
+            image_id=image_id,
+            image_extension=image_extension,
+            conf_last=True
+        )
+        
+    @staticmethod
+    def from_yolo_v7(
+        file_path: PathLike, *,
+        image_size: "tuple[int, int]",
+        image_id: Optional[str] = None,
+        image_extension: str = ".jpg",
+    ) -> "Annotation":
+        return Annotation.from_yolo_v5(
+            file_path,
+            image_size=image_size,
+            image_id=image_id,
+            image_extension=image_extension
+        )
+
+    @staticmethod
+    def from_xml(file_path: PathLike) -> "Annotation":
+        path = Path(file_path).expanduser().resolve()
+        
         try:
-            with file_path.open() as f:
+            with path.open() as f:
                 root = et.parse(f).getroot()
+        except (OSError, et.ParseError):
+            raise ParsingError("Syntax error in imagenet annotation file.")
             
-            image_id = root.findtext("filename")
-            size_node = root.find("size")
-            width = size_node.findtext("width")
-            height = size_node.findtext("height")
+        image_id = root.findtext("filename")
+        size_node = root.find("size")
+        
+        if (image_id is None) or (size_node is None):
+            raise ParsingError("Syntax error in imagenet annotation file.")
+        
+        width = size_node.findtext("width")
+        height = size_node.findtext("height")
+        
+        if (width is None) or (height is None):
+            raise ParsingError("Syntax error in imagenet annotation file.")
+            
+        try:
             image_size = int(width), int(height) 
-            boxes = [BoundingBox.from_xml(n) for n in root.iter("object")]
-        except OSError:
-            raise FileParsingError(file_path, reason="cannot read file")
-        except et.ParseError as e:
-            line, _ = e.position
-            raise FileParsingError(file_path, reason=f"syntax error at line {line}")
-        except ParsingError as e:
-            raise FileParsingError(file_path, reason=e.reason)
-        except ValueError as e:
-            raise ParsingError(f"{e}")
+        except ValueError:
+            raise ParsingError("Syntax error in imagenet annotation file.")
+        
+        boxes = [BoundingBox.from_xml(n) for n in root.iter("object")]
 
         return Annotation(image_id, image_size, boxes)
         
     @staticmethod
-    def from_labelme(file_path: Path) -> "Annotation":
-        # TODO: Add error handling.
-        with file_path.open() as f:
-            content = json.load(f)
-            if "imageData" in content: 
-                del content["imageData"]
-
-        image_id = str(content["imagePath"])
-        width = int(content["imageWidth"])
-        height = int(content["imageHeight"])
-        boxes = [BoundingBox.from_labelme(n) for n in content["shapes"]
-            if n["shape_type"] == "rectangle"]
+    def from_pascal_voc(file_path: PathLike) -> "Annotation":
+        return Annotation.from_xml(file_path)
+    
+    @staticmethod
+    def from_imagenet(file_path: PathLike) -> "Annotation":
+        return Annotation.from_xml(file_path)
         
-        return Annotation(image_id, (width, height), boxes)
+    @staticmethod
+    def from_labelme(file_path: PathLike) -> "Annotation":
+        path = Path(file_path).expanduser().resolve()
+        try:
+            with path.open() as f:
+                content = json.load(f)
+                if "imageData" in content: 
+                    del content["imageData"]
+        except (OSError, json.JSONDecodeError):
+            raise ParsingError("Syntax error in labelme annotation file.")
+
+        try:
+            image_id = str(content["imagePath"])
+            width = int(content["imageWidth"])
+            height = int(content["imageHeight"])
+            boxes = [
+                BoundingBox.from_labelme(n) 
+                for n in content["shapes"]
+                if n["shape_type"] == "rectangle"
+            ]
+        except (KeyError, ValueError):
+            raise ParsingError("Syntax error in labelme annotation file.")
+        
+        return Annotation(image_id, image_size=(width, height), boxes=boxes)
 
     @staticmethod
     def _from_coco_partial(node: dict) -> "Annotation":
-        # TODO: Add error handling
-        image_id = str(node["file_name"])
-        image_size = int(node["width"]), int(node["height"])
+        try:
+            image_id = str(node["file_name"])
+            image_size = int(node["width"]), int(node["height"])
+        except (ValueError, KeyError):
+            raise ParsingError("Syntax error in COCO annotation file.")
+        
         return Annotation(image_id, image_size)
 
     @staticmethod
     def from_cvat(node: et.Element) -> "Annotation":
-        # TODO: Add error handling
-        attribs = node.attrib
-        image_id = attribs["name"]
-        image_size = int(attribs["width"]), int(attribs["height"])
+        image_id = node.get("name")
+        width, height = node.get("width"), node.get("height")
+        
+        if (image_id is None) or (width is None) or (height is None):
+            raise ParsingError("Syntax error in CVAT annotation file.")
+        
+        try:
+            img_size = int(width), int(height)
+        except ValueError:
+            raise ParsingError("Syntax error in CVAT annotation file.")
+        
         boxes = [BoundingBox.from_cvat(n) for n in node.iter("box")]
-        return Annotation(image_id, image_size, boxes)
+        
+        return Annotation(image_id, image_size=img_size, boxes=boxes)
 
     def to_txt(self, *,
-        label_to_id: Mapping[str, Union[int, str]] = None,
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
         box_format: BoxFormat = BoxFormat.LTRB, 
         relative = False,
-        image_size: "tuple[int, int]" = None, 
+        image_size: Optional["tuple[int, int]"] = None, 
         separator: str = " ",
         conf_last: bool = False,
     ) -> str:
@@ -174,11 +270,20 @@ class Annotation:
         )
 
     def to_yolo(self, *,
-        label_to_id: Mapping[str, Union[int, str]] = None,
-        image_size: "tuple[int, int]" = None,
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
+        image_size: Optional["tuple[int, int]"] = None,
         conf_last: bool = False,
     ) -> str:
+        warn(
+            "'to_yolo' is deprecated. Please use `to_yolo_darknet` or `to_yolo_v5`", 
+            category=DeprecationWarning, 
+            stacklevel=2
+        )
+        
         image_size = image_size or self.image_size
+        
+        if image_size is None:
+            raise ValueError("Either `image_size` shoud be provided as argument or stored in the Annotation object for conversion to YOLO format.")
         
         return "\n".join(
             box.to_yolo(
@@ -188,11 +293,41 @@ class Annotation:
             ) for box in self.boxes
         )
 
-    def save_txt(self, path: Path, *,
-        label_to_id: Mapping[str, Union[int, str]] = None,
+    def to_yolo_darknet(self, *,
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
+        image_size: Optional["tuple[int, int]"] = None,
+    ) -> str:
+        return self.to_yolo(
+            label_to_id=label_to_id,
+            image_size=image_size,
+            conf_last=False
+        )
+        
+    def to_yolo_v5(self, *,
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
+        image_size: Optional["tuple[int, int]"] = None,
+    ) -> str:
+        return self.to_yolo(
+            label_to_id=label_to_id,
+            image_size=image_size,
+            conf_last=True
+        )
+        
+    def to_yolo_v7(self, *,
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
+        image_size: Optional["tuple[int, int]"] = None,
+    ) -> str:
+        return self.to_yolo_v5(
+            label_to_id=label_to_id,
+            image_size=image_size
+        )
+
+    def save_txt(self, 
+        path: PathLike, *,
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
         box_format: BoxFormat = BoxFormat.LTRB, 
-        relative = False, 
-        image_size: "tuple[int, int]" = None,
+        relative: bool = False, 
+        image_size: Optional["tuple[int, int]"] = None,
         separator: str = " ",
         conf_last: bool = False,
     ):
@@ -208,11 +343,17 @@ class Annotation:
         with open_atomic(path, "w") as f:
             f.write(content)
 
-    def save_yolo(self, path: Path, *,
-        label_to_id: Mapping[str, Union[int, str]] = None,
-        image_size: "tuple[int, int]" = None,
+    def save_yolo(self, path: PathLike, *,
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
+        image_size: Optional["tuple[int, int]"] = None,
         conf_last: bool = False,
     ):
+        warn(
+            "'save_yolo' is deprecated. Please use `save_yolo_darknet` or `save_yolo_v5`", 
+            category=DeprecationWarning, 
+            stacklevel=2
+        )
+        
         content = self.to_yolo(
             label_to_id=label_to_id, 
             image_size=image_size,
@@ -222,7 +363,39 @@ class Annotation:
         with open_atomic(path, "w") as f:
             f.write(content)
 
-    def to_labelme(self, *, image_size: "tuple[int, int]" = None) -> dict:
+    def save_yolo_darknet(self, path: PathLike, *,
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
+        image_size: Optional["tuple[int, int]"] = None,
+    ):
+        self.save_yolo(
+            path,
+            label_to_id=label_to_id,
+            image_size=image_size,
+            conf_last=False
+        )
+        
+    def save_yolo_v5(self, path: PathLike, *,
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
+        image_size: Optional["tuple[int, int]"] = None,
+    ):
+        self.save_yolo(
+            path,
+            label_to_id=label_to_id,
+            image_size=image_size,
+            conf_last=True
+        )
+        
+    def save_yolo_v7(self, path: PathLike, *,
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
+        image_size: Optional["tuple[int, int]"] = None,
+    ):
+        self.save_yolo_v5(
+            path,
+            label_to_id=label_to_id,
+            image_size=image_size
+        )
+
+    def to_labelme(self, *, image_size: Optional["tuple[int, int]"] = None) -> dict:
         image_size = image_size or self.image_size
         assert image_size is not None, "An image size should be provided either by argument or by `self.image_size`."
 
@@ -231,14 +404,15 @@ class Annotation:
             "imageWidth": image_size[0],
             "imageHeight": image_size[1],
             "imageData": None,
-            "shapes": [b.to_labelme() for b in self.boxes]}
+            "shapes": [b.to_labelme() for b in self.boxes]
+        }
 
-    def save_labelme(self, path: Path, *, image_size: "tuple[int, int]" = None):
+    def save_labelme(self, path: PathLike, *, image_size: Optional["tuple[int, int]"] = None):
         content = self.to_labelme(image_size=image_size)
         with open_atomic(path, "w") as f:
             json.dump(content, fp=f, allow_nan=False)
 
-    def to_xml(self, *, image_size: "tuple[int, int]" = None) -> et.Element:
+    def to_xml(self, *, image_size: Optional["tuple[int, int]"] = None) -> et.Element:
         image_size = image_size or self.image_size
         assert image_size is not None, "An image size should be provided either by argument or by `self.image_size`."
 
@@ -254,14 +428,26 @@ class Annotation:
 
         return ann_node
 
-    def save_xml(self, path: Path, *, image_size: "tuple[int, int]" = None):
+    def to_pascal_voc(self, *, image_size: Optional["tuple[int, int]"] = None) -> et.Element:
+        return self.to_xml(image_size=image_size)
+    
+    def to_imagenet(self, *, image_size: Optional["tuple[int, int]"] = None) -> et.Element:
+        return self.to_xml(image_size=image_size)
+
+    def save_xml(self, path: PathLike, *, image_size: Optional["tuple[int, int]"] = None):
         content = self.to_xml(image_size=image_size)
         content = et.tostring(content, encoding="unicode")
         
         with open_atomic(path, "w") as f:
             f.write(content)
 
-    def to_cvat(self, *, image_size: "tuple[int, int]" = None) -> et.Element:
+    def save_pascal_voc(self, path: PathLike, *, image_size: Optional["tuple[int, int]"] = None):
+        self.save_xml(path, image_size=image_size)
+        
+    def save_imagenet(self, path: PathLike, *, image_size: Optional["tuple[int, int]"] = None):
+        self.save_xml(path, image_size=image_size)
+
+    def to_cvat(self, *, image_size: Optional["tuple[int, int]"] = None) -> et.Element:
         image_size = image_size or self.image_size
         assert image_size is not None, "An image size should be provided either by argument or by `self.image_size`."
 
@@ -276,14 +462,16 @@ class Annotation:
         return img_node
 
     def to_via_json(self, *, 
-        image_folder: Path,
+        image_folder: PathLike,
         label_key: str = "label_id", 
         confidence_key: str = "confidence"
     ) -> dict:
-        assert image_folder.is_dir()
+        path = Path(image_folder).expanduser().resolve()
+        
+        assert path.is_dir()
 
         image_id = self.image_id
-        image_path = image_folder / image_id
+        image_path = path / image_id
         file_size = image_path.stat().st_size
 
         regions = [

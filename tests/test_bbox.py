@@ -4,15 +4,19 @@ import pytest
 
 
 def test_init():
+    # xmax < xmin
     with pytest.raises(AssertionError):
         box = BoundingBox(label="", xmin=10, ymin=10, xmax=5, ymax=10)
 
+    # ymax < ymin
     with pytest.raises(AssertionError):
         box = BoundingBox(label="", xmin=10, ymin=10, xmax=15, ymax=9)
 
+    # Negative confidence
     with pytest.raises(AssertionError):
         box = BoundingBox(label="", xmin=0, ymin=0, xmax=0, ymax=0, confidence=-0.1)
 
+    # Confidence > 1.0
     with pytest.raises(AssertionError):
         box = BoundingBox(label="", xmin=0, ymin=0, xmax=0, ymax=0, confidence=1.1)
 
@@ -108,7 +112,7 @@ def test_create():
     assert isclose(box.ymid, 100)
     assert isclose(box.width, 50)
     assert isclose(box.height, 200)
-
+    
 
 def test_txt_conversion():
     box = BoundingBox.create(label="dining table", coords=(0, 0, 10, 10))
@@ -149,3 +153,111 @@ def test_from_txt_conf_last():
     line = "label 0.25 10 20 30 40"
     box = BoundingBox.from_txt(line)
     assert box.confidence == 0.25
+    
+
+def test_from_yolo_v5():
+    line = "label 0.25 0.25 0.5 0.5 0.25"
+    bbox = BoundingBox.from_yolo_v5(line, image_size=(100, 100))
+    
+    assert bbox.label == "label"
+    assert bbox.confidence == 0.25
+    
+    (xmin, ymin, xmax, ymax) = bbox.ltrb
+    
+    assert isclose(xmin, 0.0)
+    assert isclose(ymin, 0.0)
+    assert isclose(xmax, 50.0)
+    assert isclose(ymax, 50.0)
+    
+    assert isclose(bbox.confidence, 0.25)
+    
+
+def test_to_yolo_darknet():
+    bbox = BoundingBox(label="label", xmin=0.0, ymin=0.0, xmax=50.0, ymax=50.0, confidence=0.25)
+    string = bbox.to_yolo_darknet(image_size=(100, 100))
+    
+    assert string == "label 0.25 0.25 0.25 0.5 0.5"
+
+
+def test_to_yolo_v5():
+    bbox = BoundingBox(label="label", xmin=0.0, ymin=0.0, xmax=50.0, ymax=50.0, confidence=0.25)
+    string = bbox.to_yolo_v5(image_size=(100, 100))
+    
+    assert string == "label 0.25 0.25 0.5 0.5 0.25"
+
+    
+def test_eq():
+    box = BoundingBox(
+        label="image_0.jpg",
+        xmin=1.0,
+        ymin=2.0,
+        xmax=4.0,
+        ymax=8.0,
+        confidence=0.5
+    )
+    
+    assert box == box
+    
+    # Same
+    b1 = BoundingBox(
+        label="image_0.jpg",
+        xmin=1.0,
+        ymin=2.0,
+        xmax=4.0,
+        ymax=8.0,
+        confidence=0.5
+    )
+    
+    assert box == b1
+    
+    # Different label
+    b2 = BoundingBox(
+        label="image_1.jpg",
+        xmin=1.0,
+        ymin=2.0,
+        xmax=4.0,
+        ymax=8.0,
+        confidence=0.5
+    )
+    
+    assert box != b2
+    
+    # Different coords
+    b3 = BoundingBox(
+        label="image_0.jpg",
+        xmin=0.0,
+        ymin=2.0,
+        xmax=4.0,
+        ymax=8.0,
+        confidence=0.5
+    )
+    
+    assert box != b3
+    
+    # Different confidence
+    b4 = BoundingBox(
+        label="image_0.jpg",
+        xmin=1.0,
+        ymin=2.0,
+        xmax=4.0,
+        ymax=8.0,
+        confidence=0.25
+    )
+    
+    assert box != b4
+    
+    # No confidence
+    b5 = BoundingBox(
+        label="image_0.jpg",
+        xmin=1.0,
+        ymin=2.0,
+        xmax=4.0,
+        ymax=8.0,
+        confidence=None
+    )
+    
+    assert box != b5
+    
+    # Different object
+    with pytest.raises(NotImplementedError):
+        _ = box == "Different object"

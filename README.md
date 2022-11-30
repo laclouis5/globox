@@ -31,15 +31,16 @@ The `AnnotationSet` class contains static methods to read different databases:
 
 ```python
 # COCO
-coco_gts = AnnotationSet.from_coco(file_path="path/to/file.json")
+coco = AnnotationSet.from_coco(file_path="path/to/file.json")
+
+# YOLOv5
+yolo = AnnotationSet.from_yolo_v5(
+    folder="path/to/files/",
+    image_folder="path/to/images/"
+)
 
 # Pascal VOC
-xml_gts = AnnotationSet.from_xml(folder="path/to/files/")
-
-# YOLO
-yolo_preds = AnnotationSet.from_yolo(
-    folder="path/to/files/",
-    image_folder="path/to/images/")
+pascal = AnnotationSet.from_pascal_voc(folder="path/to/files/")
 ```
 
 `Annotation` offers file-level granularity for compatible datasets:
@@ -50,28 +51,30 @@ annotation = Annotation.from_labelme(file_path="path/to/file.xml")
 
 For more specific implementations the `BoundingBox` class contains lots of utilities to parse bounding boxes in different formats, like the `create()` method.
 
-`AnnotationsSets` can be combined and annotations can be added:
+`AnnotationsSets` are set-like objects. They can be combined and annotations can be added:
 
 ```python
-gts = coco_gts + xml_gts
+gts = coco + yolo
 gts.add(annotation)
 ```
 
-### Inspect Databases
+### Inspect Datasets
 
-Iterators and efficient `image_id` lookup are easy to use:
+Iterators and efficient lookup by `image_id`'s are easy to use:
 
 ```python
 if annotation in gts:
-    print("This annotation is in the DB.")
+    print("This annotation is present.")
+
+if "image_123.jpg" in gts.image_ids:
+    print("Annotation of image 'image_123.jpg' is present.")
 
 for box in gts.all_boxes:
     print(box.label, box.area, box.is_ground_truth)
 
 for annotation in gts:
-    print(f"{annotation.image_id}: {len(annotation.boxes)} boxes")
-
-print(gts.image_ids == yolo_preds.image_ids)
+    nb_boxes = len(annotation.boxes)
+    print(f"{annotation.image_id}: {nb_boxes} boxes")
 ```
 
 Database stats can printed to the console:
@@ -115,16 +118,23 @@ coco_gts.show_stats()
 Datasets can be converted to and savde in other formats easily:
 
 ```python
-# To Pascal VOC
-coco_gts.save_xml(save_dir="pascalVOC_db/")
+# ImageNet
+gts.save_imagenet(save_dir="pascalVOC_db/")
 
-# TO CVAT
-coco_gts.save_cvat(path="train.xml")
-
-# To YOLO
-coco_gts.save_yolo(
+# YOLO Darknet
+gts.save_yolo_darknet(
     save_dir="yolo_train/", 
-    label_to_id={"cat": 0, "dog": 1, "racoon": 2})
+    label_to_id={"cat": 0, "dog": 1, "racoon": 2}
+)
+
+# YOLOv5
+gts.save_yolo_v5(
+    save_dir="yolo_train/", 
+    label_to_id={"cat": 0, "dog": 1, "racoon": 2},
+)
+
+# CVAT
+gts.save_cvat(path="train.xml")
 ```
 
 ### COCO Evaluation
@@ -132,13 +142,12 @@ coco_gts.save_yolo(
 Evaluating is as easy as:
 
 ```python
-evaluator = COCOEvaluator(coco_gts, yolo_preds)
+evaluator = COCOEvaluator(
+    ground_truths=gts, 
+    predictions=dets
+)
+
 ap = evaluator.ap()
-```
-
-All COCO metrics are available:
-
-```python
 ar_100 = evaluator.ar_100()
 ap_75 = evaluator.ap_75()
 ap_small = evaluator.ap_small()
@@ -155,19 +164,19 @@ which outputs:
 
 ```
                               COCO Evaluation
-┏━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━┳...┳━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┓
-┃ Label     ┃ AP 50:95 ┃   AP 50 ┃   ┃    AR S ┃    AR M ┃    AR L ┃
-┡━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━╇...╇━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━┩
-│ airplane  │   22.72% │  25.25% │   │    nan% │  90.00% │   0.00% │
-│ apple     │   46.40% │  57.43% │   │  48.57% │    nan% │    nan% │
-│ backpack  │   54.82% │  85.15% │   │ 100.00% │  72.00% │   0.00% │
-│ banana    │   73.65% │  96.41% │   │    nan% │ 100.00% │  70.00% │
-.           .          .         .   .         .         .         .
-.           .          .         .   .         .         .         .
-.           .          .         .   .         .         .         .
-├───────────┼──────────┼─────────┼...┼─────────┼─────────┼─────────┤
-│ Total     │   50.36% │  69.70% │   │  65.48% │  60.31% │  55.37% │
-└───────────┴──────────┴─────────┴...┴─────────┴─────────┴─────────┘
+┏━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━┳...┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┓
+┃ Label     ┃ AP 50:95 ┃  AP 50 ┃   ┃   AR S ┃   AR M ┃   AR L ┃
+┡━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━╇...╇━━━━━━━━╇━━━━━━━━╇━━━━━━━━┩
+│ airplane  │    22.7% │  25.2% │   │   nan% │  90.0% │   0.0% │
+│ apple     │    46.4% │  57.4% │   │  48.5% │   nan% │   nan% │
+│ backpack  │    54.8% │  85.1% │   │ 100.0% │  72.0% │   0.0% │
+│ banana    │    73.6% │  96.4% │   │   nan% │ 100.0% │  70.0% │
+.           .          .        .   .        .        .        .
+.           .          .        .   .        .        .        .
+.           .          .        .   .        .        .        .
+├───────────┼──────────┼────────┼...┼────────┼────────┼────────┤
+│ Total     │    50.3% │  69.7% │   │  65.4% │  60.3% │  55.3% │
+└───────────┴──────────┴────────┴...┴────────┴────────┴────────┘
 ```
 
 The array of results can be saved in CSV format:
@@ -182,7 +191,8 @@ Custom evaluations can be achieved with:
 evaluation = evaluator.evaluate(
     iou_threshold=0.33,
     max_detections=1_000,
-    size_range=(0.0, 10_000))
+    size_range=(0.0, 10_000)
+)
 
 ap = evaluation.ap()
 cat_ar = evaluation["cat"].ar
@@ -260,7 +270,7 @@ Saving |1.12s|0.74s|0.42s    |4.39s  |4.46s    |3.75s|3.52s
 
 OpenImage, YOLO and TXT are slower because they store bounding box coordinates in relative coordinates and do not provide the image size, so reading it from the image file is required.
 
-The fastest format is COCO and LabelMe (for individual annotation files).
+The fastest format is COCO and LabelMe.
 
 `AnnotationSet.show_stats()`: 0.12 s
 

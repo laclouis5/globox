@@ -23,9 +23,12 @@ def all_equal(iterable: Iterable) -> bool:
 def mean(it: Iterable[float]) -> float:
     sum_ = 0.0
     count = 0
+    
     for value in it:
         sum_ += value
         count += 1
+        
     if count == 0:
         return float("nan")
+    
     return sum_ / count

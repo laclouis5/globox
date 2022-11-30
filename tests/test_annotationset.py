@@ -2,6 +2,8 @@ from globox import Annotation, AnnotationSet, BoundingBox, BoxFormat
 from globox.file_utils import glob
 from .constants import *
 import pytest
+from PIL import Image
+from math import isclose
 
 
 def test_annotationset():
@@ -53,9 +55,19 @@ def test_openimage_conversion(tmp_path: Path):
     annotation = Annotation(image_id="", boxes=[box])
     annotationset = AnnotationSet(annotations=[annotation])
 
-    with pytest.raises(AssertionError):
+    # "," in label
+    with pytest.raises(ValueError):
         _ = annotationset.save_openimage(tmp_path / "cvat.csv")
         
+    box.label = "dining_table"
+    
+    # No image_size specified
+    with pytest.raises(ValueError):
+        _ = annotationset.save_openimage(tmp_path / "cvat.csv")
+        
+    annotation.image_size = (640, 480)
+    _ = annotationset.save_openimage(tmp_path / "cvat.csv")
+     
         
 def test_save_txt_conf_first(tmp_path: Path):
     annotation = Annotation(
@@ -161,3 +173,122 @@ def test_from_txt_conf_last(tmp_path: Path):
     
     box = annotation.boxes[0]
     assert box.confidence == 0.25
+
+
+def test_from_coco_id_string():
+    gts = AnnotationSet.from_coco(coco_str_id_path)
+    
+    assert len(gts) == 100 # images defined in coco_file
+    assert gts["2007_001585.jpg"] is not None
+    
+    gts_box = gts["2007_001585.jpg"].boxes[0]
+    
+    coco_box = BoundingBox(
+        label="bottle", 
+        xmin=58.0,
+        ymin=158.0,
+        xmax=58.0 + 14.0,
+        ymax=158 + 33.0
+    )
+    
+    assert gts_box == coco_box
+    
+
+def test_from_yolo_darknet(tmp_path: Path):
+    path = tmp_path / "annotation.txt"
+    path.write_text("label 0.25 0.25 0.25 0.5 0.5\nlabel_2 0.25 0.25 0.25 0.5 0.5")
+    
+    img_path = tmp_path / "annotation.jpg"
+    img = Image.new(mode="1", size=(100, 100))
+    img.save(img_path)
+    
+    annotations = AnnotationSet.from_yolo_darknet(tmp_path, image_folder=tmp_path)
+    
+    assert len(annotations) == 1
+    
+    annotation = annotations["annotation.jpg"]
+    
+    assert len(annotation.boxes) == 2
+    assert annotation.image_id == "annotation.jpg"
+    assert annotation.image_size == (100, 100)
+    
+    bbox = annotation.boxes[0]
+    
+    assert bbox.label == "label"
+    assert bbox.confidence == 0.25
+    
+    (xmin, ymin, xmax, ymax) = bbox.ltrb
+    
+    assert isclose(xmin, 0.0)
+    assert isclose(ymin, 0.0)
+    assert isclose(xmax, 50.0)
+    assert isclose(ymax, 50.0)
+    
+    assert isclose(bbox.confidence, 0.25)
+    
+
+def test_from_yolo_v5(tmp_path: Path):
+    path = tmp_path / "annotation.txt"
+    path.write_text("label 0.25 0.25 0.5 0.5 0.25\nlabel_2 0.25 0.25 0.5 0.5 0.25")
+    
+    img_path = tmp_path / "annotation.jpg"
+    img = Image.new(mode="1", size=(100, 100))
+    img.save(img_path)
+    
+    annotations = AnnotationSet.from_yolo_v5(tmp_path, image_folder=tmp_path)
+    
+    assert len(annotations) == 1
+    
+    annotation = annotations["annotation.jpg"]
+    
+    assert len(annotation.boxes) == 2
+    assert annotation.image_id == "annotation.jpg"
+    assert annotation.image_size == (100, 100)
+    
+    bbox = annotation.boxes[0]
+    
+    assert bbox.label == "label"
+    assert bbox.confidence == 0.25
+    
+    (xmin, ymin, xmax, ymax) = bbox.ltrb
+    
+    assert isclose(xmin, 0.0)
+    assert isclose(ymin, 0.0)
+    assert isclose(xmax, 50.0)
+    assert isclose(ymax, 50.0)
+    
+    assert isclose(bbox.confidence, 0.25)
+    
+    
+def test_save_yolo_darknet(tmp_path: Path):
+    bboxes = [
+        BoundingBox(label="label_1", xmin=0.0, ymin=0.0, xmax=50.0, ymax=50.0, confidence=0.25),
+        BoundingBox(label="label_2", xmin=25.0, ymin=25.0, xmax=75.0, ymax=75.0, confidence=0.75),
+    ]
+    
+    annotation = Annotation(image_id="annotation.jpg", image_size=(100, 100), boxes=bboxes)
+    annotations = AnnotationSet([annotation])
+    annotations.save_yolo_darknet(tmp_path)
+    
+    path = tmp_path / "annotation.txt"
+    
+    content = path.read_text()
+    
+    assert content == "label_1 0.25 0.25 0.25 0.5 0.5\nlabel_2 0.75 0.5 0.5 0.5 0.5"
+    
+    
+def test_save_yolo_v5(tmp_path: Path):
+    bboxes = [
+        BoundingBox(label="label_1", xmin=0.0, ymin=0.0, xmax=50.0, ymax=50.0, confidence=0.25),
+        BoundingBox(label="label_2", xmin=25.0, ymin=25.0, xmax=75.0, ymax=75.0, confidence=0.75),
+    ]
+    
+    annotation = Annotation(image_id="annotation.jpg", image_size=(100, 100), boxes=bboxes)
+    annotations = AnnotationSet([annotation])
+    annotations.save_yolo_v5(tmp_path)
+    
+    path = tmp_path / "annotation.txt"
+    
+    content = path.read_text()
+    
+    assert content == "label_1 0.25 0.25 0.5 0.5 0.25\nlabel_2 0.5 0.5 0.5 0.5 0.75"
