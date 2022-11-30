@@ -18,7 +18,7 @@ def test_conversion(tmp_path: Path):
     boxes = AnnotationSet.from_coco(file_path=coco2_path)
 
     boxes.save_txt(txt_dir)
-    boxes.save_yolo(yolo_dir, label_to_id=label_to_id)
+    boxes.save_yolo_darknet(yolo_dir, label_to_id=label_to_id)
     boxes.save_xml(xml_dir)
     boxes.save_cvat(cvat_path)
     boxes.save_coco(coco_path)
@@ -28,7 +28,7 @@ def test_conversion(tmp_path: Path):
 
     dets_sets = [
         AnnotationSet.from_txt(txt_dir, image_folder=image_folder),
-        AnnotationSet.from_yolo(yolo_dir, image_folder=image_folder).map_labels(id_to_label),
+        AnnotationSet.from_yolo_darknet(yolo_dir, image_folder=image_folder).map_labels(id_to_label),
         AnnotationSet.from_xml(xml_dir),
         AnnotationSet.from_cvat(cvat_path),
         AnnotationSet.from_coco(coco_path),

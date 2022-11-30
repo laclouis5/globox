@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Mapping, Optional, Union
 import xml.etree.ElementTree as et
 import json
+from warnings import warn
 
 
 class Annotation: 
@@ -96,6 +97,12 @@ class Annotation:
         image_extension: str = ".jpg",
         conf_last: bool = False,
     ) -> "Annotation":
+        warn(
+            "'from_yolo' is deprecated. Please use `from_yolo_darknet` or `from_yolo_v5`", 
+            category=DeprecationWarning, 
+            stacklevel=2
+        )
+        
         return Annotation.from_txt(file_path, 
             image_id=image_id,
             image_extension=image_extension,
@@ -104,6 +111,50 @@ class Annotation:
             image_size=image_size, 
             separator=" ",
             conf_last=conf_last
+        )
+
+    @staticmethod
+    def from_yolo_darknet(
+        file_path: PathLike, *,
+        image_size: "tuple[int, int]",
+        image_id: Optional[str] = None,
+        image_extension: str = ".jpg",
+    ) -> "Annotation":
+        return Annotation.from_yolo(
+            file_path,
+            image_size=image_size,
+            image_id=image_id,
+            image_extension=image_extension,
+            conf_last=False
+        )
+        
+    @staticmethod
+    def from_yolo_v5(
+        file_path: PathLike, *,
+        image_size: "tuple[int, int]",
+        image_id: Optional[str] = None,
+        image_extension: str = ".jpg",
+    ) -> "Annotation":
+        return Annotation.from_yolo(
+            file_path,
+            image_size=image_size,
+            image_id=image_id,
+            image_extension=image_extension,
+            conf_last=True
+        )
+        
+    @staticmethod
+    def from_yolo_v7(
+        file_path: PathLike, *,
+        image_size: "tuple[int, int]",
+        image_id: Optional[str] = None,
+        image_extension: str = ".jpg",
+    ) -> "Annotation":
+        return Annotation.from_yolo_v5(
+            file_path,
+            image_size=image_size,
+            image_id=image_id,
+            image_extension=image_extension
         )
 
     @staticmethod
@@ -223,6 +274,12 @@ class Annotation:
         image_size: Optional["tuple[int, int]"] = None,
         conf_last: bool = False,
     ) -> str:
+        warn(
+            "'to_yolo' is deprecated. Please use `to_yolo_darknet` or `to_yolo_v5`", 
+            category=DeprecationWarning, 
+            stacklevel=2
+        )
+        
         image_size = image_size or self.image_size
         
         if image_size is None:
@@ -234,6 +291,35 @@ class Annotation:
                 label_to_id=label_to_id,
                 conf_last=conf_last
             ) for box in self.boxes
+        )
+
+    def to_yolo_darknet(self, *,
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
+        image_size: Optional["tuple[int, int]"] = None,
+    ) -> str:
+        return self.to_yolo(
+            label_to_id=label_to_id,
+            image_size=image_size,
+            conf_last=False
+        )
+        
+    def to_yolo_v5(self, *,
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
+        image_size: Optional["tuple[int, int]"] = None,
+    ) -> str:
+        return self.to_yolo(
+            label_to_id=label_to_id,
+            image_size=image_size,
+            conf_last=True
+        )
+        
+    def to_yolo_v7(self, *,
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
+        image_size: Optional["tuple[int, int]"] = None,
+    ) -> str:
+        return self.to_yolo_v5(
+            label_to_id=label_to_id,
+            image_size=image_size
         )
 
     def save_txt(self, 
@@ -262,6 +348,12 @@ class Annotation:
         image_size: Optional["tuple[int, int]"] = None,
         conf_last: bool = False,
     ):
+        warn(
+            "'save_yolo' is deprecated. Please use `save_yolo_darknet` or `save_yolo_v5`", 
+            category=DeprecationWarning, 
+            stacklevel=2
+        )
+        
         content = self.to_yolo(
             label_to_id=label_to_id, 
             image_size=image_size,
@@ -270,6 +362,38 @@ class Annotation:
         
         with open_atomic(path, "w") as f:
             f.write(content)
+
+    def save_yolo_darknet(self, path: PathLike, *,
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
+        image_size: Optional["tuple[int, int]"] = None,
+    ):
+        self.save_yolo(
+            path,
+            label_to_id=label_to_id,
+            image_size=image_size,
+            conf_last=False
+        )
+        
+    def save_yolo_v5(self, path: PathLike, *,
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
+        image_size: Optional["tuple[int, int]"] = None,
+    ):
+        self.save_yolo(
+            path,
+            label_to_id=label_to_id,
+            image_size=image_size,
+            conf_last=True
+        )
+        
+    def save_yolo_v7(self, path: PathLike, *,
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
+        image_size: Optional["tuple[int, int]"] = None,
+    ):
+        self.save_yolo_v5(
+            path,
+            label_to_id=label_to_id,
+            image_size=image_size
+        )
 
     def to_labelme(self, *, image_size: Optional["tuple[int, int]"] = None) -> dict:
         image_size = image_size or self.image_size

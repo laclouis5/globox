@@ -31,23 +31,16 @@ The `AnnotationSet` class contains static methods to read different databases:
 
 ```python
 # COCO
-coco_gts = AnnotationSet.from_coco(file_path="path/to/file.json")
+coco = AnnotationSet.from_coco(file_path="path/to/file.json")
 
-# Pascal VOC
-xml_gts = AnnotationSet.from_pascal_voc(folder="path/to/files/")
-
-# YOLO Darknet (AlexeyAB)
-yolo_preds = AnnotationSet.from_yolo(
+# YOLOv5
+yolo = AnnotationSet.from_yolo_v5(
     folder="path/to/files/",
     image_folder="path/to/images/"
 )
 
-# YOLOv5 (Ultralytics) and YOLOv7 (WongKinYiu)
-yolo_preds = AnnotationSet.from_yolo(
-    folder="path/to/files/",
-    image_folder="path/to/images/",
-    conf_last=True
-)
+# Pascal VOC
+pascal = AnnotationSet.from_pascal_voc(folder="path/to/files/")
 ```
 
 `Annotation` offers file-level granularity for compatible datasets:
@@ -61,7 +54,7 @@ For more specific implementations the `BoundingBox` class contains lots of utili
 `AnnotationsSets` are set-like objects. They can be combined and annotations can be added:
 
 ```python
-gts = coco_gts + xml_gts
+gts = coco + yolo
 gts.add(annotation)
 ```
 
@@ -126,23 +119,22 @@ Datasets can be converted to and savde in other formats easily:
 
 ```python
 # ImageNet
-coco_gts.save_imagenet(save_dir="pascalVOC_db/")
-
-# CVAT
-coco_gts.save_cvat(path="train.xml")
+gts.save_imagenet(save_dir="pascalVOC_db/")
 
 # YOLO Darknet
-coco_gts.save_yolo(
+gts.save_yolo_darknet(
     save_dir="yolo_train/", 
     label_to_id={"cat": 0, "dog": 1, "racoon": 2}
 )
 
-# YOLOv5 or YOLOv7
-coco_gts.save_yolo(
+# YOLOv5
+gts.save_yolo_v5(
     save_dir="yolo_train/", 
     label_to_id={"cat": 0, "dog": 1, "racoon": 2},
-    conf_last=True,
 )
+
+# CVAT
+gts.save_cvat(path="train.xml")
 ```
 
 ### COCO Evaluation
@@ -151,8 +143,8 @@ Evaluating is as easy as:
 
 ```python
 evaluator = COCOEvaluator(
-    ground_truths=coco_gts, 
-    predictions=yolo_preds
+    ground_truths=gts, 
+    predictions=dets
 )
 
 ap = evaluator.ap()

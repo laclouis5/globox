@@ -7,7 +7,10 @@ from pathlib import Path
 from typing import Optional
 
 
-PARSE_CHOICES = {"coco", "yolo", "labelme", "pascalvoc", "openimage", "txt", "cvat"}
+PARSE_CHOICES = {
+    "coco", "labelme", "pascalvoc", "openimage", 
+    "txt", "cvat", "yolov5", "yolov7", "yolo-darknet"
+}
 PARSE_CHOICES_EXT = {*PARSE_CHOICES, "coco_result"}
 SAVE_CHOICES = {*PARSE_CHOICES, "via-json"}
 
@@ -123,11 +126,24 @@ def parse_annotations(args: argparse.Namespace) -> AnnotationSet:
         if args.img_folder is not None:
             image_dir = args.img_folder.expanduser().resolve()
             
-        if format_in == "yolo":
-            annotations = AnnotationSet.from_yolo(input, 
+        if format_in == "yolo-darknet":
+            annotations = AnnotationSet.from_yolo_darknet(input, 
                 image_folder=image_dir, 
                 image_extension=img_ext, 
-                verbose=verbose)    
+                verbose=verbose
+            )
+        elif format_in == "yolov5":
+            annotations = AnnotationSet.from_yolo_v5(input, 
+                image_folder=image_dir, 
+                image_extension=img_ext, 
+                verbose=verbose
+            ) 
+        elif format_in == "yolov7":
+            annotations = AnnotationSet.from_yolo_v7(input, 
+                image_folder=image_dir, 
+                image_extension=img_ext, 
+                verbose=verbose
+            )    
         elif format_in == "txt":
             format = BoxFormat.from_string(args.bb_fmt_in)
             relative: bool = args.norm_in == "rel"
@@ -184,11 +200,24 @@ def parse_dets_annotations(
         if args.image_dir is not None:
             image_dir = args.img_folder_dets.expanduser().resolve()
 
-        if format_dets == "yolo":
-            annotations = AnnotationSet.from_yolo(input, 
+        if format_dets == "yolo-darknet":
+            annotations = AnnotationSet.from_yolo_darknet(input, 
                 image_folder=image_dir, 
                 image_extension=img_ext, 
-                verbose=verbose)
+                verbose=verbose
+            )
+        elif format_dets == "yolov5":
+            annotations = AnnotationSet.from_yolo_v5(input, 
+                image_folder=image_dir, 
+                image_extension=img_ext, 
+                verbose=verbose
+            ) 
+        elif format_dets == "yolov7":
+            annotations = AnnotationSet.from_yolo_v7(input, 
+                image_folder=image_dir, 
+                image_extension=img_ext, 
+                verbose=verbose
+            )
         elif format_dets == "txt":
             bb_fmt = BoxFormat.from_string(args.bb_fmt_dets)
             relative: bool = args.norm_dets == "rel"
@@ -245,8 +274,12 @@ def save_annotations(args: argparse.Namespace, annotations: AnnotationSet):
         assert image_folder is not None, "The image folder must be provided with `--img_folder` for via-json conversion."
         annotations.save_via_json(output, image_folder=image_folder, verbose=verbose)
     else:
-        if format_out == "yolo":
-            annotations.save_yolo(output, verbose=verbose)
+        if format_out == "yolo-darknet":
+            annotations.save_yolo_darknet(output, verbose=verbose)
+        elif format_out == "yolov5":
+            annotations.save_yolo_v5(output, verbose=verbose)
+        elif format_out == "yolov7":
+            annotations.save_yolo_v7(output, verbose=verbose)
         elif format_out == "txt":
             bb_fmt = BoxFormat.from_string(args.bb_fmt_out)
             relative: bool = args.norm_out == "rel"

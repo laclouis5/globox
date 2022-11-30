@@ -13,6 +13,7 @@ import xml.etree.ElementTree as et
 from collections import defaultdict
 import json
 from tqdm import tqdm
+from warnings import warn
 
 T = TypeVar("T")
 
@@ -202,11 +203,17 @@ class AnnotationSet:
     @staticmethod
     def from_yolo(
         folder: PathLike, *,
-        image_folder: Optional[PathLike] = None, 
+        image_folder: PathLike, 
         image_extension = ".jpg",
         conf_last: bool = False,
         verbose: bool = False
     ) -> "AnnotationSet":
+        warn(
+            "'from_yolo' is deprecated. Please use `from_yolo_darknet` or `from_yolo_v5`", 
+            category=DeprecationWarning, 
+            stacklevel=2
+        )
+        
         return AnnotationSet.from_txt(folder, 
             image_folder=image_folder, 
             box_format=BoxFormat.XYWH, 
@@ -214,6 +221,50 @@ class AnnotationSet:
             image_extension=image_extension,
             conf_last=conf_last,
             verbose=verbose,
+        )
+
+    @staticmethod
+    def from_yolo_darknet(
+        folder: PathLike, *,
+        image_folder: PathLike, 
+        image_extension = ".jpg",
+        verbose: bool = False
+    ) -> "AnnotationSet":
+        return AnnotationSet.from_yolo(
+            folder,
+            image_folder=image_folder,
+            image_extension=image_extension,
+            conf_last=False,
+            verbose=verbose
+        )
+        
+    @staticmethod
+    def from_yolo_v5(
+        folder: PathLike, *,
+        image_folder: PathLike, 
+        image_extension = ".jpg",
+        verbose: bool = False
+    ) -> "AnnotationSet":
+        return AnnotationSet.from_yolo(
+            folder,
+            image_folder=image_folder,
+            image_extension=image_extension,
+            conf_last=True,
+            verbose=verbose
+        )
+
+    @staticmethod
+    def from_yolo_v7(
+        folder: PathLike, *,
+        image_folder: PathLike, 
+        image_extension = ".jpg",
+        verbose: bool = False
+    ) -> "AnnotationSet":
+        return AnnotationSet.from_yolo_v5(
+            folder,
+            image_folder=image_folder,
+            image_extension=image_extension,
+            verbose=verbose
         )
 
     @staticmethod
@@ -470,6 +521,12 @@ class AnnotationSet:
         conf_last: bool = False,
         verbose: bool = False,
     ):
+        warn(
+            "'save_yolo' is deprecated. Please use `save_yolo_darknet` or `save_yolo_v5`", 
+            category=DeprecationWarning, 
+            stacklevel=2
+        )
+        
         save_dir = Path(save_dir).expanduser().resolve()
         save_dir.mkdir(exist_ok=True)
 
@@ -478,6 +535,27 @@ class AnnotationSet:
             annotation.save_yolo(path, label_to_id=label_to_id, conf_last=conf_last)
 
         self.save_from_it(_save, verbose=verbose)
+
+    def save_yolo_darknet(self, 
+        save_dir: PathLike, *, 
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
+        verbose: bool = False,
+    ):
+        self.save_yolo(save_dir, label_to_id=label_to_id, conf_last=False, verbose=verbose)
+
+    def save_yolo_v5(self, 
+        save_dir: PathLike, *, 
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
+        verbose: bool = False,
+    ):
+        self.save_yolo(save_dir, label_to_id=label_to_id, conf_last=True, verbose=verbose)
+
+    def save_yolo_v7(self, 
+        save_dir: PathLike, *, 
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
+        verbose: bool = False,
+    ):
+        self.save_yolo_v5(save_dir, label_to_id=label_to_id, verbose=verbose)
 
     def save_labelme(self, save_dir: PathLike, *, verbose: bool = False):
         save_dir = Path(save_dir).expanduser().resolve()

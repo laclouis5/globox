@@ -112,7 +112,7 @@ def test_create():
     assert isclose(box.ymid, 100)
     assert isclose(box.width, 50)
     assert isclose(box.height, 200)
-
+    
 
 def test_txt_conversion():
     box = BoundingBox.create(label="dining table", coords=(0, 0, 10, 10))
@@ -154,6 +154,37 @@ def test_from_txt_conf_last():
     box = BoundingBox.from_txt(line)
     assert box.confidence == 0.25
     
+
+def test_from_yolo_v5():
+    line = "label 0.25 0.25 0.5 0.5 0.25"
+    bbox = BoundingBox.from_yolo_v5(line, image_size=(100, 100))
+    
+    assert bbox.label == "label"
+    assert bbox.confidence == 0.25
+    
+    (xmin, ymin, xmax, ymax) = bbox.ltrb
+    
+    assert isclose(xmin, 0.0)
+    assert isclose(ymin, 0.0)
+    assert isclose(xmax, 50.0)
+    assert isclose(ymax, 50.0)
+    
+    assert isclose(bbox.confidence, 0.25)
+    
+
+def test_to_yolo_darknet():
+    bbox = BoundingBox(label="label", xmin=0.0, ymin=0.0, xmax=50.0, ymax=50.0, confidence=0.25)
+    string = bbox.to_yolo_darknet(image_size=(100, 100))
+    
+    assert string == "label 0.25 0.25 0.25 0.5 0.5"
+
+
+def test_to_yolo_v5():
+    bbox = BoundingBox(label="label", xmin=0.0, ymin=0.0, xmax=50.0, ymax=50.0, confidence=0.25)
+    string = bbox.to_yolo_v5(image_size=(100, 100))
+    
+    assert string == "label 0.25 0.25 0.5 0.5 0.25"
+
     
 def test_eq():
     box = BoundingBox(
@@ -164,6 +195,8 @@ def test_eq():
         ymax=8.0,
         confidence=0.5
     )
+    
+    assert box == box
     
     # Same
     b1 = BoundingBox(

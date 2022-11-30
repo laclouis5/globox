@@ -291,6 +291,27 @@ class BoundingBox:
         )
 
     @staticmethod
+    def from_yolo_darknet(
+        string: str, *, 
+        image_size: "tuple[int, int]",
+    ) -> "BoundingBox":
+        return BoundingBox.from_yolo(string, image_size=image_size, conf_last=False)
+
+    @staticmethod
+    def from_yolo_v5(
+        string: str, *, 
+        image_size: "tuple[int, int]",
+    ) -> "BoundingBox":
+        return BoundingBox.from_yolo(string, image_size=image_size, conf_last=True)
+    
+    @staticmethod
+    def from_yolo_v7(
+        string: str, *, 
+        image_size: "tuple[int, int]",
+    ) -> "BoundingBox":
+        return BoundingBox.from_yolo_v7(string, image_size=image_size)
+
+    @staticmethod
     def from_xml(node: et.Element) -> "BoundingBox":
         
         label = node.findtext("name")
@@ -394,6 +415,24 @@ class BoundingBox:
             separator=" ",
             conf_last=conf_last
         )
+
+    def to_yolo_darknet(self, *,
+        image_size: "tuple[int, int]",
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
+    ) -> str:
+        return self.to_yolo(image_size=image_size, label_to_id=label_to_id, conf_last=False)
+    
+    def to_yolo_v5(self, *,
+        image_size: "tuple[int, int]",
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
+    ) -> str:
+        return self.to_yolo(image_size=image_size, label_to_id=label_to_id, conf_last=True)
+    
+    def to_yolo_v7(self, *,
+        image_size: "tuple[int, int]",
+        label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
+    ) -> str:
+        return self.to_yolo_v5(image_size=image_size, label_to_id=label_to_id)
 
     def to_labelme(self) -> dict:
         xmin, ymin, xmax, ymax = self.ltrb

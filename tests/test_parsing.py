@@ -8,7 +8,7 @@ def tests_parsing():
     coco2_set = AnnotationSet.from_coco(coco2_path)
     coco3_set = AnnotationSet.from_coco(coco_str_id_path)
     coco_gts_set = AnnotationSet.from_coco(coco_gts_path)
-    yolo_set = AnnotationSet.from_yolo(yolo_path, image_folder=image_folder).map_labels(id_to_label)
+    yolo_set = AnnotationSet.from_yolo_darknet(yolo_path, image_folder=image_folder).map_labels(id_to_label)
     cvat_set = AnnotationSet.from_cvat(cvat_path)
     imagenet_set = AnnotationSet.from_imagenet(imagenet_path)
     labelme_set = AnnotationSet.from_labelme(labelme_path)
