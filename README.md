@@ -214,10 +214,10 @@ Convert annotations from one format to another one:
 globox convert input/yolo/folder/ output_coco_file_path.json --format yolo --save_fmt coco
 ```
 
-Evaluate a set of detections with COCO metrics:
+Evaluate a set of detections with COCO metrics, display them and save them in a CSV file:
 
 ```shell
-globox evaluate groundtruths/ predictions.json --format yolo --format_dets coco
+globox evaluate groundtruths/ predictions.json --format yolo --format_dets coco -s results.csv
 ```
 
 Show the help message for an exhaustive list of options:

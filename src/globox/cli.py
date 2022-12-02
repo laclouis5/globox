@@ -5,7 +5,7 @@ from .evalutation import COCOEvaluator
 import argparse
 from pathlib import Path
 from typing import Optional
-
+import sys
 
 PARSE_CHOICES = {
     "coco", "labelme", "pascalvoc", "openimage", 
@@ -311,7 +311,7 @@ def evaluate(args: argparse.Namespace, groundtruths: AnnotationSet, predictions:
         path = args.save_csv_path.expanduser().resolve()
         evaluator.save_csv(path, verbose=False)
         if verbose:
-            print(f"Evaluation saved to '{args.save_csv_path}'.")
+            print(f"Evaluation saved to '{args.save_csv_path}'.", file=sys.stderr)
 
 
 def main():

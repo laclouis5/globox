@@ -14,6 +14,7 @@ from enum import Enum, auto
 from itertools import chain, product
 from functools import lru_cache
 from tqdm import tqdm
+import csv
 
 
 class RecallSteps(Enum):
@@ -206,6 +207,14 @@ class COCOEvaluator:
     ALL_RANGE = (0.0, float("inf"))
 
     RECALL_STEPS = np.linspace(0.0, 1.0, 101)
+
+    CSV_HEADERS = (
+        "label",
+        "AP 50:95", "AP 50", "AP 75", 
+        "AP S", "AP M", "AP L", 
+        "AR 1", "AR 10", "AR 100", 
+        "AR S", "AR M", "AR L"
+    )
 
     def __init__(self, *,
         ground_truths: AnnotationSet,
@@ -527,10 +536,10 @@ class COCOEvaluator:
             ar_l = self.large_evaluation()[label]["ar"]
 
             table.add_row(label, 
-                f"{ap:.1%}", f"{ap_50:.1%}", f"{ap_75:.1%}", 
-                f"{ap_s:.1%}", f"{ap_m:.1%}", f"{ap_l:.1%}", 
-                f"{ar_1:.1%}", f"{ar_10:.1%}", f"{ar_100:.1%}", 
-                f"{ar_s:.1%}", f"{ar_m:.1%}", f"{ar_l:.1%}"
+                f"{ap:.2%}", f"{ap_50:.2%}", f"{ap_75:.2%}", 
+                f"{ap_s:.2%}", f"{ap_m:.2%}", f"{ap_l:.2%}", 
+                f"{ar_1:.2%}", f"{ar_10:.2%}", f"{ar_100:.2%}", 
+                f"{ar_s:.2%}", f"{ar_m:.2%}", f"{ar_l:.2%}"
             )
 
         table.header_style = "bold"
@@ -559,50 +568,40 @@ class COCOEvaluator:
 
         pprint(table)
 
-    def to_csv(self, *, verbose: bool = False) -> str:
-        """Compute and show the standard COCO metrics."""
+    def save_csv(self, path: PathLike, *, verbose: bool = False):
         self._evaluate_all(verbose=verbose)
         labels = self.labels or sorted(self.ap_evaluation().keys())
         
-        headers = ("label",
-            "AP 50:95", "AP 50", "AP 75", 
-            "AP S", "AP M", "AP L", 
-            "AR 1", "AR 10", "AR 100", 
-            "AR S", "AR M", "AR L"
-        )
-        
-        rows = []
-
-        for label in labels:
-            ap = self.ap_evaluation()[label]["ap"]
-            ap_50 = self.ap_50_evaluation()[label].ap
-            ap_75 = self.ap_75_evaluation()[label].ap
-
-            ap_s = self.small_evaluation()[label]["ap"]
-            ap_m = self.medium_evaluation()[label]["ap"]
-            ap_l = self.large_evaluation()[label]["ap"]
-
-            ar_1 = self.ndets_1_evaluation()[label]["ap"]
-            ar_10 = self.ndets_10_evaluation()[label]["ap"]
-            ar_100 = self.ndets_100_evaluation()[label]["ap"]
-
-            ar_s = self.small_evaluation()[label]["ar"]
-            ar_m = self.medium_evaluation()[label]["ar"]
-            ar_l = self.large_evaluation()[label]["ar"]
-
-            rows.append(",".join((label, 
-                f"{ap}", f"{ap_50}", f"{ap_75}", 
-                f"{ap_s}", f"{ap_m}", f"{ap_l}", 
-                f"{ar_1}", f"{ar_10}", f"{ar_100}", 
-                f"{ar_s}", f"{ar_m}", f"{ar_l}"
-            )))
-
-        return "\n".join((",".join(headers), *rows))
-
-    def save_csv(self, path: PathLike, *, verbose: bool = False):
-        csv_data = self.to_csv(verbose=verbose)
         with open_atomic(path, "w") as f:
-            f.write(csv_data)
+            writer = csv.writer(f)
+            writer.writerow(COCOEvaluator.CSV_HEADERS)
+        
+            for label in labels:
+                ap = self.ap_evaluation()[label]["ap"]
+                ap_50 = self.ap_50_evaluation()[label].ap
+                ap_75 = self.ap_75_evaluation()[label].ap
+
+                ap_s = self.small_evaluation()[label]["ap"]
+                ap_m = self.medium_evaluation()[label]["ap"]
+                ap_l = self.large_evaluation()[label]["ap"]
+
+                ar_1 = self.ndets_1_evaluation()[label]["ap"]
+                ar_10 = self.ndets_10_evaluation()[label]["ap"]
+                ar_100 = self.ndets_100_evaluation()[label]["ap"]
+
+                ar_s = self.small_evaluation()[label]["ar"]
+                ar_m = self.medium_evaluation()[label]["ar"]
+                ar_l = self.large_evaluation()[label]["ar"]
+
+                row = (
+                    label, 
+                    ap, ap_50, ap_75, 
+                    ap_s, ap_m, ap_l, 
+                    ar_1, ar_10, ar_100, 
+                    ar_s, ar_m, ar_l
+                )
+                
+                writer.writerow(row)
 
     @classmethod
     def _compute_ap(cls, scores: "list[float]", matched: "list[bool]", NP: int) -> float:
