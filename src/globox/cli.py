@@ -9,10 +9,11 @@ import sys
 
 PARSE_CHOICES = {
     "coco", "labelme", "pascalvoc", "openimage", 
-    "txt", "cvat", "yolov5", "yolov7", "yolo-darknet"
+    "txt", "cvat", "yolov5", "yolov7", "yolo-darknet",
+    "via-json", "imagenet"
 }
 PARSE_CHOICES_EXT = {*PARSE_CHOICES, "coco_result"}
-SAVE_CHOICES = {*PARSE_CHOICES, "via-json"}
+SAVE_CHOICES = {*PARSE_CHOICES}
 
 
 def parse_args():
@@ -56,7 +57,6 @@ def add_parse_dets_args(parser: argparse.ArgumentParser):
 
     group = parser.add_argument_group("Predictions parse options")
     group.add_argument("--format_dets", "-F", type=str, choices=PARSE_CHOICES_EXT)
-    group.add_argument("--img_folder_dets", '-D', type=Path, default=None)
     group.add_argument("--mapping_dets", "-M", type=Path, default=None)
     group.add_argument("--bb_fmt_dets", "-B", type=str, choices=("ltrb", "ltwh", "xywh"), default="ltrb", dest="bb_fmt_dets")
     group.add_argument("--norm_dets", "-N", type=str, choices=("abs", "rel"), default="abs", dest="norm_in_dets")
@@ -109,7 +109,7 @@ def parse_annotations(args: argparse.Namespace) -> AnnotationSet:
 
     if format_in == "coco":
         return AnnotationSet.from_coco(input, verbose=verbose)
-    elif format_in == "pascalvoc":
+    elif format_in == "pascalvoc" or format_in == "imagenet":
         return AnnotationSet.from_xml(input, verbose=verbose)
     elif format_in == "openimage":
         assert args.img_folder is not None, "The image directory must be provided for openimage format (required for reading the image size)."
@@ -119,6 +119,9 @@ def parse_annotations(args: argparse.Namespace) -> AnnotationSet:
         return AnnotationSet.from_labelme(input, verbose=verbose)
     elif format_in == "cvat":
         return AnnotationSet.from_cvat(input, verbose=verbose)
+    elif format_in == "via-json":
+        img_dir: Optional[Path] = args.img_folder
+        return AnnotationSet.from_via_json(input, image_folder=img_dir)
     else:
         img_ext: str = args.img_ext_in
         image_dir: Optional[Path] = None
@@ -183,22 +186,25 @@ def parse_dets_annotations(
         if coco_gts is None:
             raise ValueError("When using 'COCO results', the parsed ground truths must be in 'COCO' format.")
         return coco_gts.from_results(input, verbose=verbose)
-    elif format_dets == "pascalvoc":
+    elif format_dets == "pascalvoc" or format_dets == "imagenet":
         return AnnotationSet.from_xml(input, verbose=verbose)
     elif format_dets == "openimage":
-        assert args.image_dir_dets is not None, "The image directory must be provided for openimage format (required for reading the image size)."
-        img_dir: Path = args.img_folder_dets.expanduser().resolve()
+        assert args.img_folder is not None, "The image directory must be provided for openimage format (required for reading the image size)."
+        img_dir: Path = args.img_folder.expanduser().resolve()
         return AnnotationSet.from_openimage(input, image_folder=img_dir, verbose=verbose)
     elif format_dets == "labelme":
         return AnnotationSet.from_labelme(input, verbose=verbose)
     elif format_dets == "cvat":
         return AnnotationSet.from_cvat(input, verbose=verbose)
+    elif format_dets == "via-json":
+        img_dir: Optional[Path] = args.img_folder
+        return AnnotationSet.from_via_json(input, image_folder=img_dir)
     else:
         img_ext: str = args.img_ext_dets
         image_dir: Optional[Path] = None
         
-        if args.image_dir is not None:
-            image_dir = args.img_folder_dets.expanduser().resolve()
+        if args.img_folder is not None:
+            image_dir = args.img_folder.expanduser().resolve()
 
         if format_dets == "yolo-darknet":
             annotations = AnnotationSet.from_yolo_darknet(input, 
@@ -231,12 +237,13 @@ def parse_dets_annotations(
                 file_extension=extension,
                 image_extension=img_ext,
                 separator=sep,
-                verbose=verbose)
+                verbose=verbose
+            )
         else:
             raise ValueError(f"Groundtruth format '{format_dets}' unknown")
 
-        if args.mapping_in is not None:
-            map_path: Path = args.mapping_in.expanduser().resolve()
+        if args.mapping_dets is not None:
+            map_path: Path = args.mapping_dets.expanduser().resolve()
             mapping = AnnotationSet.parse_names_file(map_path)
             annotations.map_labels(mapping)
 

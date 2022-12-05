@@ -363,6 +363,30 @@ class BoundingBox:
         
         return BoundingBox.create(label=label, coords=coords)
 
+    @staticmethod
+    def from_via_json(
+        region: dict, *, 
+        label_key: str = "label_id",
+        confidence_key: str = "confidence"
+    ) -> "BoundingBox":
+        try:
+            region_attrs = region["region_attributes"]
+            label = region_attrs[label_key]
+            confidence = region_attrs.get(confidence_key)
+            
+            shape_attrs = region["shape_attributes"]
+            xmin, ymin = shape_attrs["x"], shape_attrs["y"]
+            width, height = shape_attrs["width"], shape_attrs["height"]
+        except KeyError:
+            raise ParsingError("Syntax error in VIA JSON annotation file.")
+            
+        return BoundingBox.create(
+            label=label,
+            coords=(xmin, ymin, width, height),
+            confidence=confidence,
+            box_format=BoxFormat.LTWH
+        )
+
     def to_txt(self, *,
         label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
         box_format: BoxFormat = BoxFormat.LTRB, 

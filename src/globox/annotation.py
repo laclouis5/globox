@@ -248,6 +248,35 @@ class Annotation:
         
         return Annotation(image_id, image_size=img_size, boxes=boxes)
 
+    @staticmethod
+    def from_via_json(
+        annotation: dict, *,
+        label_key: str = "label_id",
+        confidence_key: str = "confidence",
+        image_size: Optional[tuple[int, int]] = None
+    ) -> "Annotation":
+        try:
+            filename = annotation["filename"]
+            regions = annotation["regions"]
+
+            bboxes = [
+                BoundingBox.from_via_json(
+                    region, 
+                    label_key=label_key, 
+                    confidence_key=confidence_key
+                )
+                for region in regions
+                if region["shape_attributes"]["name"] == "rect"
+            ]
+        except KeyError:
+            raise ParsingError("Syntax error in VIA JSON annotation file.")
+        
+        return Annotation(
+            image_id=filename,
+            image_size=image_size,
+            boxes=bboxes,
+        )
+
     def to_txt(self, *,
         label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
         box_format: BoxFormat = BoxFormat.LTRB, 
