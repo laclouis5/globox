@@ -253,7 +253,7 @@ class Annotation:
         annotation: dict, *,
         label_key: str = "label_id",
         confidence_key: str = "confidence",
-        image_size: Optional[tuple[int, int]] = None
+        image_size: "Optional[tuple[int, int]]" = None
     ) -> "Annotation":
         try:
             filename = annotation["filename"]
