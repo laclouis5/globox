@@ -14,6 +14,7 @@ def tests_parsing():
     labelme_set = AnnotationSet.from_labelme(labelme_path)
     openimage_set = AnnotationSet.from_openimage(openimage_path, image_folder=image_folder)
     pascal_set = AnnotationSet.from_pascal_voc(pascal_path)
+    via_json_set = AnnotationSet.from_via_json(via_json_path, image_folder=image_folder)
 
     abs_ltrb_set = AnnotationSet.from_txt(abs_ltrb, image_folder=image_folder).map_labels(id_to_label)
     abs_ltwh_set = AnnotationSet.from_txt(abs_ltwh, image_folder=image_folder, box_format=BoxFormat.LTWH).map_labels(id_to_label)
@@ -21,7 +22,11 @@ def tests_parsing():
     _ = coco_gts_set.from_results(coco_results_path)
 
     dets_sets = [abs_ltrb_set, abs_ltwh_set, rel_ltwh_set]
-    gts_sets = [coco1_set, coco2_set, coco3_set, yolo_set, cvat_set, imagenet_set, labelme_set, openimage_set, pascal_set]
+    gts_sets = [
+        coco1_set, coco2_set, coco3_set, yolo_set, 
+        cvat_set, imagenet_set, labelme_set, openimage_set, 
+        pascal_set, via_json_set,
+    ]
     all_sets = dets_sets + gts_sets
 
     assert all_equal(s.image_ids for s in gts_sets)

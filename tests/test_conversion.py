@@ -34,6 +34,7 @@ def test_conversion(tmp_path: Path):
         AnnotationSet.from_coco(coco_path),
         AnnotationSet.from_labelme(labelme_dir),
         AnnotationSet.from_openimage(openimage_path, image_folder=image_folder),
+        AnnotationSet.from_via_json(via_json_path, image_folder=image_folder),
     ]
 
     all_sets = dets_sets
