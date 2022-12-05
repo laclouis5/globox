@@ -485,6 +485,47 @@ class AnnotationSet:
         
         return AnnotationSet.from_iter(Annotation.from_cvat, image_nodes, verbose=verbose)
 
+    @staticmethod
+    def from_via_json(
+        file_path: PathLike, *, 
+        label_key: str = "label_id", 
+        confidence_key: str = "confidence",
+        image_folder: Optional[PathLike] = None
+    ) -> "AnnotationSet":
+        file_path = Path(file_path).expanduser().resolve()
+        
+        if image_folder is not None:
+            image_folder = Path(image_folder).expanduser().resolve()
+            
+            if not image_folder.is_dir():
+                raise ParsingError("Invalid `image_folder`: not a directory.")
+        
+        if not file_path.is_file() or not file_path.suffix == ".json":
+            raise ParsingError(f"VIA JSON annotation file {file_path} must be a valid json file.")
+        
+        with file_path.open() as f:
+            content: dict = json.load(f)
+            
+        img_anns: dict = content.get("_via_img_metadata", content)
+        
+        annotations = AnnotationSet()
+        
+        for img_ann in img_anns.values(): 
+            annotation = Annotation.from_via_json(
+                img_ann,
+                label_key=label_key,
+                confidence_key=confidence_key
+            )
+            
+            if image_folder is not None:
+                img_path = image_folder / annotation.image_id
+                image_size = get_image_size(img_path)
+                annotation.image_size = image_size
+                
+            annotations.add(annotation)
+        
+        return annotations
+
     def save_from_it(self, save_fn: Callable[[Annotation], None], *, verbose: bool = False):        
         thread_map(save_fn, self, desc="Saving", verbose=verbose)
 

@@ -18,6 +18,7 @@ imagenet_path = gts_path / "imagenet_format/Annotations/"
 labelme_path = gts_path / "labelme_format/"
 openimage_path = gts_path / "openimages_format/all_bounding_boxes.csv"
 pascal_path = gts_path / "pascalvoc_format/"
+via_json_path = gts_path / "via/annotations.json"
 
 coco_results_path = data_path / "coco_eval/results.json"
 abs_ltrb = dets_path / "abs_ltrb/"
