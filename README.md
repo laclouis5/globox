@@ -115,7 +115,7 @@ coco_gts.show_stats()
 
 ### Convert and Save to many Formats
 
-Datasets can be converted to and savde in other formats easily:
+Datasets can be converted to and saved in other formats easily:
 
 ```python
 # ImageNet
