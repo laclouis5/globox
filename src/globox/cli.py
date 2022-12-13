@@ -1,6 +1,6 @@
 from .boundingbox import BoxFormat
 from .annotationset import AnnotationSet
-from .evalutation import COCOEvaluator
+from .evaluation import COCOEvaluator
 
 import argparse
 from pathlib import Path
