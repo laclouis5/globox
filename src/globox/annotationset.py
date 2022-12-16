@@ -654,7 +654,7 @@ class AnnotationSet:
                     "id": ann_id_count
                 }
 
-                if box.is_detection:
+                if box.confidence is not None:
                     box_annotation["score"] = box.confidence
 
                 annotations.append(box_annotation)

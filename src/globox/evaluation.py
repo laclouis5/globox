@@ -413,8 +413,6 @@ class COCOEvaluator:
         max_detections: int,
         size_range: "tuple[float, float]"
     ) -> PartialEvaluationItem:
-        assert all(p.is_detection for p in predictions)
-        assert all(g.is_ground_truth for g in ground_truths)
         assert all_equal(p.label for p in predictions)
         assert all_equal(g.label for g in ground_truths)
 

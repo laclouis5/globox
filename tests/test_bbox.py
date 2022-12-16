@@ -30,7 +30,6 @@ def test_init():
     assert box.width == 2.0
     assert box.height == 2.0
     assert box.area == 4.0
-    assert box.is_ground_truth
 
     assert box.ltrb == (-1, 0, 1, 2)
     assert box.ltwh == (-1, 0, 2, 2)
@@ -40,7 +39,6 @@ def test_init():
 def test_confidence():
     box = BoundingBox(label="", xmin=0, ymin=0, xmax=0, ymax=0, confidence=0.25)
     assert box.confidence == 0.25
-    assert box.is_detection
 
     box = BoundingBox(label="", xmin=0, ymin=0, xmax=0, ymax=0, confidence=0.0)
     assert box.confidence == 0.0
@@ -50,7 +48,6 @@ def test_confidence():
 
     box = BoundingBox(label="", xmin=0, ymin=0, xmax=0, ymax=0)
     assert box.confidence is None
-    assert box.is_ground_truth
 
 
 def test_iou():

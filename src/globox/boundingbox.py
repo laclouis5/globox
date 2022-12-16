@@ -168,14 +168,6 @@ class BoundingBox:
 
         return intersection / union
 
-    @property
-    def is_detection(self) -> bool:
-        return self._confidence is not None
-
-    @property
-    def is_ground_truth(self) -> bool:
-        return self._confidence is None
-
     @staticmethod
     def rel_to_abs(coords: Coordinates, size: "tuple[int, int]") -> Coordinates:
         a, b, c, d = coords
@@ -417,7 +409,7 @@ class BoundingBox:
         if isinstance(label, str):
             assert separator not in label, f"The box label '{label}' contains the character '{separator}' which is the same as the separtor character used for BoundingBox representation in TXT/YOLO format. This will corrupt the saved annotation file and likely make it unreadable. Use another character in the label name or `label_to_id` mapping, e.g. use and underscore instead of a whitespace."
 
-        if self.is_ground_truth:
+        if self._confidence is not None:
             line = (label, *coords)
         elif conf_last:
             line = (label, *coords, self._confidence)
