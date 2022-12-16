@@ -418,7 +418,7 @@ class COCOEvaluator:
 
         cls._assert_params(iou_threshold, max_detections, size_range)
 
-        dets = sorted(predictions, key=lambda box: box._confidence if box._confidence is not None else 0, reverse=True)  # type: ignore
+        dets = sorted(predictions, key=lambda box: box._confidence if box._confidence is not None else -float("inf"), reverse=True)  # if no confidence provided, set to lowest priority
         dets = dets[:max_detections]
 
         gts = sorted(ground_truths, key=lambda box: not box.area_in(size_range))
