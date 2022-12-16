@@ -30,3 +30,16 @@ def test_evaluation():
     assert isclose(evaluator.ar_large(), 0.553744, abs_tol=1e-6)
 
     assert evaluator.evaluate.cache_info().currsize == 60
+
+
+def test_evaluation_no_confidence():
+    coco_gt = AnnotationSet.from_coco(coco_gts_path)
+
+    COCOEvaluator(
+        ground_truths=coco_gt, 
+        predictions=coco_gt,
+    ).evaluate(
+        iou_threshold=0.5,
+        max_detections=100,
+        size_range=COCOEvaluator.ALL_RANGE
+    )
