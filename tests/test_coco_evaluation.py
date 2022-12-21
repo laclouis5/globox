@@ -16,6 +16,8 @@ def evaluator() -> COCOEvaluator:
 
 
 def test_evaluation(evaluator: COCOEvaluator):
+    evaluator.clear_cache()
+    
     # Official figures returned by pycocotools (see pycocotools_results.py)
     assert isclose(evaluator.ap(), 0.503647, abs_tol=1e-6)
     assert isclose(evaluator.ap_50(), 0.696973, abs_tol=1e-6)
@@ -37,4 +39,13 @@ def test_evaluation(evaluator: COCOEvaluator):
 
 
 def test_evaluate_defaults(evaluator: COCOEvaluator):
-    evaluator.evaluate(iou_threshold=0.6)
+    evaluator.clear_cache()
+    
+    ev1 = evaluator.evaluate(iou_threshold=0.5)
+    ev2 = evaluator.ap_50_evaluation()
+    
+    # Equality instead of `isclose` since the evaluation default
+    # should exactly be `ap_50_evaluation` and should be retreived
+    # from the `COCOEvaluator` cache.
+    assert ev1.ap() == ev2.ap()
+    assert ev1.ar() == ev2.ar()
