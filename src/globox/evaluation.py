@@ -232,8 +232,8 @@ class COCOEvaluator:
     @lru_cache(maxsize=60 * 4)  # Enough room for 4 times all standard metrics
     def evaluate(self, *,
         iou_threshold: float,
-        max_detections: int,
-        size_range: "tuple[float, float]"
+        max_detections: int = 100,
+        size_range: Optional["tuple[float, float]"] = None,
     ) -> Evaluation:
         """COCO evaluation with custom parameters. The result
         is cached so that repeated call as fast.
@@ -250,8 +250,11 @@ class COCOEvaluator:
         Returns:
         - An evaluation holding the metrics.
         """
+        if size_range is None:
+            size_range = COCOEvaluator.ALL_RANGE
+
         self._assert_params(iou_threshold, max_detections, size_range)
-        
+
         return self.evaluate_annotations(
             self._predictions, 
             self._ground_truths,

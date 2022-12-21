@@ -1,17 +1,21 @@
 from globox import COCOEvaluator
 from .constants import *
 from math import isclose
+import pytest
 
 
-def test_evaluation():
+@pytest.fixture
+def evaluator() -> COCOEvaluator:
     coco_gt = AnnotationSet.from_coco(coco_gts_path)
     coco_det = coco_gt.from_results(coco_results_path)
 
-    evaluator = COCOEvaluator(
+    return COCOEvaluator(
         ground_truths=coco_gt, 
         predictions=coco_det,
     )
 
+
+def test_evaluation(evaluator: COCOEvaluator):
     # Official figures returned by pycocotools (see pycocotools_results.py)
     assert isclose(evaluator.ap(), 0.503647, abs_tol=1e-6)
     assert isclose(evaluator.ap_50(), 0.696973, abs_tol=1e-6)
@@ -43,3 +47,6 @@ def test_evaluation_no_confidence():
         max_detections=100,
         size_range=COCOEvaluator.ALL_RANGE
     )
+
+def test_evaluate_defaults(evaluator: COCOEvaluator):
+    evaluator.evaluate(iou_threshold=0.6)
