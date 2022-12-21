@@ -5,7 +5,7 @@ import pytest
 
 
 @pytest.fixture
-def evaluator():
+def evaluator() -> COCOEvaluator:
     coco_gt = AnnotationSet.from_coco(coco_gts_path)
     coco_det = coco_gt.from_results(coco_results_path)
 
@@ -15,7 +15,7 @@ def evaluator():
     )
 
 
-def test_evaluation(evaluator):
+def test_evaluation(evaluator: COCOEvaluator):
     # Official figures returned by pycocotools (see pycocotools_results.py)
     assert isclose(evaluator.ap(), 0.503647, abs_tol=1e-6)
     assert isclose(evaluator.ap_50(), 0.696973, abs_tol=1e-6)
@@ -36,5 +36,5 @@ def test_evaluation(evaluator):
     assert evaluator.evaluate.cache_info().currsize == 60
 
 
-def test_evaluate_defaults(evaluator):
+def test_evaluate_defaults(evaluator: COCOEvaluator):
     evaluator.evaluate(iou_threshold=0.6)
