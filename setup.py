@@ -17,7 +17,7 @@ EXTRA_REQ = ["tox", "pytest", "twine", "build", "pycocotools", "Pillow"]
 with open("README.md", encoding="utf-8") as f:
     LONG_DESCRIPTION = f.read()
 
-with (Path("src/", NAME) / "__version__.py").open(encoding="utf-8") as f:
+with (Path("src", NAME) / "__version__.py").open(encoding="utf-8") as f:
     about = {}
     exec(f.read(), about)
     VERSION = about["__version__"]
