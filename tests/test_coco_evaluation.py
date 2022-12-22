@@ -50,3 +50,36 @@ def test_evaluation_no_confidence():
 
 def test_evaluate_defaults(evaluator: COCOEvaluator):
     evaluator.evaluate(iou_threshold=0.6)
+
+
+def test_evaluator_no_confidence_invariance_to_bboxes_order():
+    from globox import AnnotationSet, Annotation, BoundingBox
+    
+    gts = AnnotationSet(annotations=[
+        Annotation("img_1", image_size=(100, 100), boxes=[
+            BoundingBox(label="cat", xmin=0, ymin=0, xmax=3, ymax=3),
+            BoundingBox(label="cat", xmin=1, ymin=0, xmax=4, ymax=3),
+        ])
+    ])
+    
+    dets_1 = AnnotationSet(annotations=[
+        Annotation("img_1", image_size=(100, 100), boxes=[
+            BoundingBox(label="cat", xmin=-1, ymin=0, xmax=2, ymax=3),
+            BoundingBox(label="cat", xmin=0, ymin=0, xmax=3, ymax=3),
+        ])
+    ])
+    
+    dets_2 = AnnotationSet(annotations=[
+        Annotation("img_1", image_size=(100, 100), boxes=[
+            BoundingBox(label="cat", xmin=0, ymin=0, xmax=3, ymax=3),
+            BoundingBox(label="cat", xmin=-1, ymin=0, xmax=2, ymax=3),
+        ])
+    ])
+    
+    evaluator_1 = COCOEvaluator(ground_truths=gts, predictions=dets_1)
+    ap_1 = evaluator_1.ap_50()
+    
+    evaluator_2 = COCOEvaluator(ground_truths=gts, predictions=dets_2)
+    ap_2 = evaluator_2.ap_50()
+    
+    assert isclose(ap_1, ap_2)
