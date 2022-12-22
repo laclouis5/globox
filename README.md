@@ -300,7 +300,4 @@ This repo is based on the work of [Rafael Padilla](https://github.com/rafaelpadi
 
 ## Contribution
 
-Feel free to contribute, any help you can offer with this project is most welcome. Some suggestions where help is needed:
-* CLI tools and scripts
-* Building a PIP package
-* Developing a UI interface
+Feel free to contribute, any help you can offer with this project is most welcome.
