@@ -16,6 +16,8 @@ def evaluator() -> COCOEvaluator:
 
 
 def test_evaluation(evaluator: COCOEvaluator):
+    evaluator.clear_cache()
+    
     # Official figures returned by pycocotools (see pycocotools_results.py)
     assert isclose(evaluator.ap(), 0.503647, abs_tol=1e-6)
     assert isclose(evaluator.ap_50(), 0.696973, abs_tol=1e-6)
@@ -47,9 +49,6 @@ def test_evaluation_no_confidence():
         max_detections=100,
         size_range=COCOEvaluator.ALL_RANGE
     )
-
-def test_evaluate_defaults(evaluator: COCOEvaluator):
-    evaluator.evaluate(iou_threshold=0.6)
 
 
 def test_evaluator_no_confidence_invariance_to_bboxes_order():
