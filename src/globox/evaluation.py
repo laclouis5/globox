@@ -228,8 +228,9 @@ class COCOEvaluator:
             self.labels = []
         else:
             self.labels = list(labels)
+            
+        self._cached_evaluate = lru_cache(maxsize=60 * 4)(self.__evaluate)
 
-    @lru_cache(maxsize=60 * 4)  # Enough room for 4 times all standard metrics
     def evaluate(self, *,
         iou_threshold: float,
         max_detections: int = 100,
@@ -250,6 +251,18 @@ class COCOEvaluator:
         Returns:
         - An evaluation holding the metrics.
         """
+        
+        return self._cached_evaluate(
+            iou_threshold=iou_threshold,
+            max_detections=max_detections,
+            size_range=size_range
+        )
+
+    def __evaluate(self, *,
+        iou_threshold: float,
+        max_detections: int = 100,
+        size_range: Optional["tuple[float, float]"] = None,
+    ) -> Evaluation:
         if size_range is None:
             size_range = COCOEvaluator.ALL_RANGE
 
@@ -480,7 +493,7 @@ class COCOEvaluator:
         assert low >= 0.0 and high >= low
 
     def clear_cache(self):
-        self.evaluate.cache_clear()
+        self._cached_evaluate.cache_clear()
 
     def _evaluate_all(self, *, verbose: bool = False): 
         params = chain(
