@@ -36,9 +36,7 @@ setup(
     package_dir={"": "src"},
     python_requires=PYTHON,
     install_requires=REQUIREMENTS,
-    extras_require={
-        "dev": EXTRA_REQ
-    }, 
+    extras_require={"dev": EXTRA_REQ},
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
@@ -46,13 +44,19 @@ setup(
         "Operating System :: OS Independent",
     ],
     keywords=[
-        "annotation", "metrics", "object detection", "bounding boxes", 
-        "yolo", "openimages", "cvat", "coco", "pascal voc", "average precision", 
+        "annotation",
+        "metrics",
+        "object detection",
+        "bounding boxes",
+        "yolo",
+        "openimages",
+        "cvat",
+        "coco",
+        "pascal voc",
+        "average precision",
         "mean average precision",
     ],
     entry_points={
-        "console_scripts": [
-            f"{NAME}={NAME}.cli:main"
-        ],
-    }
+        "console_scripts": [f"{NAME}={NAME}.cli:main"],
+    },
 )
