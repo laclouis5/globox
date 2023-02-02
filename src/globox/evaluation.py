@@ -23,11 +23,11 @@ class RecallSteps(Enum):
 
 
 class PartialEvaluationItem:
-
-    def __init__(self, 
+    def __init__(
+        self,
         tps: Optional["list[bool]"] = None,
         scores: Optional["list[float]"] = None,
-        npos: int = 0
+        npos: int = 0,
     ) -> None:
         self._tps = tps or []
         self._scores = scores or []
@@ -48,7 +48,7 @@ class PartialEvaluationItem:
         copy_ = copy(self)
         copy_ += other
         return copy_
-    
+
     @property
     def ndet(self) -> int:
         return len(self._tps)
@@ -91,8 +91,10 @@ class EvaluationItem:
     """Evaluation of COCO metrics for one label."""
 
     __slots__ = ("tp", "ndet", "npos", "ap", "ar")
-    
-    def __init__(self, tp: int, ndet: int, npos: int, ap: Optional[float], ar: Optional[float]) -> None:
+
+    def __init__(
+        self, tp: int, ndet: int, npos: int, ap: Optional[float], ar: Optional[float]
+    ) -> None:
         self.tp = tp
         self.ndet = ndet
         self.npos = npos
@@ -138,7 +140,7 @@ class PartialEvaluation(DefaultDict[str, PartialEvaluationItem]):
 
     def clear_cache(self):
         self._cache.clear()
-    
+
     def evaluate(self) -> "Evaluation":
         return Evaluation(self)
 
@@ -149,7 +151,7 @@ class Evaluation(Dict[str, EvaluationItem]):
     def __init__(self, evaluation: PartialEvaluation) -> None:
         super().__init__()
         self.update({label: ev.evaluate() for label, ev in evaluation.items()})
-        
+
         self._ap = evaluation.ap()
         self._ar = evaluation.ar()
 
@@ -167,31 +169,33 @@ class MultiThresholdEvaluation(Dict[str, Dict[str, float]]):
 
     def __init__(self, evaluations: "list[Evaluation]") -> None:
         result: "defaultdict[str, list[EvaluationItem]]" = defaultdict(list)
-        
+
         for evaluation in evaluations:
             for label, ev_item in evaluation.items():
                 result[label].append(ev_item)
 
-        super().__init__({
-            label: {
-                "ap": mean(ev.ap for ev in evs if not isnan(ev.ap)), 
-                "ar": mean(ev.ar for ev in evs if not isnan(ev.ar))
-            } 
-            for label, evs in result.items()
-        })
+        super().__init__(
+            {
+                label: {
+                    "ap": mean(ev.ap for ev in evs if not isnan(ev.ap)),
+                    "ar": mean(ev.ar for ev in evs if not isnan(ev.ar)),
+                }
+                for label, evs in result.items()
+            }
+        )
 
     def ap(self) -> float:
         return mean(ev["ap"] for ev in self.values() if not isnan(ev["ap"]))
-    
+
     def ar(self) -> float:
         return mean(ev["ar"] for ev in self.values() if not isnan(ev["ar"]))
-    
+
 
 class COCOEvaluator:
     """Class for evaluating standard COCO metrics efficently.
-    
-    This class use an internal cache to store evaluation results, 
-    hence, repeated calls to '.evaluate(...)', '.ap50()' and other 
+
+    This class use an internal cache to store evaluation results,
+    hence, repeated calls to '.evaluate(...)', '.ap50()' and other
     such methods are fast.
 
     There are lots of asserts in the evaluation hot path to ensure
@@ -210,13 +214,23 @@ class COCOEvaluator:
 
     CSV_HEADERS = (
         "label",
-        "AP 50:95", "AP 50", "AP 75", 
-        "AP S", "AP M", "AP L", 
-        "AR 1", "AR 10", "AR 100", 
-        "AR S", "AR M", "AR L"
+        "AP 50:95",
+        "AP 50",
+        "AP 75",
+        "AP S",
+        "AP M",
+        "AP L",
+        "AR 1",
+        "AR 10",
+        "AR 100",
+        "AR S",
+        "AR M",
+        "AR L",
     )
 
-    def __init__(self, *,
+    def __init__(
+        self,
+        *,
         ground_truths: AnnotationSet,
         predictions: AnnotationSet,
         labels: Optional[Iterable[str]] = None,
@@ -228,10 +242,12 @@ class COCOEvaluator:
             self.labels = []
         else:
             self.labels = list(labels)
-            
+
         self._cached_evaluate = lru_cache(maxsize=60 * 4)(self.__evaluate)
 
-    def evaluate(self, *,
+    def evaluate(
+        self,
+        *,
         iou_threshold: float,
         max_detections: int = 100,
         size_range: Optional["tuple[float, float]"] = None,
@@ -240,25 +256,27 @@ class COCOEvaluator:
         is cached so that repeated call as fast.
 
         Parameters:
-        - iou_threshold: the bounding box iou threshold to 
+        - iou_threshold: the bounding box iou threshold to
         consider a ground-truth to detection association valid.
         - max_detections: the maximum number of detections taken
         into account (sorted by descreasing confidence). Defaults
         to 100.
-        - size_range: the range of size (bounding box area) to 
+        - size_range: the range of size (bounding box area) to
         consider. Defaults to all sizes.
 
         Returns:
         - An evaluation holding the metrics.
         """
-        
+
         return self._cached_evaluate(
             iou_threshold=iou_threshold,
             max_detections=max_detections,
-            size_range=size_range
+            size_range=size_range,
         )
 
-    def __evaluate(self, *,
+    def __evaluate(
+        self,
+        *,
         iou_threshold: float,
         max_detections: int = 100,
         size_range: Optional["tuple[float, float]"] = None,
@@ -269,12 +287,12 @@ class COCOEvaluator:
         self._assert_params(iou_threshold, max_detections, size_range)
 
         return self.evaluate_annotations(
-            self._predictions, 
+            self._predictions,
             self._ground_truths,
-            iou_threshold, 
-            max_detections, 
+            iou_threshold,
+            max_detections,
             size_range,
-            self.labels
+            self.labels,
         ).evaluate()
 
     def ap(self) -> float:
@@ -291,19 +309,19 @@ class COCOEvaluator:
 
     def ap_medium(self) -> float:
         return self.medium_evaluation().ap()
-    
+
     def ap_large(self) -> float:
         return self.large_evaluation().ap()
-    
+
     def ar_1(self) -> float:
         return self.ndets_1_evaluation().ar()
 
     def ar_10(self) -> float:
         return self.ndets_10_evaluation().ar()
-    
+
     def ar_100(self) -> float:
         return self.ndets_100_evaluation().ar()
-    
+
     def ar_small(self) -> float:
         return self.small_evaluation().ar()
 
@@ -316,27 +334,21 @@ class COCOEvaluator:
     def ap_evaluation(self) -> MultiThresholdEvaluation:
         evaluations = [
             self.evaluate(
-                iou_threshold=t, 
-                max_detections=100, 
-                size_range=self.ALL_RANGE
-            ) 
+                iou_threshold=t, max_detections=100, size_range=self.ALL_RANGE
+            )
             for t in self.AP_THRESHOLDS
         ]
-        
+
         return MultiThresholdEvaluation(evaluations)
 
     def ap_50_evaluation(self) -> Evaluation:
         return self.evaluate(
-            iou_threshold=0.5, 
-            max_detections=100, 
-            size_range=self.ALL_RANGE
+            iou_threshold=0.5, max_detections=100, size_range=self.ALL_RANGE
         )
 
     def ap_75_evaluation(self) -> Evaluation:
         return self.evaluate(
-            iou_threshold=0.75, 
-            max_detections=100, 
-            size_range=self.ALL_RANGE
+            iou_threshold=0.75, max_detections=100, size_range=self.ALL_RANGE
         )
 
     def small_evaluation(self) -> MultiThresholdEvaluation:
@@ -357,25 +369,30 @@ class COCOEvaluator:
     def ndets_100_evaluation(self) -> MultiThresholdEvaluation:
         return self._ndets_evaluation(100)
 
-    def _range_evalation(self, range_: "tuple[float, float]") -> MultiThresholdEvaluation:
+    def _range_evalation(
+        self, range_: "tuple[float, float]"
+    ) -> MultiThresholdEvaluation:
         evaluations = [
-            self.evaluate(iou_threshold=t, max_detections=100, size_range=range_) 
+            self.evaluate(iou_threshold=t, max_detections=100, size_range=range_)
             for t in self.AP_THRESHOLDS
         ]
-        
+
         return MultiThresholdEvaluation(evaluations)
 
     def _ndets_evaluation(self, max_dets: int) -> MultiThresholdEvaluation:
         evaluations = [
-            self.evaluate(iou_threshold=t, max_detections=max_dets, size_range=self.ALL_RANGE) 
+            self.evaluate(
+                iou_threshold=t, max_detections=max_dets, size_range=self.ALL_RANGE
+            )
             for t in self.AP_THRESHOLDS
         ]
-        
+
         return MultiThresholdEvaluation(evaluations)
 
     @classmethod
-    def evaluate_annotations(cls,
-        predictions: AnnotationSet, 
+    def evaluate_annotations(
+        cls,
+        predictions: AnnotationSet,
         ground_truths: AnnotationSet,
         iou_threshold: float,
         max_detections: int,
@@ -392,17 +409,18 @@ class COCOEvaluator:
             evaluation += cls.evaluate_annotation(
                 pred, gt, iou_threshold, max_detections, size_range, labels
             )
-            
+
         return evaluation
 
     @classmethod
-    def evaluate_annotation(cls,
-        prediction: Annotation, 
+    def evaluate_annotation(
+        cls,
+        prediction: Annotation,
         ground_truth: Annotation,
         iou_threshold: float,
         max_detections: int,
         size_range: "tuple[float, float]",
-        labels: Optional[Iterable[str]] = None
+        labels: Optional[Iterable[str]] = None,
     ) -> PartialEvaluation:
         assert prediction.image_id == ground_truth.image_id
 
@@ -414,7 +432,7 @@ class COCOEvaluator:
         for label in labels:
             dets = preds.get(label, [])
             gts = refs.get(label, [])
-            
+
             evaluation[label] += cls.evaluate_boxes(
                 dets, gts, iou_threshold, max_detections, size_range
             )
@@ -422,12 +440,13 @@ class COCOEvaluator:
         return evaluation
 
     @classmethod
-    def evaluate_boxes(cls,
+    def evaluate_boxes(
+        cls,
         predictions: "list[BoundingBox]",
         ground_truths: "list[BoundingBox]",
         iou_threshold: float,
         max_detections: int,
-        size_range: "tuple[float, float]"
+        size_range: "tuple[float, float]",
     ) -> PartialEvaluationItem:
         assert all(p.is_detection for p in predictions)
         assert all(g.is_ground_truth for g in ground_truths)
@@ -441,7 +460,7 @@ class COCOEvaluator:
 
         gts = sorted(ground_truths, key=lambda box: not box.area_in(size_range))
         gt_ignore = [not g.area_in(size_range) for g in gts]  # Redundant `area_in`
-        
+
         gt_matches = {}
         dt_matches = {}
 
@@ -453,60 +472,54 @@ class COCOEvaluator:
                 if idx_gt in gt_matches:
                     continue
                 if idx_best > -1 and not gt_ignore[idx_best] and gt_ignore[idx_gt]:
-                    break 
-                
+                    break
+
                 iou = det.iou(gt)
                 if iou < best_iou:
                     continue
 
                 best_iou = iou
                 idx_best = idx_gt
-            
+
             if idx_best == -1 or best_iou < iou_threshold:
                 continue
 
             dt_matches[idx_dt] = idx_best
             gt_matches[idx_best] = idx_dt
-        
-        # This is overly complicated
-        dt_ignore = [gt_ignore[dt_matches[i]] if i in dt_matches else not d.area_in(size_range)
-            for i, d in enumerate(dets)]
 
-        scores = [d._confidence
-            for i, d in enumerate(dets) if not dt_ignore[i]]
-        matches = [i in dt_matches
-            for i in range(len(dets)) if not dt_ignore[i]]
+        # This is overly complicated
+        dt_ignore = [
+            gt_ignore[dt_matches[i]] if i in dt_matches else not d.area_in(size_range)
+            for i, d in enumerate(dets)
+        ]
+
+        scores = [d._confidence for i, d in enumerate(dets) if not dt_ignore[i]]
+        matches = [i in dt_matches for i in range(len(dets)) if not dt_ignore[i]]
         npos = sum(1 for i in range(len(gts)) if not gt_ignore[i])
 
         return PartialEvaluationItem(matches, scores, npos)
 
     @staticmethod
     def _assert_params(
-        iou_threshold: float,
-        max_detections: int, 
-        size_range: "tuple[float, float]"
+        iou_threshold: float, max_detections: int, size_range: "tuple[float, float]"
     ):
         assert 0.0 <= iou_threshold <= 1.0
         assert max_detections >= 0
-        
+
         low, high = size_range
         assert low >= 0.0 and high >= low
 
     def clear_cache(self):
         self._cached_evaluate.cache_clear()
 
-    def _evaluate_all(self, *, verbose: bool = False): 
+    def _evaluate_all(self, *, verbose: bool = False):
         params = chain(
             product(
-                self.AP_THRESHOLDS, 
+                self.AP_THRESHOLDS,
                 (100,),
-                (self.SMALL_RANGE, self.MEDIUM_RANGE, self.LARGE_RANGE, self.ALL_RANGE)
+                (self.SMALL_RANGE, self.MEDIUM_RANGE, self.LARGE_RANGE, self.ALL_RANGE),
             ),
-            product(
-                self.AP_THRESHOLDS, 
-                (1, 10), 
-                (self.ALL_RANGE,)
-            )
+            product(self.AP_THRESHOLDS, (1, 10), (self.ALL_RANGE,)),
         )
 
         for t, d, r in tqdm(params, desc="Evaluation", total=60, disable=not verbose):
@@ -523,10 +536,18 @@ class COCOEvaluator:
         table.add_column("Label", footer="Total")
 
         metrics = {
-            "AP 50:95": self.ap(), "AP 50": self.ap_50(), "AP 75": self.ap_75(), 
-            "AP S": self.ap_small(), "AP M": self.ap_medium(), "AP L": self.ap_large(), 
-            "AR 1": self.ar_1(), "AR 10": self.ar_10(), "AR 100": self.ar_100(), 
-            "AR S": self.ar_small(), "AR M": self.ar_medium(), "AR L": self.ar_large()
+            "AP 50:95": self.ap(),
+            "AP 50": self.ap_50(),
+            "AP 75": self.ap_75(),
+            "AP S": self.ap_small(),
+            "AP M": self.ap_medium(),
+            "AP L": self.ap_large(),
+            "AR 1": self.ar_1(),
+            "AR 10": self.ar_10(),
+            "AR 100": self.ar_100(),
+            "AR S": self.ar_small(),
+            "AR M": self.ar_medium(),
+            "AR L": self.ar_large(),
         }
 
         for metric_name, metric in metrics.items():
@@ -551,33 +572,42 @@ class COCOEvaluator:
             ar_m = self.medium_evaluation()[label]["ar"]
             ar_l = self.large_evaluation()[label]["ar"]
 
-            table.add_row(label, 
-                f"{ap:.2%}", f"{ap_50:.2%}", f"{ap_75:.2%}", 
-                f"{ap_s:.2%}", f"{ap_m:.2%}", f"{ap_l:.2%}", 
-                f"{ar_1:.2%}", f"{ar_10:.2%}", f"{ar_100:.2%}", 
-                f"{ar_s:.2%}", f"{ar_m:.2%}", f"{ar_l:.2%}"
+            table.add_row(
+                label,
+                f"{ap:.2%}",
+                f"{ap_50:.2%}",
+                f"{ap_75:.2%}",
+                f"{ap_s:.2%}",
+                f"{ap_m:.2%}",
+                f"{ap_l:.2%}",
+                f"{ar_1:.2%}",
+                f"{ar_10:.2%}",
+                f"{ar_100:.2%}",
+                f"{ar_s:.2%}",
+                f"{ar_m:.2%}",
+                f"{ar_l:.2%}",
             )
 
         table.header_style = "bold"
         table.footer_style = "bold"
         table.row_styles = ["none", "dim"]
-        
-        for c in table.columns[1:4]: 
+
+        for c in table.columns[1:4]:
             c.style = "red"
             c.header_style = "red"
             c.footer_style = "red"
-            
-        for c in table.columns[4:7]: 
+
+        for c in table.columns[4:7]:
             c.style = "magenta"
             c.header_style = "magenta"
             c.footer_style = "magenta"
-            
-        for c in table.columns[7:10]: 
+
+        for c in table.columns[7:10]:
             c.style = "blue"
             c.header_style = "blue"
             c.footer_style = "blue"
-            
-        for c in table.columns[10:13]: 
+
+        for c in table.columns[10:13]:
             c.style = "green"
             c.header_style = "green"
             c.footer_style = "green"
@@ -587,11 +617,11 @@ class COCOEvaluator:
     def save_csv(self, path: PathLike, *, verbose: bool = False):
         self._evaluate_all(verbose=verbose)
         labels = self.labels or sorted(self.ap_evaluation().keys())
-        
+
         with open_atomic(path, "w") as f:
             writer = csv.writer(f)
             writer.writerow(COCOEvaluator.CSV_HEADERS)
-        
+
             for label in labels:
                 ap = self.ap_evaluation()[label]["ap"]
                 ap_50 = self.ap_50_evaluation()[label].ap
@@ -610,20 +640,30 @@ class COCOEvaluator:
                 ar_l = self.large_evaluation()[label]["ar"]
 
                 row = (
-                    label, 
-                    ap, ap_50, ap_75, 
-                    ap_s, ap_m, ap_l, 
-                    ar_1, ar_10, ar_100, 
-                    ar_s, ar_m, ar_l
+                    label,
+                    ap,
+                    ap_50,
+                    ap_75,
+                    ap_s,
+                    ap_m,
+                    ap_l,
+                    ar_1,
+                    ar_10,
+                    ar_100,
+                    ar_s,
+                    ar_m,
+                    ar_l,
                 )
-                
+
                 writer.writerow(row)
 
     @classmethod
-    def _compute_ap(cls, scores: "list[float]", matched: "list[bool]", NP: int) -> float:
-        """ This curve tracing method has some quirks that do not appear when only unique confidence thresholds
-        are used (i.e. Scikit-learn's implementation), however, in order to be consistent, the COCO's method is reproduced. 
-        
+    def _compute_ap(
+        cls, scores: "list[float]", matched: "list[bool]", NP: int
+    ) -> float:
+        """This curve tracing method has some quirks that do not appear when only unique confidence thresholds
+        are used (i.e. Scikit-learn's implementation), however, in order to be consistent, the COCO's method is reproduced.
+
         Copyrights: https://github.com/rafaelpadilla/review_object_detection_metrics
         """
         if NP == 0:

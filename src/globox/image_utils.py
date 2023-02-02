@@ -28,7 +28,7 @@ def get_image_size(file_path: PathLike) -> "tuple[int, int]":
         - The image size (width, height)
     """
     file_path = Path(file_path).expanduser().resolve()
-    
+
     size = path.getsize(file_path)
 
     # be explicit with open arguments - we need binary mode
@@ -53,42 +53,44 @@ def _get_image_metadata_from_bytesio(input, size: int) -> "tuple[int, int]":
     data = input.read(26)
     msg = " raised while trying to decode as JPEG."
 
-    if (size >= 10) and data[:6] in (b'GIF87a', b'GIF89a'):
+    if (size >= 10) and data[:6] in (b"GIF87a", b"GIF89a"):
         # GIFs
         w, h = unpack("<HH", data[6:10])
         width = int(w)
         height = int(h)
-    elif ((size >= 24) and data.startswith(b'\211PNG\r\n\032\n')
-            and (data[12:16] == b'IHDR')):
+    elif (
+        (size >= 24)
+        and data.startswith(b"\211PNG\r\n\032\n")
+        and (data[12:16] == b"IHDR")
+    ):
         # PNGs
         w, h = unpack(">LL", data[16:24])
         width = int(w)
         height = int(h)
-    elif (size >= 16) and data.startswith(b'\211PNG\r\n\032\n'):
+    elif (size >= 16) and data.startswith(b"\211PNG\r\n\032\n"):
         # older PNGs
         w, h = unpack(">LL", data[8:16])
         width = int(w)
         height = int(h)
-    elif (size >= 2) and data.startswith(b'\377\330'):
+    elif (size >= 2) and data.startswith(b"\377\330"):
         # JPEG
         input.seek(0)
         input.read(2)
         b = input.read(1)
         try:
-            while (b and ord(b) != 0xDA):
-                while (ord(b) != 0xFF):
+            while b and ord(b) != 0xDA:
+                while ord(b) != 0xFF:
                     b = input.read(1)
-                while (ord(b) == 0xFF):
+                while ord(b) == 0xFF:
                     b = input.read(1)
-                if (ord(b) >= 0xC0 and ord(b) <= 0xC3):
+                if ord(b) >= 0xC0 and ord(b) <= 0xC3:
                     input.read(3)
                     h, w = unpack(">HH", input.read(4))
                     width = int(w)
                     height = int(h)
                     break
                 else:
-                    input.read(
-                        int(unpack(">H", input.read(2))[0]) - 2) 
+                    input.read(int(unpack(">H", input.read(2))[0]) - 2)
                 b = input.read(1)
         except struct_error:
             raise UnknownImageFormat("StructError" + msg)
@@ -96,7 +98,7 @@ def _get_image_metadata_from_bytesio(input, size: int) -> "tuple[int, int]":
             raise UnknownImageFormat("ValueError" + msg)
         except Exception as e:
             raise UnknownImageFormat(e.__class__.__name__ + msg)
-    elif (size >= 26) and data.startswith(b'BM'):
+    elif (size >= 26) and data.startswith(b"BM"):
         # BMP
         headersize = unpack("<I", data[14:18])[0]
         if headersize == 12:
@@ -109,9 +111,7 @@ def _get_image_metadata_from_bytesio(input, size: int) -> "tuple[int, int]":
             # as h is negative when stored upside down
             height = abs(int(h))
         else:
-            raise UnknownImageFormat(
-                "Unkown DIB header size:" +
-                str(headersize))
+            raise UnknownImageFormat("Unkown DIB header size:" + str(headersize))
     elif (size >= 8) and data[:4] in (b"II\052\000", b"MM\000\052"):
         # Standard TIFF, big- or little-endian
         # BigTIFF and other different but TIFF-like formats are not
@@ -132,7 +132,7 @@ def _get_image_metadata_from_bytesio(input, size: int) -> "tuple[int, int]":
             9: (4, boChar + "l"),  # SLONG
             10: (8, boChar + "ll"),  # SRATIONAL
             11: (4, boChar + "f"),  # FLOAT
-            12: (8, boChar + "d")   # DOUBLE
+            12: (8, boChar + "d"),  # DOUBLE
         }
         ifdOffset = unpack(boChar + "L", data[4:8])[0]
         try:
@@ -148,15 +148,13 @@ def _get_image_metadata_from_bytesio(input, size: int) -> "tuple[int, int]":
                 input.seek(entryOffset)
                 tag = input.read(2)
                 tag = unpack(boChar + "H", tag)[0]
-                if(tag == 256 or tag == 257):
+                if tag == 256 or tag == 257:
                     # if type indicates that value fits into 4 bytes, value
                     # offset is not an offset but value itself
                     type = input.read(2)
                     type = unpack(boChar + "H", type)[0]
                     if type not in tiffTypes:
-                        raise UnknownImageFormat(
-                            "Unkown TIFF field type:" +
-                            str(type))
+                        raise UnknownImageFormat("Unkown TIFF field type:" + str(type))
                     typeSize = tiffTypes[type][0]
                     typeChar = tiffTypes[type][1]
                     input.seek(entryOffset + 8)
@@ -171,7 +169,7 @@ def _get_image_metadata_from_bytesio(input, size: int) -> "tuple[int, int]":
         except Exception as e:
             raise UnknownImageFormat(str(e))
     elif size >= 2:
-            # see http://en.wikipedia.org/wiki/ICO_(file_format)
+        # see http://en.wikipedia.org/wiki/ICO_(file_format)
         input.seek(0)
         reserved = input.read(2)
         if 0 != unpack("<H", reserved)[0]:
@@ -182,6 +180,7 @@ def _get_image_metadata_from_bytesio(input, size: int) -> "tuple[int, int]":
         num = unpack("<H", num)[0]
         if num > 1:
             import warnings
+
             warnings.warn("ICO File contains more than one image")
         # http://msdn.microsoft.com/en-us/library/ms997538.aspx
         w = input.read(1)

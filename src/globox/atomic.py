@@ -7,14 +7,11 @@ from typing import Optional
 
 
 @contextmanager
-def _tempfile(
-    suffix: str = "~", 
-    dir: Optional[PathLike] = None
-):
+def _tempfile(suffix: str = "~", dir: Optional[PathLike] = None):
     tmp_file = tmp.NamedTemporaryFile(delete=False, suffix=suffix, dir=dir)
     tmp_name = tmp_file.name
     tmp_file.file.close()
-    
+
     try:
         yield tmp_name
     finally:
@@ -29,7 +26,7 @@ def _tempfile(
 
 @contextmanager
 def open_atomic(file_path: PathLike, *args, **kwargs):
-    fsync = kwargs.pop('fsync', False)
+    fsync = kwargs.pop("fsync", False)
 
     with _tempfile(dir=os.path.dirname(os.path.abspath(file_path))) as tmp_path:
         with open(tmp_path, *args, **kwargs) as file:
@@ -39,5 +36,5 @@ def open_atomic(file_path: PathLike, *args, **kwargs):
                 if fsync:
                     file.flush()
                     os.fsync(file.fileno())
-        
+
         os.replace(tmp_path, file_path)

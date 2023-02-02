@@ -23,13 +23,13 @@ def benchmark(repetitions: int = 5):
     coco_det = coco_gt.from_results(cst.coco_results_path)
 
     evaluator = COCOEvaluator(
-        ground_truths=coco_gt, 
+        ground_truths=coco_gt,
         predictions=coco_det,
     )
 
     with TemporaryDirectory() as tmp:
         tmp = Path(tmp)
-        
+
         coco_out = tmp / "coco_out.json"
         cvat = tmp / "cvat.xml"
         oi = tmp / "openimage.csv"
@@ -37,7 +37,7 @@ def benchmark(repetitions: int = 5):
         xml = tmp / "xml"
         yolo = tmp / "yolo"
         txt = tmp / "txt"
-        
+
         start = perf_counter()
 
         coco_s = timeit(lambda: gts.save_coco(coco_out), number=repetitions)
@@ -45,16 +45,31 @@ def benchmark(repetitions: int = 5):
         oi_s = timeit(lambda: gts.save_openimage(oi), number=repetitions)
         labelme_s = timeit(lambda: gts.save_labelme(labelme), number=repetitions)
         xml_s = timeit(lambda: gts.save_xml(xml), number=repetitions)
-        yolo_s = timeit(lambda: gts.save_yolo_darknet(yolo, label_to_id=label_to_id), number=repetitions)
-        txt_s = timeit(lambda: gts.save_txt(txt, label_to_id=label_to_id), number=repetitions)
+        yolo_s = timeit(
+            lambda: gts.save_yolo_darknet(yolo, label_to_id=label_to_id),
+            number=repetitions,
+        )
+        txt_s = timeit(
+            lambda: gts.save_txt(txt, label_to_id=label_to_id), number=repetitions
+        )
 
         coco_p = timeit(lambda: AnnotationSet.from_coco(coco), number=repetitions)
         cvat_p = timeit(lambda: AnnotationSet.from_cvat(cvat), number=repetitions)
-        oi_p = timeit(lambda: AnnotationSet.from_openimage(oi, image_folder=images), number=repetitions)
-        labelme_p = timeit(lambda: AnnotationSet.from_labelme(labelme), number=repetitions)
+        oi_p = timeit(
+            lambda: AnnotationSet.from_openimage(oi, image_folder=images),
+            number=repetitions,
+        )
+        labelme_p = timeit(
+            lambda: AnnotationSet.from_labelme(labelme), number=repetitions
+        )
         xml_p = timeit(lambda: AnnotationSet.from_xml(xml), number=repetitions)
-        yolo_p = timeit(lambda: AnnotationSet.from_yolo_darknet(yolo, image_folder=images), number=repetitions)
-        txt_p = timeit(lambda: AnnotationSet.from_txt(txt, image_folder=images), number=repetitions)
+        yolo_p = timeit(
+            lambda: AnnotationSet.from_yolo_darknet(yolo, image_folder=images),
+            number=repetitions,
+        )
+        txt_p = timeit(
+            lambda: AnnotationSet.from_txt(txt, image_folder=images), number=repetitions
+        )
 
     eval_t = timeit(lambda: evaluator._evaluate_all(), number=repetitions) / repetitions
     stats_t = timeit(lambda: gts.show_stats(), number=repetitions) / repetitions
@@ -62,13 +77,13 @@ def benchmark(repetitions: int = 5):
     stop = perf_counter()
 
     headers = ["COCO", "CVAT", "Open Image", "LabelMe", "Pascal VOC", "YOLO", "Txt"]
-    
+
     parse_times = (
-        f"{(t / repetitions):.2f}s" 
+        f"{(t / repetitions):.2f}s"
         for t in (coco_p, cvat_p, oi_p, labelme_p, xml_p, yolo_p, txt_p)
     )
     save_times = (
-        f"{(t / repetitions):.2f}s" 
+        f"{(t / repetitions):.2f}s"
         for t in (coco_s, cvat_s, oi_s, labelme_s, xml_s, yolo_s, txt_s)
     )
 
@@ -76,7 +91,7 @@ def benchmark(repetitions: int = 5):
     table.add_column("")
     for header in headers:
         table.add_column(header, justify="right")
-    
+
     table.add_row("Parsing", *parse_times)
     table.add_row("Saving", *save_times)
 
@@ -89,7 +104,12 @@ def benchmark(repetitions: int = 5):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("--repetitions", "-n", default=5, type=int, 
-        help="Number of repetitions for timeit.")
+    parser.add_argument(
+        "--repetitions",
+        "-n",
+        default=5,
+        type=int,
+        help="Number of repetitions for timeit.",
+    )
     args = parser.parse_args()
     benchmark(repetitions=args.repetitions)

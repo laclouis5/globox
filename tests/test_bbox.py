@@ -82,8 +82,10 @@ def test_iou():
 def test_create():
     with pytest.raises(AssertionError):
         box = BoundingBox.create(label="", coords=(0, 0, 0, 0), relative=True)
-    
-    box = BoundingBox.create(label="", coords=(0, 0, 0.75, 1.0), relative=True, image_size=(100, 200))
+
+    box = BoundingBox.create(
+        label="", coords=(0, 0, 0.75, 1.0), relative=True, image_size=(100, 200)
+    )
     assert isclose(box.xmin, 0)
     assert isclose(box.ymin, 0)
     assert isclose(box.xmax, 75)
@@ -93,7 +95,13 @@ def test_create():
     assert isclose(box.width, 75)
     assert isclose(box.height, 200)
 
-    box = BoundingBox.create(label="", coords=(0.5, 0.5, 0.5, 1.0), box_format=BoxFormat.XYWH, relative=True, image_size=(100, 200))
+    box = BoundingBox.create(
+        label="",
+        coords=(0.5, 0.5, 0.5, 1.0),
+        box_format=BoxFormat.XYWH,
+        relative=True,
+        image_size=(100, 200),
+    )
     assert isclose(box.xmin, 25)
     assert isclose(box.ymin, 0)
     assert isclose(box.xmax, 75)
@@ -103,7 +111,13 @@ def test_create():
     assert isclose(box.width, 50)
     assert isclose(box.height, 200)
 
-    box = BoundingBox.create(label="", coords=(0, 0, 0.5, 1.0), box_format=BoxFormat.LTWH, relative=True, image_size=(100, 200))
+    box = BoundingBox.create(
+        label="",
+        coords=(0, 0, 0.5, 1.0),
+        box_format=BoxFormat.LTWH,
+        relative=True,
+        image_size=(100, 200),
+    )
     assert isclose(box.xmin, 0)
     assert isclose(box.ymin, 0)
     assert isclose(box.xmax, 50)
@@ -112,7 +126,7 @@ def test_create():
     assert isclose(box.ymid, 100)
     assert isclose(box.width, 50)
     assert isclose(box.height, 200)
-    
+
 
 def test_txt_conversion():
     box = BoundingBox.create(label="dining table", coords=(0, 0, 10, 10))
@@ -123,141 +137,115 @@ def test_txt_conversion():
     box = BoundingBox.create(label="dining_table", coords=(0, 0, 10, 10))
     with pytest.raises(AssertionError):
         _ = box.to_txt(separator="\n")
-        
+
 
 def test_to_txt_conf_last():
     box = BoundingBox.create(label="label", coords=(0, 0, 10, 10), confidence=0.5)
-    
+
     line = box.to_txt(conf_last=True)
     assert line == "label 0 0 10 10 0.5"
 
     line = box.to_txt()
     assert line == "label 0.5 0 0 10 10"
-    
+
 
 def test_to_yolo_conf_last():
     box = BoundingBox.create(label="label", coords=(0, 0, 10, 10), confidence=0.25)
-    
+
     line = box.to_yolo(image_size=(10, 10), conf_last=True)
     assert line == "label 0.5 0.5 1.0 1.0 0.25"
-    
+
     line = box.to_yolo(image_size=(10, 10))
     assert line == "label 0.25 0.5 0.5 1.0 1.0"
-    
+
 
 def test_from_txt_conf_last():
     line = "label 10 20 30 40 0.25"
     box = BoundingBox.from_txt(line, conf_last=True)
     assert box.confidence == 0.25
-    
+
     line = "label 0.25 10 20 30 40"
     box = BoundingBox.from_txt(line)
     assert box.confidence == 0.25
-    
+
 
 def test_from_yolo_v5():
     line = "label 0.25 0.25 0.5 0.5 0.25"
     bbox = BoundingBox.from_yolo_v5(line, image_size=(100, 100))
-    
+
     assert bbox.label == "label"
     assert bbox.confidence == 0.25
-    
+
     (xmin, ymin, xmax, ymax) = bbox.ltrb
-    
+
     assert isclose(xmin, 0.0)
     assert isclose(ymin, 0.0)
     assert isclose(xmax, 50.0)
     assert isclose(ymax, 50.0)
-    
+
     assert isclose(bbox.confidence, 0.25)
-    
+
 
 def test_to_yolo_darknet():
-    bbox = BoundingBox(label="label", xmin=0.0, ymin=0.0, xmax=50.0, ymax=50.0, confidence=0.25)
+    bbox = BoundingBox(
+        label="label", xmin=0.0, ymin=0.0, xmax=50.0, ymax=50.0, confidence=0.25
+    )
     string = bbox.to_yolo_darknet(image_size=(100, 100))
-    
+
     assert string == "label 0.25 0.25 0.25 0.5 0.5"
 
 
 def test_to_yolo_v5():
-    bbox = BoundingBox(label="label", xmin=0.0, ymin=0.0, xmax=50.0, ymax=50.0, confidence=0.25)
+    bbox = BoundingBox(
+        label="label", xmin=0.0, ymin=0.0, xmax=50.0, ymax=50.0, confidence=0.25
+    )
     string = bbox.to_yolo_v5(image_size=(100, 100))
-    
+
     assert string == "label 0.25 0.25 0.5 0.5 0.25"
 
-    
+
 def test_eq():
     box = BoundingBox(
-        label="image_0.jpg",
-        xmin=1.0,
-        ymin=2.0,
-        xmax=4.0,
-        ymax=8.0,
-        confidence=0.5
+        label="image_0.jpg", xmin=1.0, ymin=2.0, xmax=4.0, ymax=8.0, confidence=0.5
     )
-    
+
     assert box == box
-    
+
     # Same
     b1 = BoundingBox(
-        label="image_0.jpg",
-        xmin=1.0,
-        ymin=2.0,
-        xmax=4.0,
-        ymax=8.0,
-        confidence=0.5
+        label="image_0.jpg", xmin=1.0, ymin=2.0, xmax=4.0, ymax=8.0, confidence=0.5
     )
-    
+
     assert box == b1
-    
+
     # Different label
     b2 = BoundingBox(
-        label="image_1.jpg",
-        xmin=1.0,
-        ymin=2.0,
-        xmax=4.0,
-        ymax=8.0,
-        confidence=0.5
+        label="image_1.jpg", xmin=1.0, ymin=2.0, xmax=4.0, ymax=8.0, confidence=0.5
     )
-    
+
     assert box != b2
-    
+
     # Different coords
     b3 = BoundingBox(
-        label="image_0.jpg",
-        xmin=0.0,
-        ymin=2.0,
-        xmax=4.0,
-        ymax=8.0,
-        confidence=0.5
+        label="image_0.jpg", xmin=0.0, ymin=2.0, xmax=4.0, ymax=8.0, confidence=0.5
     )
-    
+
     assert box != b3
-    
+
     # Different confidence
     b4 = BoundingBox(
-        label="image_0.jpg",
-        xmin=1.0,
-        ymin=2.0,
-        xmax=4.0,
-        ymax=8.0,
-        confidence=0.25
+        label="image_0.jpg", xmin=1.0, ymin=2.0, xmax=4.0, ymax=8.0, confidence=0.25
     )
-    
+
     assert box != b4
-    
+
     # No confidence
     b5 = BoundingBox(
-        label="image_0.jpg",
-        xmin=1.0,
-        ymin=2.0,
-        xmax=4.0,
-        ymax=8.0,
-        confidence=None
+        label="image_0.jpg", xmin=1.0, ymin=2.0, xmax=4.0, ymax=8.0, confidence=None
     )
-    
+
     assert box != b5
-    
+
     # Different object
     with pytest.raises(NotImplementedError):
         _ = box == "Different object"

@@ -28,7 +28,9 @@ def test_conversion(tmp_path: Path):
 
     dets_sets = [
         AnnotationSet.from_txt(txt_dir, image_folder=image_folder),
-        AnnotationSet.from_yolo_darknet(yolo_dir, image_folder=image_folder).map_labels(id_to_label),
+        AnnotationSet.from_yolo_darknet(yolo_dir, image_folder=image_folder).map_labels(
+            id_to_label
+        ),
         AnnotationSet.from_xml(xml_dir),
         AnnotationSet.from_cvat(cvat_path),
         AnnotationSet.from_coco(coco_path),
@@ -39,7 +41,7 @@ def test_conversion(tmp_path: Path):
 
     all_sets = dets_sets
 
-    assert all_equal(s.image_ids for s in dets_sets)    
+    assert all_equal(s.image_ids for s in dets_sets)
     assert all_equal(len(s) for s in dets_sets)
 
     for image_id in all_sets[0].image_ids:

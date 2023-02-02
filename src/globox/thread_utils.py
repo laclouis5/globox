@@ -7,8 +7,10 @@ from typing import Callable, TypeVar, Iterable, Optional
 
 SHARED_THREAD_POOL = ThreadPoolExecutor()
 
+
 def at_exit():
     SHARED_THREAD_POOL.shutdown()
+
 
 atexit.register(at_exit)
 
@@ -16,13 +18,14 @@ atexit.register(at_exit)
 U = TypeVar("U")
 V = TypeVar("V")
 
+
 def thread_map(
-    fn: Callable[[U], V], 
-    it: Iterable[U], 
-    desc: Optional[str] = None, 
-    total: Optional[int] = None, 
-    unit: str = "it", 
-    verbose: bool = False
+    fn: Callable[[U], V],
+    it: Iterable[U],
+    desc: Optional[str] = None,
+    total: Optional[int] = None,
+    unit: str = "it",
+    verbose: bool = False,
 ) -> "list[V]":
     disable = not verbose
     total = total or length_hint(it)
