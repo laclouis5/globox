@@ -16,7 +16,7 @@ You can install the package using pip:
 pip install globox
 ```
 
-## Use as a library
+## Use as a Library
 
 ### Parse Annotations
 
@@ -112,7 +112,7 @@ coco_gts.show_stats()
 └─────────────┴────────┴───────┘
 ```
 
-### Convert and Save to many Formats
+### Convert and Save to Many Formats
 
 Datasets can be converted to and saved in other formats easily:
 
@@ -199,7 +199,7 @@ cat_ar = evaluation["cat"].ar
 
 Evaluations are cached by `(iou_threshold, max_detections, size_range)` keys. This means that you should not care about about performance, repetead queries to the evaluator are fast!
 
-## Use in command line
+## Use in Command Line
 
 Get a summary of annotations for one dataset:
 
@@ -227,7 +227,7 @@ globox convert -h
 globox evaluate -h
 ```
 
-## Tests
+## Run Tests
 
 Clone the repo with its test data:
 
@@ -247,7 +247,7 @@ Run tox:
 tox
 ```
 
-## Speed
+## Speed Banchmarks
 
 <details>
 <summary>Click to expand</summary>
