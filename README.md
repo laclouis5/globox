@@ -8,8 +8,6 @@ This framework can:
 
 This framework can be used both as a library in your own code and as a command line tool. This tool is designed to be simple to use, fast and correct.
 
-# Quick Start
-
 ## Install
 
 You can install the package using pip:
@@ -23,9 +21,10 @@ pip install globox
 ### Parse Annotations
 
 The library has three main components:
-- `BoundingBox`: represents a bounding box with a label and an optional confidence score
-- `Annotation`: represent the bounding boxes annotations for one image
-- `AnnotationSet`: represents annotations for a set of images (a database)
+
+* `BoundingBox`: represents a bounding box with a label and an optional confidence score
+* `Annotation`: represent the bounding boxes annotations for one image
+* `AnnotationSet`: represents annotations for a set of images (a database)
 
 The `AnnotationSet` class contains static methods to read different databases:
 
@@ -83,7 +82,7 @@ Database stats can printed to the console:
 coco_gts.show_stats()
 ```
 
-```
+```shell
          Database Stats         
 ┏━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━┓
 ┃ Label       ┃ Images ┃ Boxes ┃
@@ -162,7 +161,7 @@ evaluator.show_summary()
 
 which outputs:
 
-```
+```shell
                               COCO Evaluation
 ┏━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━┳...┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┓
 ┃ Label     ┃ AP 50:95 ┃  AP 50 ┃   ┃   AR S ┃   AR M ┃   AR L ┃
@@ -228,23 +227,21 @@ globox convert -h
 globox evaluate -h
 ```
 
---- 
-
 ## Tests
 
-1. Clone the repo with its test data:
+Clone the repo with its test data:
 
 ```shell
 git clone https://github.com/laclouis5/globox --recurse-submodules=tests/globox_test_data
 ```
 
-2. Install developement dependencies (virtual env recommended):
+Install developement dependencies (virtual env recommended):
 
 ```shell
 pip install -e ".[dev]"
 ```
 
-3. Run tox:
+Run tox:
 
 ```shell
 tox
@@ -261,7 +258,7 @@ Speed benchmark can be executed with:
 python3 tests/benchmark.py
 ```
 
-Speed test is done using `timeit` with 5 iterations on an early 2015 MacBook Air (8 GB RAM Dual-Core 1.6 GHz). The dataset is COCO 2017 Validation which comprises 5k images and 36 781 bounding boxes. 
+Speed test is done using `timeit` with 5 iterations on an early 2015 MacBook Air (8 GB RAM Dual-Core 1.6 GHz). The dataset is COCO 2017 Validation which comprises 5k images and 36 781 bounding boxes.
 
 Task   |COCO |CVAT |OpenImage|LabelMe|PascalVOC|YOLO |TXT
 -------|-----|-----|---------|-------|---------|-----|-----
@@ -276,23 +273,23 @@ The fastest format is COCO and LabelMe.
 
 </details>
 
-## TODO
+## Todo
 
-- [x] Basic data structures and utilities
-- [x] Parsers (ImageNet, COCO, YOLO, Pascal, OpenImage, CVAT, LabelMe)
-- [x] Parser tests
-- [x] Database summary and stats
-- [x] Database converters
-- [x] Visualization options
-- [x] COCO Evaluation
-- [x] Tests with a huge load (5k images)
-- [x] CLI interface
-- [x] Make `image_size` optional and raise err when required (bbox conversion)
-- [x] Make file saving atomic with a temporary to avoid file corruption
-- [x] Pip package!
-- [ ] PascalVOC Evaluation
-- [ ] Parsers for TFRecord and TensorFlow
-- [ ] UI interface?
+* [x] Basic data structures and utilities
+* [x] Parsers (ImageNet, COCO, YOLO, Pascal, OpenImage, CVAT, LabelMe)
+* [x] Parser tests
+* [x] Database summary and stats
+* [x] Database converters
+* [x] Visualization options
+* [x] COCO Evaluation
+* [x] Tests with a huge load (5k images)
+* [x] CLI interface
+* [x] Make `image_size` optional and raise err when required (bbox conversion)
+* [x] Make file saving atomic with a temporary to avoid file corruption
+* [x] Pip package!
+* [ ] PascalVOC Evaluation
+* [ ] Parsers for TFRecord and TensorFlow
+* [ ] UI interface?
 
 ## Acknowledgement
 
