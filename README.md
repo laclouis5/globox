@@ -53,7 +53,7 @@ For more specific implementations the `BoundingBox` class contains lots of utili
 `AnnotationsSets` are set-like objects. They can be combined and annotations can be added:
 
 ```python
-gts = coco + yolo
+gts = coco | yolo
 gts.add(annotation)
 ```
 
