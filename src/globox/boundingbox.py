@@ -327,7 +327,7 @@ class BoundingBox:
         *,
         image_size: "tuple[int, int]",
     ) -> "BoundingBox":
-        return BoundingBox.from_yolo_v7(string, image_size=image_size)
+        return BoundingBox.from_yolo_v5(string, image_size=image_size)
 
     @staticmethod
     def from_xml(node: et.Element) -> "BoundingBox":
