@@ -179,6 +179,22 @@ def test_from_txt_conf_last(tmp_path: Path):
     assert box.confidence == 0.25
 
 
+def test_from_txt_polygon(tmp_path: Path):
+    file_path = tmp_path / "txt_polygon.txt"
+    content = """label 10 0 30 20 50 40 70 80"""
+    file_path.write_text(content)
+
+    annotationset = AnnotationSet.from_txt(tmp_path)
+    assert len(annotationset) == 1
+
+    annotation = annotationset["txt_polygon.jpg"]
+    assert len(annotation.boxes) == 1
+
+    box = annotation.boxes[0]
+    assert box.polygon == [10, 0, 30, 20, 50, 40, 70, 80]
+    assert box.ltrb == (10.0, 0.0, 70.0, 80.0)
+
+
 def test_from_coco_id_string():
     gts = AnnotationSet.from_coco(coco_str_id_path)
 
@@ -258,6 +274,46 @@ def test_from_yolo_v5(tmp_path: Path):
     assert isclose(ymax, 50.0)
 
     assert isclose(bbox.confidence, 0.25)
+
+
+def test_from_yolo_v7_polygon_roundtrip(tmp_path: Path):
+    path = tmp_path / "annotation.txt"
+    path.write_text("label 0.25 0.25 0.5 0.5 0.7 0.7 0.25 0.25")
+
+    img_path = tmp_path / "annotation.jpg"
+    img = Image.new(mode="1", size=(100, 150))
+    img.save(img_path)
+
+    annotations = AnnotationSet.from_yolo_v7(tmp_path, image_folder=tmp_path)
+
+    assert len(annotations) == 1
+
+    annotation = annotations["annotation.jpg"]
+
+    assert len(annotation.boxes) == 1
+    assert annotation.image_id == "annotation.jpg"
+    assert annotation.image_size == (100, 150)
+
+    bbox = annotation.boxes[0]
+
+    assert bbox.label == "label"
+    assert bbox.confidence == None
+
+    (xmin, ymin, xmax, ymax) = bbox.ltrb
+    print(xmin, ymin, xmax, ymax)
+    assert isclose(xmin, 25.0)
+    assert isclose(ymin, 37.5)
+    assert isclose(xmax, 70.0)
+    assert isclose(ymax, 105.0)
+
+    assert bbox.polygon == [25.0, 37.5, 50.0, 75.0, 70.0, 105.0, 25.0, 37.5]
+
+    annotations.save_yolo_v7(tmp_path, prefer_polygon=True)
+    path = tmp_path / "annotation.txt"
+
+    content = path.read_text()
+
+    assert content == "label 0.25 0.25 0.5 0.5 0.7 0.7 0.25 0.25"
 
 
 def test_save_yolo_darknet(tmp_path: Path):

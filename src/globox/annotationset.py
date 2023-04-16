@@ -636,13 +636,19 @@ class AnnotationSet:
         label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
         conf_last: bool = False,
         verbose: bool = False,
+        prefer_polygon: bool = False,
     ):
         save_dir = Path(save_dir).expanduser().resolve()
         save_dir.mkdir(exist_ok=True)
 
         def _save(annotation: Annotation):
             path = save_dir / Path(annotation.image_id).with_suffix(".txt")
-            annotation.save_yolo(path, label_to_id=label_to_id, conf_last=conf_last)
+            annotation.save_yolo(
+                path,
+                label_to_id=label_to_id,
+                conf_last=conf_last,
+                prefer_polygon=prefer_polygon,
+            )
 
         self.save_from_it(_save, verbose=verbose)
 
@@ -692,8 +698,14 @@ class AnnotationSet:
         *,
         label_to_id: Optional[Mapping[str, Union[int, str]]] = None,
         verbose: bool = False,
+        prefer_polygon: bool = False,
     ):
-        self.save_yolo_v5(save_dir, label_to_id=label_to_id, verbose=verbose)
+        self._save_yolo(
+            save_dir,
+            label_to_id=label_to_id,
+            verbose=verbose,
+            prefer_polygon=prefer_polygon,
+        )
 
     def save_labelme(self, save_dir: PathLike, *, verbose: bool = False):
         save_dir = Path(save_dir).expanduser().resolve()

@@ -2,9 +2,9 @@
 
 This framework can:
 
-* parse all kinds of object detection datasets (ImageNet, COCO, YOLO, PascalVOC, OpenImage, CVAT, LabelMe, etc.) and show statistics,
-* convert them to other formats (ImageNet, COCO, YOLO, PascalVOC, OpenImage, CVAT, LabelMe, etc.),
-* and evaluate predictions using standard object detection metrics such as AP@[.5:.05:.95], AP@50, mAP, AR<sub>1</sub>, AR<sub>10</sub>, AR<sub>100</sub>.
+- parse all kinds of object detection datasets (ImageNet, COCO, YOLO, PascalVOC, OpenImage, CVAT, LabelMe, etc.) and show statistics,
+- convert them to other formats (ImageNet, COCO, YOLO, PascalVOC, OpenImage, CVAT, LabelMe, etc.),
+- and evaluate predictions using standard object detection metrics such as AP@[.5:.05:.95], AP@50, mAP, AR<sub>1</sub>, AR<sub>10</sub>, AR<sub>100</sub>.
 
 This framework can be used both as a library in your own code and as a command line tool. This tool is designed to be simple to use, fast and correct.
 
@@ -22,9 +22,9 @@ pip install globox
 
 The library has three main components:
 
-* `BoundingBox`: represents a bounding box with a label and an optional confidence score
-* `Annotation`: represent the bounding boxes annotations for one image
-* `AnnotationSet`: represents annotations for a set of images (a database)
+- `BoundingBox`: represents a bounding box with a label and an optional confidence score
+- `Annotation`: represent the bounding boxes annotations for one image
+- `AnnotationSet`: represents annotations for a set of images (a database)
 
 The `AnnotationSet` class contains static methods to read different databases:
 
@@ -83,7 +83,7 @@ coco_gts.show_stats()
 ```
 
 ```shell
-         Database Stats         
+         Database Stats
 ┏━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━┓
 ┃ Label       ┃ Images ┃ Boxes ┃
 ┡━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━┩
@@ -122,13 +122,13 @@ gts.save_imagenet(save_dir="pascalVOC_db/")
 
 # YOLO Darknet
 gts.save_yolo_darknet(
-    save_dir="yolo_train/", 
+    save_dir="yolo_train/",
     label_to_id={"cat": 0, "dog": 1, "racoon": 2}
 )
 
 # YOLOv5
 gts.save_yolo_v5(
-    save_dir="yolo_train/", 
+    save_dir="yolo_train/",
     label_to_id={"cat": 0, "dog": 1, "racoon": 2},
 )
 
@@ -142,7 +142,7 @@ Evaluating is as easy as:
 
 ```python
 evaluator = COCOEvaluator(
-    ground_truths=gts, 
+    ground_truths=gts,
     predictions=dets
 )
 
@@ -235,7 +235,7 @@ Clone the repo with its test data:
 git clone https://github.com/laclouis5/globox --recurse-submodules=tests/globox_test_data
 ```
 
-Install developement dependencies (virtual env recommended):
+Install development dependencies (virtual env recommended):
 
 ```shell
 pip install -e ".[dev]"
@@ -260,10 +260,10 @@ python3 tests/benchmark.py
 
 Speed test is done using `timeit` with 5 iterations on an early 2015 MacBook Air (8 GB RAM Dual-Core 1.6 GHz). The dataset is COCO 2017 Validation which comprises 5k images and 36 781 bounding boxes.
 
-Task   |COCO |CVAT |OpenImage|LabelMe|PascalVOC|YOLO |TXT
--------|-----|-----|---------|-------|---------|-----|-----
-Parsing|0.52s|0.59s|3.44s    |1.84s  |2.45s    |3.01s|2.54s
-Saving |1.12s|0.74s|0.42s    |4.39s  |4.46s    |3.75s|3.52s
+| Task    | COCO  | CVAT  | OpenImage | LabelMe | PascalVOC | YOLO  | TXT   |
+| ------- | ----- | ----- | --------- | ------- | --------- | ----- | ----- |
+| Parsing | 0.52s | 0.59s | 3.44s     | 1.84s   | 2.45s     | 3.01s | 2.54s |
+| Saving  | 1.12s | 0.74s | 0.42s     | 4.39s   | 4.46s     | 3.75s | 3.52s |
 
 OpenImage, YOLO and TXT are slower because they store bounding box coordinates in relative coordinates and do not provide the image size, so reading it from the image file is required.
 
@@ -275,21 +275,21 @@ The fastest format is COCO and LabelMe.
 
 ## Todo
 
-* [x] Basic data structures and utilities
-* [x] Parsers (ImageNet, COCO, YOLO, Pascal, OpenImage, CVAT, LabelMe)
-* [x] Parser tests
-* [x] Database summary and stats
-* [x] Database converters
-* [x] Visualization options
-* [x] COCO Evaluation
-* [x] Tests with a huge load (5k images)
-* [x] CLI interface
-* [x] Make `image_size` optional and raise err when required (bbox conversion)
-* [x] Make file saving atomic with a temporary to avoid file corruption
-* [x] Pip package!
-* [ ] PascalVOC Evaluation
-* [ ] Parsers for TFRecord and TensorFlow
-* [ ] UI interface?
+- [x] Basic data structures and utilities
+- [x] Parsers (ImageNet, COCO, YOLO, Pascal, OpenImage, CVAT, LabelMe)
+- [x] Parser tests
+- [x] Database summary and stats
+- [x] Database converters
+- [x] Visualization options
+- [x] COCO Evaluation
+- [x] Tests with a huge load (5k images)
+- [x] CLI interface
+- [x] Make `image_size` optional and raise err when required (bbox conversion)
+- [x] Make file saving atomic with a temporary to avoid file corruption
+- [x] Pip package!
+- [ ] PascalVOC Evaluation
+- [ ] Parsers for TFRecord and TensorFlow
+- [ ] UI interface?
 
 ## Acknowledgement
 
