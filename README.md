@@ -26,7 +26,7 @@ The library has three main components:
 * `Annotation`: represent the bounding boxes annotations for one image
 * `AnnotationSet`: represents annotations for a set of images (a database)
 
-The `AnnotationSet` class contains static methods to read different databases:
+The `AnnotationSet` class contains static methods to read different dataset formats:
 
 ```python
 # COCO
