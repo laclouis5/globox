@@ -76,7 +76,7 @@ for annotation in gts:
     print(f"{annotation.image_id}: {nb_boxes} boxes")
 ```
 
-Database stats can printed to the console:
+Datasets stats can printed to the console:
 
 ```python
 coco_gts.show_stats()
@@ -114,7 +114,7 @@ coco_gts.show_stats()
 
 ### Convert and Save to Many Formats
 
-Datasets can be converted to and saved in other formats easily:
+Datasets can be converted to and saved in other formats:
 
 ```python
 # ImageNet
@@ -138,7 +138,7 @@ gts.save_cvat(path="train.xml")
 
 ### COCO Evaluation
 
-Evaluating is as easy as:
+COCO Evaluation is also supported:
 
 ```python
 evaluator = COCOEvaluator(
