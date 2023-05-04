@@ -201,6 +201,16 @@ Evaluations are cached by `(iou_threshold, max_detections, size_range)` keys. Th
 
 ## Use in Command Line
 
+If you only need to use Globox from the command line like an application, you can install the package through [pipx](https://pypa.github.io/pipx/):
+
+```shell
+pipx install globox
+```
+
+Globox will then be in your shell path and usable from anywhere.
+
+### Usage
+
 Get a summary of annotations for one dataset:
 
 ```shell
