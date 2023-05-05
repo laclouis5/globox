@@ -752,6 +752,8 @@ class AnnotationSet:
                     "ignore": 0,
                     "image_id": imageid_to_id[annotation.image_id],
                     "bbox": box.ltwh,
+                    "area": box.area,
+                    "segmentation": [],
                     "category_id": label_to_id[box.label],
                     "id": ann_id_count,
                 }
