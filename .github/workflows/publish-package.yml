@@ -28,6 +28,7 @@ jobs:
         
       - name: Publish Package
         run: |
-          poetry config pypi-token.pypi ${{ secrets.PYPI_API_TOKEN }}
+          poetry config repositories.test-pypi https://test.pypi.org/legacy/
+          poetry config pypi-token.test-pypi ${{ secrets.PYPI_API_TOKEN }}
           poetry build
-          poetry publish
+          poetry publish -r test-pypi
