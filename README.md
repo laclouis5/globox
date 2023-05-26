@@ -4,7 +4,7 @@ This framework can:
 
 * parse all kinds of object detection datasets (ImageNet, COCO, YOLO, PascalVOC, OpenImage, CVAT, LabelMe, etc.) and show statistics,
 * convert them to other formats (ImageNet, COCO, YOLO, PascalVOC, OpenImage, CVAT, LabelMe, etc.),
-* and evaluate predictions using standard object detection metrics such as $\textrm{AP}_{[.5:.05:.95]}$, $\textrm{AP}_{50}$, $\textrm{mAP}$, $\textrm{AR}_{1}$, $\textrm{AR}_{10}$, $\textrm{AR}_{100}$.
+* and evaluate predictions using standard object detection metrics such as $AP_{[.5:.05:.95]}$, $AP_{50}$, $mAP$, $AR_{1}$, $AR_{10}$, $AR_{100}$.
 
 This framework can be used both as a library in your own code and as a command line tool. This tool is designed to be simple to use, fast and correct.
 
