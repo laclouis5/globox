@@ -28,6 +28,6 @@ jobs:
         
       - name: Publish Package
         run: |
-          poetry config pypi-token.pypi ${{ secrets.TEST_PYPI_API_TOKEN }}
+          poetry config pypi-token.pypi ${{ secrets.PYPI_API_TOKEN }}
           poetry build
           poetry publish
