@@ -4,7 +4,7 @@ This framework can:
 
 * parse all kinds of object detection datasets (ImageNet, COCO, YOLO, PascalVOC, OpenImage, CVAT, LabelMe, etc.) and show statistics,
 * convert them to other formats (ImageNet, COCO, YOLO, PascalVOC, OpenImage, CVAT, LabelMe, etc.),
-* and evaluate predictions using standard object detection metrics such as AP@[.5:.05:.95], AP@50, mAP, AR<sub>1</sub>, AR<sub>10</sub>, AR<sub>100</sub>.
+* and evaluate predictions using standard object detection metrics such as $\textrm{AP}_{[.5:.05:.95]}$, $\textrm{AP}_{50}$, $\textrm{mAP}$, $\textrm{AR}_{1}$, $\textrm{AR}_{10}$, $\textrm{AR}_{100}$.
 
 This framework can be used both as a library in your own code and as a command line tool. This tool is designed to be simple to use, fast and correct.
 
@@ -82,7 +82,7 @@ Datasets stats can printed to the console:
 coco_gts.show_stats()
 ```
 
-```shell
+```text
          Database Stats         
 ┏━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━┓
 ┃ Label       ┃ Images ┃ Boxes ┃
@@ -161,7 +161,7 @@ evaluator.show_summary()
 
 which outputs:
 
-```shell
+```text
                               COCO Evaluation
 ┏━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━┳...┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┓
 ┃ Label     ┃ AP 50:95 ┃  AP 50 ┃   ┃   AR S ┃   AR M ┃   AR L ┃
@@ -243,43 +243,39 @@ Clone the repo with its test data:
 
 ```shell
 git clone https://github.com/laclouis5/globox --recurse-submodules=tests/globox_test_data
+cd globox
 ```
 
-Install developement dependencies (virtual env recommended):
+Install with Poetry:
 
 ```shell
-pip install -e ".[dev]"
+poetry install
 ```
 
-Run tox:
+Run the tests:
 
 ```shell
-tox
+poetry run pytest
 ```
 
 ## Speed Banchmarks
 
-<details>
-<summary>Click to expand</summary>
-
 Speed benchmark can be executed with:
 
 ```shell
-python3 tests/benchmark.py
+poetry shell
+python tests/benchmark.py -n 5
 ```
 
-Speed test is done using `timeit` with 5 iterations on an early 2015 MacBook Air (8 GB RAM Dual-Core 1.6 GHz). The dataset is COCO 2017 Validation which comprises 5k images and 36 781 bounding boxes.
+The following speed test is performed using Python 3.11 and `timeit` with 5 iterations on a 2021 MacBook Pro 14" (M1 Pro 8 Cores and 16 GB of RAM). The dataset is COCO 2017 Validation which comprises 5k images and 36 781 bounding boxes.
 
 Task   |COCO |CVAT |OpenImage|LabelMe|PascalVOC|YOLO |TXT
 -------|-----|-----|---------|-------|---------|-----|-----
-Parsing|0.52s|0.59s|3.44s    |1.84s  |2.45s    |3.01s|2.54s
-Saving |1.12s|0.74s|0.42s    |4.39s  |4.46s    |3.75s|3.52s
+Parsing|0.25s|0.13s|0.47s    |0.72s  |1.04s    |1.68s|1.42s
+Saving |0.34s|0.20s|0.15s    |1.09s  |1.14s    |0.91s|0.88s
 
-OpenImage, YOLO and TXT are slower because they store bounding box coordinates in relative coordinates and do not provide the image size, so reading it from the image file is required.
-
-The fastest format is COCO and LabelMe.
-
-`AnnotationSet.show_stats()`: 0.12 s
+* `AnnotationSet.show_stats()`: 0.02 s
+* Evalaution: 0.06 s
 
 </details>
 
