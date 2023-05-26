@@ -642,7 +642,7 @@ class AnnotationSet:
 
         def _save(annotation: Annotation):
             path = save_dir / Path(annotation.image_id).with_suffix(".txt")
-            annotation.save_yolo(path, label_to_id=label_to_id, conf_last=conf_last)
+            annotation._save_yolo(path, label_to_id=label_to_id, conf_last=conf_last)
 
         self.save_from_it(_save, verbose=verbose)
 
