@@ -29,12 +29,9 @@ T = TypeVar("T")
 
 
 class AnnotationSet:
-    """Represents a set of annotations.
-
-    This class efficiently stores annotations for several images (a validation
-    database for instance) with a fast lookup by `image_id`. It behaves like a
-    set or dictionary and has similar methods (contains, update, iterator, +
-    operator)."""
+    """
+    A set of annotations of multiple and distinct images, most commonly refered to a 'dataset'.
+    """
 
     def __init__(
         self,
@@ -42,6 +39,17 @@ class AnnotationSet:
         *,
         override=False,
     ):
+        """
+        Create an `AnnotationSet` from multiple image annotations. Each annotation should be unique,
+        i.e. multiple annotations for a single image (as idendified by its `image_id`) is not
+        allowed.
+
+        Parameters:
+
+        * `annotation`: an iterable of image annotations.
+        * `override`: if `True`, image annotations not unique are allowed and only the last one in
+        the iterator will be kept, else an error is thrown.
+        """
         # TODO: Add optional addition of labels found during
         # parsing, for instance COCO names and YOLO `.names`.
         # Could also add a (lazy) computed accessor that
@@ -57,31 +65,44 @@ class AnnotationSet:
         self._id_to_imageid: Optional["dict[Any, str]"] = None
 
     def __getitem__(self, image_id: str) -> Annotation:
+        """
+        Get the image annotation with the corresponding `image_id`. Will raise an exception
+        if the image ID is not present in the dataset.
+        """
         return self._annotations[image_id]
 
     def get(self, image_id: str) -> Optional[Annotation]:
+        """
+        Get the image annotation with the corresponding `image_id`, if present in the dataset
+        (else `None` is returned).
+        """
         return self._annotations.get(image_id)
 
     def __len__(self) -> int:
+        """The number of annotations in the dataset."""
         return len(self._annotations)
 
     def __iter__(self):
         yield from self._annotations.values()
 
     def items(self):
+        """A view on the image annotation items (key-value pairs)."""
         return self._annotations.items()
 
     def __contains__(self, annotation: Annotation) -> bool:
+        """Return `True` if a given annotation is present in the dataset, else `False`."""
         return annotation.image_id in self._annotations.keys()
 
     def add(self, annotation: Annotation, *, override=False):
-        """Add an annotation to the set. The annotation 'image_id'
-        should not already be present in the set.
+        """Add an annotation to the dataset.
 
         Parameters:
-        - annotation: the annotation to add.
-        - override: set to true to override any annotation with the same
-        'image_id' already present in the set with the annotation."""
+
+        * `annotation`: the annotation to add.
+        * `override`: set to `True` if the annotation may already be in the dataset and the former
+        it should be replaced by the new one. If `False` and the annotation is already in the
+        dataset, an error is thrown.
+        """
 
         if not override:
             assert (
@@ -90,15 +111,14 @@ class AnnotationSet:
         self._annotations[annotation.image_id] = annotation
 
     def update(self, other: "AnnotationSet", *, override=False) -> "AnnotationSet":
-        """Add annotations from another set to this set.
+        """Add annotations from another datasetset to this one.
 
         Parameters:
-        - other: the set of annotations to add.
-        - override: set to true to override any annotation with the same
-        'image_id' already present in the set.
 
-        Returns:
-        - the input set."""
+        * `other`: the annotations to add.
+        * `override`: if `True`, image annotations in `other` that aren't unique are allowed and
+        only the last one in the iterator will be kept, else an error is thrown.
+        """
 
         if not override:
             assert self.image_ids.isdisjoint(
@@ -114,24 +134,32 @@ class AnnotationSet:
         return AnnotationSet().update(self).update(other)
 
     def map_labels(self, mapping: Mapping[str, str]) -> "AnnotationSet":
+        """
+        Update all the bounding box labels according to the provided dictionary which maps former
+        names to new names. If a label name is not present in the dictionary keys, then it won't
+        be updated.
+        """
         for annotation in self:
             annotation.map_labels(mapping)
         return self
 
     @property
     def image_ids(self):
+        "A view on the set of image IDs of this dataset."
         return self._annotations.keys()
 
     @property
     def all_boxes(self) -> Iterator[BoundingBox]:
-        """An iterator of all the bounding boxes."""
+        """An iterator of all the bounding boxes of the dataset."""
         for annotation in self:
             yield from annotation.boxes
 
     def nb_boxes(self) -> int:
+        """The number of bounding boxes in the dataset."""
         return sum(len(ann.boxes) for ann in self)
 
     def _labels(self) -> "set[str]":
+        """The set of the different label names present in the dataset."""
         return {b.label for b in self.all_boxes}
 
     @staticmethod
@@ -966,6 +994,10 @@ class AnnotationSet:
             return {l["LabelName"]: l["DisplayName"] for l in reader}
 
     def show_stats(self, *, verbose: bool = False):
+        """
+        Print in the console a synthetic view of the dataset annotations (distribution of
+        bounding boxes and images by label).
+        """
         from rich.table import Table
         from rich import print as rprint
 

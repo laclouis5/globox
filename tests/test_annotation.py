@@ -41,8 +41,10 @@ def test_map_labels():
     assert b1.label == "B1"
     assert b2.label == "B2"
 
-    with pytest.raises(KeyError):
-        annotation.map_labels({"B1": "b1"})  # B2 missing
+    annotation.map_labels({"B1": "B"})
+
+    assert b1.label == "B"
+    assert b2.label == "B2"
 
 
 def test_from_txt_conf_first(tmp_path: Path):
