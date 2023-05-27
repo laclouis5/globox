@@ -6,23 +6,41 @@ import xml.etree.ElementTree as et
 
 
 Coordinates = Tuple[float, float, float, float]
+"""
+The four raw coordinates of a `BoundingBox` with no assigned format. The coordinates at indices
+0 and 2 must be on the X-axis (horizontal) and the ones at indices 1 and 3 must be on 
+the Y-axis (vertical).
+"""
 
 
 class BoxFormat(Enum):
     """
-    The bounding box coordinate system.
+    The coordinate format of a `BoundingBox`, i.e. the order and defining coordinates.
 
-    LTRB: xmin, ymin, xmax, ymax
-    LTWH: xmin, ymin, width, height
-    XYWH: xmid, ymid, width, height
+    It can be one of:
+
+    * `BoxFormat.LTRB`: [xmin, ymin, xmax, ymax],
+    * `BoxFormat.LTWH`: [xmin, ymin, width, height],
+    * `BoxFormat.XYWH`: [xmid, ymid, width, height].
+
+    See the `BoundingBox` documentation for more detail on the coordinate format.
     """
 
     LTRB = auto()
+    """[xmin, ymin, xmax, ymax]"""
+
     LTWH = auto()
+    """[xmin, ymin, width, height]"""
+
     XYWH = auto()
+    """[xmid, ymid, width, height]"""
 
     @classmethod
     def from_string(cls, string: str) -> "BoxFormat":
+        """Create a `BoxFormat` from a raw string.
+
+        The raw string can be either "ltrb", "ltwh" or "xywh".
+        """
         if string == "ltrb":
             return BoxFormat.LTRB
         elif string == "ltwh":
@@ -34,10 +52,10 @@ class BoxFormat(Enum):
 
 
 class BoundingBox:
-    """Represents a bounding box with a label and an optional confidence score.
+    """A rectangular bounding box with a label and an optional confidence score. Coordinates are
+    absolute (i.e. in pixels) and stored internally in `BoxFormat.LTRB` format.
 
-    The bounding box coordinates are specified by the top-left corner (xmin, ymin)
-    and the bottom-right corner (xmax, ymax). Coordinates are absolute (i.e. in pixels).
+    Spatial layout:
 
     ```
         xmin   xmid   xmax
@@ -47,9 +65,7 @@ class BoundingBox:
          ╏      ┆      ╏
     ymax ┺╍╍╍╍╍╍┴╍╍╍╍╍╍┛
     ```
-
-    Use the '.create(...)' classmethod to create a BoundingBox using a different coordinate
-    system."""
+    """
 
     __slots__ = ("label", "_xmin", "_ymin", "_xmax", "_ymax", "_confidence")
 
@@ -63,6 +79,12 @@ class BoundingBox:
         ymax: float,
         confidence: Optional[float] = None,
     ) -> None:
+        """
+        Create a `BoundingBox` from the top-left and bottom-right corner coordinates.
+
+        Use `BoundingBox.create()` to instantiate a `BoundingBox` from other
+        coordinate formats.
+        """
         assert xmin <= xmax, "`xmax` must be greater than `xmin`."
         assert ymin <= ymax, "`ymax` must be greater than `ymin`."
 
@@ -80,7 +102,10 @@ class BoundingBox:
 
     @property
     def confidence(self) -> Optional[float]:
-        return self._confidence
+        """The bounding box optional confidence score. If present, it is a `float`
+        between 0 and 1.
+        """
+        return BoundingBox()
 
     @confidence.setter
     def confidence(self, confidence: Optional[float]):
@@ -92,53 +117,64 @@ class BoundingBox:
 
     @property
     def xmin(self) -> float:
+        """The `x` value in pixels of the bounding box top-left corner (horizontal axis)."""
         return self._xmin
 
     @property
     def ymin(self) -> float:
+        """The `y` value in pixels of the bounding box top-left corner (vertical axis)."""
         return self._ymin
 
     @property
     def xmax(self) -> float:
+        """The `x` value in pixels of the bounding box bottom-right corner (horizontal axis)."""
         return self._xmax
 
     @property
     def ymax(self) -> float:
+        """The `y` value in pixels of the bounding box top-left corner (vertical axis)."""
         return self._ymax
 
     @property
     def xmid(self) -> float:
+        """The `x` value in pixels of the bounding box center point (horizontal axis)."""
         return (self._xmin + self._xmax) / 2.0
 
     @property
     def ymid(self) -> float:
+        """The `y` value in pixels of the bounding box center point (vertical axis)."""
         return (self._ymin + self._ymax) / 2.0
 
     @property
     def width(self) -> float:
+        """The bounding box width in pixels."""
         return self._xmax - self._xmin
 
     @property
     def height(self) -> float:
+        """The bounding box height in pixels."""
         return self._ymax - self._ymin
 
     @property
     def area(self) -> float:
+        """The area of the bounding box in pixels."""
         return self.width * self.height
 
-    def area_in(self, range_: "tuple[float, float]") -> bool:
+    def _area_in(self, range_: "tuple[float, float]") -> bool:
+        """Returns `True` if the bounding box area is in a given range."""
         lower_bound, upper_bound = range_
         return lower_bound <= self.area <= upper_bound
 
     @property
     def pascal_area(self) -> int:
+        """The bounding box PascalVOC area in pixels."""
         width = int(self._xmax) - int(self._xmin) + 1
         height = int(self._ymax) - int(self._ymin) + 1
 
         return width * height
 
     def iou(self, other: "BoundingBox") -> float:
-        """Intersection over Union computed with float coordinates."""
+        """The Intersection over Union (IoU) between two bounding boxes."""
         xmin = max(self._xmin, other._xmin)
         ymin = max(self._ymin, other._ymin)
         xmax = min(self._xmax, other._xmax)
@@ -156,7 +192,7 @@ class BoundingBox:
         return intersection / union
 
     def pascal_iou(self, other: "BoundingBox") -> float:
-        """Intersection over Union computed with integer coordinates."""
+        """The Pascal VOC Intersection over Union (IoU) between two bounding boxes."""
         xmin = max(int(self._xmin), int(other._xmin))
         ymin = max(int(self._ymin), int(other._ymin))
         xmax = min(int(self._xmax), int(other._xmax))
@@ -175,45 +211,76 @@ class BoundingBox:
 
     @property
     def is_detection(self) -> bool:
+        """Returns `True` if the bounding box confidence score is not `None`."""
         return self._confidence is not None
 
     @property
     def is_ground_truth(self) -> bool:
+        """Returns `True` if the bounding box confidence score is `None`."""
         return self._confidence is None
 
     @staticmethod
     def rel_to_abs(coords: Coordinates, size: "tuple[int, int]") -> Coordinates:
+        """
+        Converts coordinates from relative (between 0 and 1) to absolute (pixels) form.
+
+        The coordinates at indices 0 and 2 must be on the X-axis (horizontal) and the ones
+        at indices 1 and 3 must be on the Y-axis (vertical).
+
+        The image size should be a `(width, height)` tuple expressed in pixels.
+        """
         a, b, c, d = coords
         w, h = size
         return a * w, b * h, c * w, d * h
 
     @staticmethod
     def abs_to_rel(coords: Coordinates, size: "tuple[int, int]") -> Coordinates:
+        """
+        Converts coordinates from absolute (pixels) to relative (between 0 and 1) form.
+
+        The coordinates at indices 0 and 2 must be on the X-axis (horizontal) and the ones
+        at indices 1 and 3 must be on the Y-axis (vertical).
+
+        The image size should be a `(width, height)` tuple expressed in pixels.
+        """
         a, b, c, d = coords
         w, h = size
         return a / w, b / h, c / w, d / h
 
     @staticmethod
     def ltwh_to_ltrb(coords: Coordinates) -> Coordinates:
+        """
+        Converts coordinates from `BoxFormat.LTWH` to `BoxFormat.LTRB` format.
+
+        The coordinates can be either in relative (between 0 and 1) or absolute (pixels) form.
+        """
         xmin, ymin, width, height = coords
         return xmin, ymin, xmin + width, ymin + height
 
     @staticmethod
     def xywh_to_ltrb(coords: Coordinates) -> Coordinates:
+        """
+        Converts coordinates from `BoxFormat.XYWH` to `BoxFormat.LTRB` format.
+
+        The coordinates can be either in relative (between 0 and 1)  or absolute (pixels) form.
+        """
         xmid, ymid, width, height = coords
         w_h, h_h = width / 2, height / 2
         return xmid - w_h, ymid - h_h, xmid + w_h, ymid + h_h
 
     @property
     def ltrb(self) -> Coordinates:
+        """The bounding box coordinates in `BoxFormat.LTRB` format and absolute form (pixels)."""
         return self._xmin, self._ymin, self._xmax, self._ymax
 
     @property
     def ltwh(self) -> Coordinates:
+        """The bounding box coordinates in `BoxFormat.LTWH` format and absolute form (pixels)."""
         return self._xmin, self._ymin, self.width, self.height
 
     @property
     def xywh(self) -> Coordinates:
+        """The bounding box coordinates in `BoxFormat.XYWH` format and absolute form (pixels)."""
         return self.xmid, self.ymid, self.width, self.height
 
     @classmethod
@@ -227,6 +294,12 @@ class BoundingBox:
         relative=False,
         image_size: Optional["tuple[int, int]"] = None,
     ) -> "BoundingBox":
+        """
+        Create a `BoundingBox` from different coordinate formats.
+        
+        The image size should be provided if the coordinates are given in the relative form
+        (values between 0 and 1).
+        """
         if relative:
             assert (
                 image_size is not None
@@ -331,7 +404,6 @@ class BoundingBox:
 
     @staticmethod
     def from_xml(node: et.Element) -> "BoundingBox":
-
         label = node.findtext("name")
         box_node = node.find("bndbox")
 

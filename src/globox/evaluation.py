@@ -458,8 +458,8 @@ class COCOEvaluator:
         dets = sorted(predictions, key=lambda box: box._confidence, reverse=True)  # type: ignore
         dets = dets[:max_detections]
 
-        gts = sorted(ground_truths, key=lambda box: not box.area_in(size_range))
-        gt_ignore = [not g.area_in(size_range) for g in gts]  # Redundant `area_in`
+        gts = sorted(ground_truths, key=lambda box: not box._area_in(size_range))
+        gt_ignore = [not g._area_in(size_range) for g in gts]  # Redundant `area_in`
 
         gt_matches = {}
         dt_matches = {}
