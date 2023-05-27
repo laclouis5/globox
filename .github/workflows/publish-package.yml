@@ -24,10 +24,9 @@ jobs:
           cache: 'poetry'
 
       - name: Install Dependencies
-        run: poetry install
+        run: poetry install --no-interaction
         
       - name: Publish Package
         run: |
           poetry config pypi-token.pypi ${{ secrets.PYPI_API_TOKEN }}
-          poetry build
-          poetry publish
+          poetry publish --build --no-interaction
