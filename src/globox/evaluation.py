@@ -163,7 +163,8 @@ class Evaluation(Dict[str, EvaluationItem]):
 
 
 class MultiThresholdEvaluation(Dict[str, Dict[str, float]]):
-    """Evaluation of COCO metrics for multiple labels and multiple
+    """
+    Evaluation of COCO metrics for multiple labels and multiple
     IoU thresholds.
     """
 
@@ -201,8 +202,8 @@ class COCOEvaluator:
     * `COCOEvaluator.ap_50()`,
     * `COCOEvaluator.ar_medium()`,
     * etc.
-    
-    Custom evaluations can be performed with `COCOEvaluator.evaluate()` and the standard 
+
+    Custom evaluations can be performed with `COCOEvaluator.evaluate()` and the standard
     COCO metrics can be printed to the console with `COCOEvaluator.show_summary()`.
     """
 
@@ -255,8 +256,8 @@ class COCOEvaluator:
         and all the ones from the ground truth one must not.
 
         If labels are provided, only those will be evaluated, else every label will.
-        
-        The evaluated datasets must not be modified during the lifetime of the `COCOEvaluator` or 
+
+        The evaluated datasets must not be modified during the lifetime of the `COCOEvaluator` or
         the results will be wrong.
         """
         self._predictions = predictions
@@ -276,7 +277,8 @@ class COCOEvaluator:
         max_detections: int = 100,
         size_range: Optional["tuple[float, float]"] = None,
     ) -> Evaluation:
-        """Evaluate COCO metrics for custom parameters.
+        """
+        Evaluate COCO metrics for custom parameters.
 
         Parameters:
 
@@ -286,7 +288,6 @@ class COCOEvaluator:
         descreasing confidence).
         * `size_range`: the range of size (bounding box area) to consider.
         """
-
         return self._cached_evaluate(
             iou_threshold=iou_threshold,
             max_detections=max_detections,
@@ -315,7 +316,6 @@ class COCOEvaluator:
         ).evaluate()
 
     def ap(self) -> float:
-        """The AP"""
         return self.ap_evaluation().ap()
 
     def ap_50(self) -> float:
@@ -681,8 +681,10 @@ class COCOEvaluator:
     def _compute_ap(
         cls, scores: "list[float]", matched: "list[bool]", NP: int
     ) -> float:
-        """This curve tracing method has some quirks that do not appear when only unique confidence thresholds
-        are used (i.e. Scikit-learn's implementation), however, in order to be consistent, the COCO's method is reproduced.
+        """
+        This curve tracing method has some quirks that do not appear when only unique confidence
+        thresholds are used (i.e. Scikit-learn's implementation), however, in order to be
+        consistent, the COCO's method is reproduced.
 
         Copyrights: https://github.com/rafaelpadilla/review_object_detection_metrics
         """

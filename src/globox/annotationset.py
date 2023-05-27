@@ -94,7 +94,8 @@ class AnnotationSet:
         return annotation.image_id in self._annotations.keys()
 
     def add(self, annotation: Annotation, *, override=False):
-        """Add an annotation to the dataset.
+        """
+        Add an annotation to the dataset.
 
         Parameters:
 
@@ -105,13 +106,15 @@ class AnnotationSet:
         """
 
         if not override:
-            assert (
-                annotation.image_id not in self.image_ids
-            ), f"The annotation with id '{annotation.image_id}' is already present in the set (set `override` to True to remove this assertion)."
+            assert annotation.image_id not in self.image_ids, (
+                f"The annotation with id '{annotation.image_id}' is already present in the set "
+                "(set `override` to True to remove this assertion)."
+            )
         self._annotations[annotation.image_id] = annotation
 
     def update(self, other: "AnnotationSet", *, override=False) -> "AnnotationSet":
-        """Add annotations from another datasetset to this one.
+        """
+        Add annotations from another datasetset to this one.
 
         Parameters:
 
@@ -121,9 +124,10 @@ class AnnotationSet:
         """
 
         if not override:
-            assert self.image_ids.isdisjoint(
-                other.image_ids
-            ), "some image ids are already in the set (set 'override' to True to remove this assertion)."
+            assert self.image_ids.isdisjoint(other.image_ids), (
+                "some image ids are already in the set (set 'override' to True to remove "
+                "this assertion)."
+            )
         self._annotations.update(other._annotations)
         return self
 
@@ -201,7 +205,10 @@ class AnnotationSet:
         conf_last: bool = False,
         verbose: bool = False,
     ) -> "AnnotationSet":
-        """This method won't try to retreive the image sizes by default. Specify `image_folder` if you need them. `image_folder` is required when `relative` is True."""
+        """
+        This method won't try to retreive the image sizes by default. Specify `image_folder` if
+        you need them. `image_folder` is required when `relative` is True.
+        """
         # TODO: Add error handling
 
         folder = Path(folder).expanduser().resolve()
@@ -210,9 +217,10 @@ class AnnotationSet:
         assert image_extension.startswith(".")
 
         if relative:
-            assert (
-                image_folder is not None
-            ), "When `relative` is set to True, `image_folder` must be provided to read image sizes."
+            assert image_folder is not None, (
+                "When `relative` is set to True, `image_folder` must be provided) to read "
+                "image sizes."
+            )
 
         if image_folder is not None:
             image_folder = Path(image_folder).expanduser().resolve()
@@ -230,7 +238,8 @@ class AnnotationSet:
                     image_size = get_image_size(image_path)
                 except UnknownImageFormat:
                     raise ParsingError(
-                        f"Unable to read image size of file {image_path}. The file may be corrupted or the file format not supported."
+                        f"Unable to read image size of file {image_path}. The file may be "
+                        "corrupted or the file format not supported."
                     )
             else:
                 image_size = None
@@ -475,9 +484,11 @@ class AnnotationSet:
         id_to_label = self._id_to_label
         id_to_imageid = self._id_to_imageid
 
-        assert (
-            id_to_label is not None and id_to_imageid is not None
-        ), "The AnnotationSet instance should have been created with `AnnotationSet.from_coco()` or should have `self.id_to_label` and `self.id_to_image_id` populated. If not the case use the static method `AnnotationSet.from_coco_results()` instead."
+        assert id_to_label is not None and id_to_imageid is not None, (
+            "The AnnotationSet instance should have been created with `AnnotationSet.from_coco()` "
+            "or should have `self.id_to_label` and `self.id_to_image_id` populated. If not the "
+            "case use the static method `AnnotationSet.from_coco_results()` instead."
+        )
 
         id_to_annotation = {}
 
@@ -768,7 +779,12 @@ class AnnotationSet:
         else:
             # TODO: Convert to ConversionError.
             raise ValueError(
-                "For COCO, mappings from labels and image ids to integer ids are required. They can be provided either by argument or automatically by the `AnnotationSet` instance if it was created with `AnnotationSet.from_coco()` or `AnnotationSet.from_coco_results()`. You can also set `auto_ids` to True to automatically create image and label ids (warning: this could cause unexpected compatibility issues with other COCO datasets)."
+                "For COCO, mappings from labels and image ids to integer ids are required. "
+                "They can be provided either by argument or automatically by the `AnnotationSet` "
+                "instance if it was created with `AnnotationSet.from_coco()` or "
+                "`AnnotationSet.from_coco_results()`. You can also set `auto_ids` to True to "
+                "automatically create image and label ids (warning: this could cause unexpected "
+                "compatibility issues with other COCO datasets)."
             )
 
         annotations = []
@@ -870,7 +886,9 @@ class AnnotationSet:
 
                 if image_size is None:
                     raise ValueError(
-                        "The image size should be present in the annotation for `save_openimage`. One should parse the annotations specifying the image folder or populate the `image_size` attribute."
+                        "The image size should be present in the annotation for `save_openimage`. "
+                        "One should parse the annotations specifying the image folder or populate "
+                        "the `image_size` attribute."
                     )
 
                 for box in annotation.boxes:
@@ -878,7 +896,11 @@ class AnnotationSet:
 
                     if "," in label:
                         raise ValueError(
-                            f"The box label '{label}' contains the character ',' which is the same as the separtor character used for BoundingBox representation in OpenImage format (CSV). This will corrupt the saved annotation file and likely make it unreadable. Use another character in the label name, e.g. use and underscore instead of a comma."
+                            f"The box label '{label}' contains the character ',' which is the same "
+                            "as the separtor character used for BoundingBox representation in "
+                            "OpenImage format (CSV). This will corrupt the saved annotation file "
+                            "and likely make it unreadable. Use another character in the label "
+                            "name, e.g. use and underscore instead of a comma."
                         )
 
                     xmin, ymin, xmax, ymax = BoundingBox.abs_to_rel(

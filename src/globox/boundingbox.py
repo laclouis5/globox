@@ -37,7 +37,8 @@ class BoxFormat(Enum):
 
     @classmethod
     def from_string(cls, string: str) -> "BoxFormat":
-        """Create a `BoxFormat` from a raw string.
+        """
+        Create a `BoxFormat` from a raw string.
 
         The raw string can be either "ltrb", "ltwh" or "xywh".
         """
@@ -52,7 +53,8 @@ class BoxFormat(Enum):
 
 
 class BoundingBox:
-    """A rectangular bounding box with a label and an optional confidence score. Coordinates are
+    """
+    A rectangular bounding box with a label and an optional confidence score. Coordinates are
     absolute (i.e. in pixels) and stored internally in `BoxFormat.LTRB` format.
 
     Spatial layout:
@@ -102,7 +104,8 @@ class BoundingBox:
 
     @property
     def confidence(self) -> Optional[float]:
-        """The bounding box optional confidence score. If present, it is a `float`
+        """
+        The bounding box optional confidence score. If present, it is a `float`
         between 0 and 1.
         """
         return self._confidence
@@ -509,9 +512,13 @@ class BoundingBox:
             label = label_to_id[label]
 
         if isinstance(label, str):
-            assert (
-                separator not in label
-            ), f"The box label '{label}' contains the character '{separator}' which is the same as the separtor character used for BoundingBox representation in TXT/YOLO format. This will corrupt the saved annotation file and likely make it unreadable. Use another character in the label name or `label_to_id` mapping, e.g. use and underscore instead of a whitespace."
+            assert separator not in label, (
+                f"The box label '{label}' contains the character '{separator}' which is the same "
+                "as the separtor character used for BoundingBox representation in TXT/YOLO format. "
+                "This will corrupt the saved annotation file and likely make it unreadable. "
+                "Use another character in the label name or `label_to_id` mapping, e.g. use and "
+                "underscore instead of a whitespace."
+            )
 
         if self.is_ground_truth:
             line = (label, *coords)
@@ -635,4 +642,7 @@ class BoundingBox:
         )
 
     def __repr__(self) -> str:
-        return f"BoundingBox(label: {self.label}, xmin: {self._xmin}, ymin: {self._ymin}, xmax: {self._xmax}, ymax: {self._ymax}, confidence: {self._confidence})"
+        return (
+            f"BoundingBox(label: {self.label}, xmin: {self._xmin}, ymin: {self._ymin}, "
+            "xmax: {self._xmax}, ymax: {self._ymax}, confidence: {self._confidence})"
+        )

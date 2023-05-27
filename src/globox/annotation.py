@@ -371,7 +371,8 @@ class Annotation:
 
         if image_size is None:
             raise ValueError(
-                "Either `image_size` shoud be provided as argument or stored in the Annotation object for conversion to YOLO format."
+                "Either `image_size` shoud be provided as argument or stored in the Annotation "
+                "object for conversion to YOLO format."
             )
 
         return "\n".join(
@@ -623,4 +624,7 @@ class Annotation:
         return {"filename": image_id, "size": file_size, "regions": regions}
 
     def __repr__(self) -> str:
-        return f"Annotation(image_id: {self.image_id}, image_size: {self.image_size}, boxes: {self.boxes})"
+        return (
+            f"Annotation(image_id: {self.image_id}, image_size: {self.image_size}, "
+            "boxes: {self.boxes})"
+        )
