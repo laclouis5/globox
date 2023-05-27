@@ -105,7 +105,7 @@ class BoundingBox:
         """The bounding box optional confidence score. If present, it is a `float`
         between 0 and 1.
         """
-        return BoundingBox()
+        return self._confidence
 
     @confidence.setter
     def confidence(self, confidence: Optional[float]):
@@ -211,18 +211,18 @@ class BoundingBox:
 
     @property
     def is_detection(self) -> bool:
-        """Returns `True` if the bounding box confidence score is not `None`."""
+        """Return `True` if the bounding box confidence score is not `None`."""
         return self._confidence is not None
 
     @property
     def is_ground_truth(self) -> bool:
-        """Returns `True` if the bounding box confidence score is `None`."""
+        """Return `True` if the bounding box confidence score is `None`."""
         return self._confidence is None
 
     @staticmethod
     def rel_to_abs(coords: Coordinates, size: "tuple[int, int]") -> Coordinates:
         """
-        Converts coordinates from relative (between 0 and 1) to absolute (pixels) form.
+        Convert coordinates from relative (between 0 and 1) to absolute (pixels) form.
 
         The coordinates at indices 0 and 2 must be on the X-axis (horizontal) and the ones
         at indices 1 and 3 must be on the Y-axis (vertical).
@@ -236,7 +236,7 @@ class BoundingBox:
     @staticmethod
     def abs_to_rel(coords: Coordinates, size: "tuple[int, int]") -> Coordinates:
         """
-        Converts coordinates from absolute (pixels) to relative (between 0 and 1) form.
+        Convert coordinates from absolute (pixels) to relative (between 0 and 1) form.
 
         The coordinates at indices 0 and 2 must be on the X-axis (horizontal) and the ones
         at indices 1 and 3 must be on the Y-axis (vertical).
@@ -250,7 +250,7 @@ class BoundingBox:
     @staticmethod
     def ltwh_to_ltrb(coords: Coordinates) -> Coordinates:
         """
-        Converts coordinates from `BoxFormat.LTWH` to `BoxFormat.LTRB` format.
+        Convert coordinates from `BoxFormat.LTWH` to `BoxFormat.LTRB` format.
 
         The coordinates can be either in relative (between 0 and 1) or absolute (pixels) form.
         """
@@ -260,7 +260,7 @@ class BoundingBox:
     @staticmethod
     def xywh_to_ltrb(coords: Coordinates) -> Coordinates:
         """
-        Converts coordinates from `BoxFormat.XYWH` to `BoxFormat.LTRB` format.
+        Convert coordinates from `BoxFormat.XYWH` to `BoxFormat.LTRB` format.
 
         The coordinates can be either in relative (between 0 and 1)  or absolute (pixels) form.
         """
@@ -296,7 +296,7 @@ class BoundingBox:
     ) -> "BoundingBox":
         """
         Create a `BoundingBox` from different coordinate formats.
-        
+
         The image size should be provided if the coordinates are given in the relative form
         (values between 0 and 1).
         """

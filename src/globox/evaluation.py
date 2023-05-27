@@ -489,7 +489,7 @@ class COCOEvaluator:
 
         # This is overly complicated
         dt_ignore = [
-            gt_ignore[dt_matches[i]] if i in dt_matches else not d.area_in(size_range)
+            gt_ignore[dt_matches[i]] if i in dt_matches else not d._area_in(size_range)
             for i, d in enumerate(dets)
         ]
 
