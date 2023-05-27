@@ -19,13 +19,16 @@ Source: https://github.com/scardine/image_size
 
 
 def get_image_size(file_path: PathLike) -> "tuple[int, int]":
-    """Compute the size of an image without loading into
-    memory, which could result in faster speed.
+    """
+    Compute the size of an image without loading into memory, which could result in faster speed.
 
-    Args:
-        - file_path (str): path to an image file
+    Parameters:
+
+    * `file_path`: path to an image file.
+
     Returns:
-        - The image size (width, height)
+
+    * The image size (width, height).
     """
     file_path = Path(file_path).expanduser().resolve()
 
