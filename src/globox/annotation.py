@@ -39,12 +39,12 @@ class Annotation:
         self.boxes = boxes or []
 
     @property
-    def image_size(self) -> Optional[tuple[int, int]]:
+    def image_size(self) -> "Optional[tuple[int, int]]":
         """The image size in pixels ((width, height) tuple) if present."""
         return self._image_size
-    
+
     @image_size.setter
-    def image_size(self, image_size: Optional[tuple[int, int]]):
+    def image_size(self, image_size: "Optional[tuple[int, int]]"):
         if image_size is not None:
             img_w, img_h = image_size
             assert img_w > 0 and img_h > 0

@@ -192,25 +192,37 @@ class MultiThresholdEvaluation(Dict[str, Dict[str, float]]):
 
 
 class COCOEvaluator:
-    """Class for evaluating standard COCO metrics efficently.
+    """
+    COCO metrics evaluator.
 
-    This class use an internal cache to store evaluation results,
-    hence, repeated calls to '.evaluate(...)', '.ap50()' and other
-    such methods are fast.
+    Once instantiated, the standard COCO metrics can be queried using the dedicated methods:
 
-    There are lots of asserts in the evaluation hot path to ensure
-    a valid evaluation, speed gains can be otained by disabling them
-    (python3 --OO ...).
+    * `COCOEvaluator.ap()`,
+    * `COCOEvaluator.ap_50()`,
+    * `COCOEvaluator.ar_medium()`,
+    * etc.
+    
+    Custom evaluations can be performed with `COCOEvaluator.evaluate()` and the standard 
+    COCO metrics can be printed to the console with `COCOEvaluator.show_summary()`.
     """
 
     AP_THRESHOLDS = np.linspace(0.5, 0.95, 10)
+    """The ten COCO AP thresholds: [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]."""
 
     SMALL_RANGE = (0.0, 32.0**2)
+    """The COCO 'small range' (0, 1024) of bounding box areas (in pixels)."""
+
     MEDIUM_RANGE = (32.0**2, 96.0**2)
+    """The COCO 'medium range' (1024, 9216) of bounding box areas (in pixels)."""
+
     LARGE_RANGE = (96.0**2, float("inf"))
+    """The COCO 'large range' (9216, inf) of bounding box areas (in pixels)."""
+
     ALL_RANGE = (0.0, float("inf"))
+    """The range (0, inf) of any bounding box areas possible (in pixels)."""
 
     RECALL_STEPS = np.linspace(0.0, 1.0, 101)
+    """The 101 COCO recall steps used to compute the AP score."""
 
     CSV_HEADERS = (
         "label",
@@ -235,6 +247,18 @@ class COCOEvaluator:
         predictions: AnnotationSet,
         labels: Optional[Iterable[str]] = None,
     ) -> None:
+        """
+        Intantiate a `COCOEvaluator` with the to-be-evaluated dataset and the ground truth
+        reference one.
+
+        All the bounding box annotations from the prediction dataset must have a confidence score
+        and all the ones from the ground truth one must not.
+
+        If labels are provided, only those will be evaluated, else every label will.
+        
+        The evaluated datasets must not be modified during the lifetime of the `COCOEvaluator` or 
+        the results will be wrong.
+        """
         self._predictions = predictions
         self._ground_truths = ground_truths
 
@@ -252,20 +276,15 @@ class COCOEvaluator:
         max_detections: int = 100,
         size_range: Optional["tuple[float, float]"] = None,
     ) -> Evaluation:
-        """COCO evaluation with custom parameters. The result
-        is cached so that repeated call as fast.
+        """Evaluate COCO metrics for custom parameters.
 
         Parameters:
-        - iou_threshold: the bounding box iou threshold to
-        consider a ground-truth to detection association valid.
-        - max_detections: the maximum number of detections taken
-        into account (sorted by descreasing confidence). Defaults
-        to 100.
-        - size_range: the range of size (bounding box area) to
-        consider. Defaults to all sizes.
 
-        Returns:
-        - An evaluation holding the metrics.
+        * `iou_threshold`: the bounding box iou threshold to consider a ground-truth to
+        detection association valid.
+        * `max_detections`: the maximum number of detections taken into account (sorted by
+        descreasing confidence).
+        * `size_range`: the range of size (bounding box area) to consider.
         """
 
         return self._cached_evaluate(
@@ -296,6 +315,7 @@ class COCOEvaluator:
         ).evaluate()
 
     def ap(self) -> float:
+        """The AP"""
         return self.ap_evaluation().ap()
 
     def ap_50(self) -> float:
