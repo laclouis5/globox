@@ -11,10 +11,9 @@ from warnings import warn
 
 
 class Annotation:
-    """Stores bounding box annotations for one image.
-
-    The image should be uniquely identified by the `image_id` str. The
-    image size is necessary for some operations."""
+    """
+    The bounding boxes associated with a uniquely identified image.
+    """
 
     def __init__(
         self,
@@ -22,34 +21,63 @@ class Annotation:
         image_size: Optional["tuple[int, int]"] = None,
         boxes: Optional["list[BoundingBox]"] = None,
     ) -> None:
+        """
+        Create an `Annotation` for an image identified with a unique `str` tag and with
+        the provided list of bounding boxes.
+
+        The image size in pixels ((width, height) tuple) can be optionally specified and is required
+        for some export formats. This value can be queried from an image file with the
+        `get_image_size()` function if it cannot be retreived from the annotation file.
+        """
         if image_size is not None:
             img_w, img_h = image_size
             assert img_w > 0 and img_h > 0
             assert int(img_w) == img_w and int(img_h) == img_h
 
         self.image_id = image_id
-        self.image_size = image_size
+        self._image_size = image_size
         self.boxes = boxes or []
 
     @property
+    def image_size(self) -> Optional[tuple[int, int]]:
+        """The image size in pixels ((width, height) tuple) if present."""
+        return self._image_size
+    
+    @image_size.setter
+    def image_size(self, image_size: Optional[tuple[int, int]]):
+        if image_size is not None:
+            img_w, img_h = image_size
+            assert img_w > 0 and img_h > 0
+            assert int(img_w) == img_w and int(img_h) == img_h
+        self._image_size = image_size
+
+    @property
     def image_width(self) -> Optional[int]:
+        """The image width in pixels."""
         return self.image_size[0] if self.image_size is not None else None
 
     @property
     def image_height(self) -> Optional[int]:
+        """The image height in pixels."""
         return self.image_size[1] if self.image_size is not None else None
 
     def add(self, box: BoundingBox):
+        """Add a bounding box to the image annotation."""
         self.boxes.append(box)
 
     def map_labels(self, mapping: Mapping[str, str]) -> "Annotation":
-        """Change all the bounding box annotation labels according to
-        the provided mapping (act as a translation)."""
+        """
+        Update all the bounding box labels according to the provided dictionary which maps former
+        names to new names. If a label name is not present in the dictionary keys, then it won't
+        be updated.
+        """
         for box in self.boxes:
-            box.label = mapping[box.label]
+            if box.label in mapping.keys():
+                box.label = mapping[box.label]
         return self
 
     def _labels(self) -> "set[str]":
+        """The set of the different label names present in the annotation."""
         return {b.label for b in self.boxes}
 
     @staticmethod
