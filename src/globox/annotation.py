@@ -15,6 +15,8 @@ class Annotation:
     The bounding boxes associated with a uniquely identified image.
     """
 
+    __slots__ = ("_image_id", "_image_size", "boxes")
+
     def __init__(
         self,
         image_id: str,
@@ -34,9 +36,14 @@ class Annotation:
             assert img_w > 0 and img_h > 0
             assert int(img_w) == img_w and int(img_h) == img_h
 
-        self.image_id = image_id
+        self._image_id = image_id
         self._image_size = image_size
         self.boxes = boxes or []
+
+    @property
+    def image_id(self) -> str:
+        """The unique identifier of the image for this annotation."""
+        return self._image_id
 
     @property
     def image_size(self) -> "Optional[tuple[int, int]]":
