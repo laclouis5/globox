@@ -16,7 +16,7 @@ def glob(
 
     assert all(
         e.startswith(".") for e in extensions
-    ), "Parameter `extension` should start with a dot."
+    ), f"Parameter `extensions' ({extensions}) should all start with a dot."
 
     path = Path(folder).expanduser().resolve()
 

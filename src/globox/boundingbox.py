@@ -608,7 +608,7 @@ class BoundingBox:
     def to_via_json(
         self, *, label_key: str = "label_id", confidence_key: str = "confidence"
     ) -> dict:
-        assert label_key != confidence_key
+        assert label_key != confidence_key, f"Label key '{label_key}' and confidence key '{confidence_key}' should be different."
 
         shape_attributes = {
             "name": "rect",

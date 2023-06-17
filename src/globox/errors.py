@@ -1,11 +1,7 @@
 from pathlib import Path
 
 
-class BaseException(Exception):
-    pass
-
-
-class UnknownImageFormat(BaseException):
+class UnknownImageFormat(Exception):
     pass
 
 
