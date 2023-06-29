@@ -263,7 +263,6 @@ poetry run pytest
 Speed benchmark can be executed with:
 
 ```shell
-poetry shell
 python tests/benchmark.py -n 5
 ```
 
