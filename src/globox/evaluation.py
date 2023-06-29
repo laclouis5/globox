@@ -34,8 +34,10 @@ class PartialEvaluationItem:
         self._npos = npos
         self._cache: dict[str, Any] = {}
 
-        assert self._npos >= 0
-        assert len(self._tps) == len(self._scores)
+        assert self._npos >= 0, f"'npos' ({npos}) should be greater than or equal to 0."
+        assert len(self._tps) == len(
+            self._scores
+        ), f"The number of 'tps' ({len(self._tps)}) should be equal to the number of 'scores' ({len(self._scores)})."
 
     def __iadd__(self, other: "PartialEvaluationItem") -> "PartialEvaluationItem":
         self._tps += other._tps
@@ -442,7 +444,9 @@ class COCOEvaluator:
         size_range: "tuple[float, float]",
         labels: Optional[Iterable[str]] = None,
     ) -> PartialEvaluation:
-        assert prediction.image_id == ground_truth.image_id
+        assert (
+            prediction.image_id == ground_truth.image_id
+        ), f"The prediction image id '{prediction.image_id}' should be the same as the ground truth image id '{ground_truth.image_id}'."
 
         preds = grouping(prediction.boxes, lambda box: box.label)
         refs = grouping(ground_truth.boxes, lambda box: box.label)
@@ -468,10 +472,18 @@ class COCOEvaluator:
         max_detections: int,
         size_range: "tuple[float, float]",
     ) -> PartialEvaluationItem:
-        assert all(p.is_detection for p in predictions)
-        assert all(g.is_ground_truth for g in ground_truths)
-        assert all_equal(p.label for p in predictions)
-        assert all_equal(g.label for g in ground_truths)
+        assert all(
+            p.is_detection for p in predictions
+        ), f"Prediction annotations should not contain ground truth annotations."
+        assert all(
+            g.is_ground_truth for g in ground_truths
+        ), f"Ground truth annotations should not contain prediction annotations."
+        assert all_equal(
+            p.label for p in predictions
+        ), f"The prediction boxes should have the same label."
+        assert all_equal(
+            g.label for g in ground_truths
+        ), f"The ground truth boxes should have the same label."
 
         cls._assert_params(iou_threshold, max_detections, size_range)
 
@@ -523,11 +535,17 @@ class COCOEvaluator:
     def _assert_params(
         iou_threshold: float, max_detections: int, size_range: "tuple[float, float]"
     ):
-        assert 0.0 <= iou_threshold <= 1.0
-        assert max_detections >= 0
+        assert (
+            0.0 <= iou_threshold <= 1.0
+        ), f"the IoU threshold ({iou_threshold}) should be between 0 and 1."
+        assert (
+            max_detections >= 0
+        ), f"The maximum number of detections ({max_detections}) should be positive."
 
         low, high = size_range
-        assert low >= 0.0 and high >= low
+        assert (
+            low >= 0.0 and high >= low
+        ), f"The size range '({low}, {high})' should be positive and non-empty, i.e. 0 < size_range[0] <= size_range[1]."
 
     def clear_cache(self):
         self._cached_evaluate.cache_clear()

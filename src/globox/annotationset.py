@@ -187,7 +187,9 @@ class AnnotationSet:
     ) -> "AnnotationSet":
         folder = Path(folder).expanduser().resolve()
 
-        assert folder.is_dir()
+        assert (
+            folder.is_dir()
+        ), f"Filepath '{folder}' is not a folder or does not exist."
 
         files = list(glob(folder, extension, recursive=recursive))
         return AnnotationSet.from_iter(parser, files, verbose=verbose)
@@ -213,8 +215,12 @@ class AnnotationSet:
 
         folder = Path(folder).expanduser().resolve()
 
-        assert folder.is_dir()
-        assert image_extension.startswith(".")
+        assert (
+            folder.is_dir()
+        ), f"Filepath '{folder}' is not a folder or does not exist."
+        assert image_extension.startswith(
+            "."
+        ), f"Image extension '{image_extension}' should start with a dot."
 
         if relative:
             assert image_folder is not None, (
@@ -224,7 +230,9 @@ class AnnotationSet:
 
         if image_folder is not None:
             image_folder = Path(image_folder).expanduser().resolve()
-            assert image_folder.is_dir()
+            assert (
+                image_folder.is_dir()
+            ), f"Filepath '{image_folder}' is not a folder or does not exist."
 
         def _get_annotation(file: Path) -> Annotation:
             image_id = file.with_suffix(image_extension).name
@@ -840,7 +848,7 @@ class AnnotationSet:
         if path.suffix == "":
             path = path.with_suffix(".json")
 
-        assert path.suffix == ".json"
+        assert path.suffix == ".json", f"Path '{path}' suffix should be '.json'."
 
         content = self.to_coco(
             label_to_id=label_to_id,
@@ -858,7 +866,7 @@ class AnnotationSet:
         if path.suffix == "":
             path = path.with_suffix(".csv")
 
-        assert path.suffix == ".csv"
+        assert path.suffix == ".csv", f"Path '{path}' suffix should be '.csv'."
 
         fields = (
             "ImageID",
@@ -937,7 +945,7 @@ class AnnotationSet:
         if path.suffix == "":
             path = path.with_suffix(".xml")
 
-        assert path.suffix == ".xml"
+        assert path.suffix == ".xml", f"Path '{path}' suffix should be '.xml'."
 
         content = self.to_cvat(verbose=verbose)
         content = et.tostring(content, encoding="unicode")
@@ -981,7 +989,7 @@ class AnnotationSet:
         if path.suffix == "":
             path = path.with_suffix(".json")
 
-        assert path.suffix == ".json"
+        assert path.suffix == ".json", f"Path '{path}' suffix should be '.json'."
 
         output = self.to_via_json(
             image_folder=image_folder,

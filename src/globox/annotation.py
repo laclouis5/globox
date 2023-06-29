@@ -33,8 +33,12 @@ class Annotation:
         """
         if image_size is not None:
             img_w, img_h = image_size
-            assert img_w > 0 and img_h > 0
-            assert int(img_w) == img_w and int(img_h) == img_h
+            assert (
+                img_w > 0 and img_h > 0
+            ), f"Image size '({img_h}, {img_w})' should be positive."
+            assert (
+                int(img_w) == img_w and int(img_h) == img_h
+            ), f"Image size '({img_h}, {img_w})' components should be integers."
 
         self._image_id = image_id
         self._image_size = image_size
@@ -54,8 +58,12 @@ class Annotation:
     def image_size(self, image_size: "Optional[tuple[int, int]]"):
         if image_size is not None:
             img_w, img_h = image_size
-            assert img_w > 0 and img_h > 0
-            assert int(img_w) == img_w and int(img_h) == img_h
+            assert (
+                img_w > 0 and img_h > 0
+            ), f"Image size '({img_h}, {img_w})' should be positive."
+            assert (
+                int(img_w) == img_w and int(img_h) == img_h
+            ), f"Image size '({img_h}, {img_w})' components should be integers."
         self._image_size = image_size
 
     @property
@@ -102,7 +110,9 @@ class Annotation:
         path = Path(file_path).expanduser().resolve()
 
         if image_id is None:
-            assert image_extension.startswith(".")
+            assert image_extension.startswith(
+                "."
+            ), f"Image extension '{image_extension}' should start with a dot."
             image_id = path.with_suffix(image_extension).name
 
         try:
@@ -610,7 +620,7 @@ class Annotation:
     ) -> dict:
         path = Path(image_folder).expanduser().resolve()
 
-        assert path.is_dir()
+        assert path.is_dir(), f"Filepath '{path}' is not a folder or does not exist."
 
         image_id = self.image_id
         image_path = path / image_id

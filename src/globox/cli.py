@@ -367,7 +367,9 @@ def evaluate(
 def main():
     args = parse_args()
 
-    assert args.threads is None or args.threads > 0
+    assert (
+        args.threads is None or args.threads > 0
+    ), f"The number of threads '{args.threads}' should either be None or be greater than 0."
 
     mode = args.mode
     if mode == "convert":
