@@ -24,8 +24,12 @@ from collections import defaultdict
 import json
 from tqdm import tqdm
 from warnings import warn
-
+from enum import Enum
 T = TypeVar("T")
+
+
+class GeneralEnums(Enum):
+    all_image_extensions_with_dots = [".jpg", ".JPG", ".png", ".PNG", ".jpeg", ".JPEG", ".jpe", ".JPE"]
 
 
 class AnnotationSet:
@@ -149,7 +153,7 @@ class AnnotationSet:
 
     @property
     def image_ids(self):
-        "A view on the set of image IDs of this dataset."
+        """A view on the set of image IDs of this dataset."""
         return self._annotations.keys()
 
     @property
@@ -196,58 +200,50 @@ class AnnotationSet:
 
     @staticmethod
     def from_txt(
-        folder: PathLike,
-        *,
-        image_folder: Optional[PathLike] = None,
-        box_format=BoxFormat.LTRB,
-        relative=False,
-        file_extension: str = ".txt",
-        image_extension: str = ".jpg",
-        separator: str = " ",
-        conf_last: bool = False,
-        verbose: bool = False,
+            folder: PathLike,
+            *,
+            image_folder: Optional[PathLike] = None,
+            box_format=BoxFormat.LTRB,
+            relative=False,
+            file_extension: str = ".txt",
+            image_extension: str = ".jpg",
+            separator: str = " ",
+            conf_last: bool = False,
+            verbose: bool = False,
     ) -> "AnnotationSet":
-        """
-        This method won't try to retreive the image sizes by default. Specify `image_folder` if
-        you need them. `image_folder` is required when `relative` is True.
-        """
+        """This method won't try to retreive the image sizes by default. Specify `image_folder` if you need them.
+        `image_folder` is required when `relative` is True."""
         # TODO: Add error handling
 
         folder = Path(folder).expanduser().resolve()
 
-        assert (
-            folder.is_dir()
-        ), f"Filepath '{folder}' is not a folder or does not exist."
-        assert image_extension.startswith(
-            "."
-        ), f"Image extension '{image_extension}' should start with a dot."
+        assert folder.is_dir()
+        assert image_extension.startswith(".")
 
         if relative:
-            assert image_folder is not None, (
-                "When `relative` is set to True, `image_folder` must be provided) to read "
-                "image sizes."
-            )
+            assert (
+                    image_folder is not None
+            ), "When `relative` is set to True, `image_folder` must be provided to read image sizes."
 
         if image_folder is not None:
             image_folder = Path(image_folder).expanduser().resolve()
-            assert (
-                image_folder.is_dir()
-            ), f"Filepath '{image_folder}' is not a folder or does not exist."
+            assert image_folder.is_dir()
 
         def _get_annotation(file: Path) -> Annotation:
-            image_id = file.with_suffix(image_extension).name
 
             if image_folder is not None:
-                image_path = image_folder / image_id  # type: ignore
-                assert (
-                    image_path.is_file()
-                ), f"File {image_path} does not exists, unable to read the image size."
+                image_path = None
+                for image_ext in GeneralEnums.all_image_extensions_with_dots.value:
+                    image_id = file.with_suffix(image_ext).name
+                    image_path = image_folder / image_id  # type: ignore
+                    if image_path.is_file():
+                        break
                 try:
                     image_size = get_image_size(image_path)
                 except UnknownImageFormat:
                     raise ParsingError(
-                        f"Unable to read image size of file {image_path}. The file may be "
-                        "corrupted or the file format not supported."
+                        f"Unable to read image size of file {image_path}. "
+                        f"The file may be corrupted or the file format not supported."
                     )
             else:
                 image_size = None
@@ -271,12 +267,12 @@ class AnnotationSet:
 
     @staticmethod
     def _from_yolo(
-        folder: PathLike,
-        *,
-        image_folder: PathLike,
-        image_extension=".jpg",
-        conf_last: bool = False,
-        verbose: bool = False,
+            folder: PathLike,
+            *,
+            image_folder: PathLike,
+            image_extension=".jpg",
+            conf_last: bool = False,
+            verbose: bool = False,
     ) -> "AnnotationSet":
         return AnnotationSet.from_txt(
             folder,
