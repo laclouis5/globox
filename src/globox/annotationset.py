@@ -29,7 +29,7 @@ T = TypeVar("T")
 
 
 class GeneralEnums(Enum):
-    all_image_extensions_with_dots = [".jpg", ".JPG", ".png", ".PNG", ".jpeg", ".JPEG", ".jpe", ".JPE"]
+    all_image_extensions_with_dots = [".jpg", ".JPG", ".png", ".PNG", ".jpeg", ".JPEG", ".jpe", ".JPE", ".bmp", ".BMP"]
 
 
 class AnnotationSet:
