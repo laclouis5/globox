@@ -17,6 +17,19 @@ get_image_size.py
 Source: https://github.com/scardine/image_size
 """
 
+IMAGE_EXTENSIONS = [
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".bmp",
+    ".jpe",
+    ".JPG",
+    ".JPEG",
+    ".PNG",
+    ".BMP",
+    ".JPE",
+]
+
 
 def get_image_size(file_path: PathLike) -> "tuple[int, int]":
     """

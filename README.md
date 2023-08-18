@@ -270,11 +270,11 @@ The following speed test is performed using Python 3.11 and `timeit` with 5 iter
 
 Task   |COCO |CVAT |OpenImage|LabelMe|PascalVOC|YOLO |TXT
 -------|-----|-----|---------|-------|---------|-----|-----
-Parsing|0.25s|0.13s|0.47s    |0.72s  |1.04s    |1.68s|1.42s
-Saving |0.34s|0.20s|0.15s    |1.09s  |1.14s    |0.91s|0.88s
+Parsing|0.22s|0.12s|0.44s    |0.60s  |0.97s    |1.45s|1.12s
+Saving |0.32s|0.17s|0.14s    |1.06s  |1.08s    |0.91s|0.85s
 
 * `AnnotationSet.show_stats()`: 0.02 s
-* Evalaution: 0.06 s
+* Evalaution: 0.05 s
 
 </details>
 
