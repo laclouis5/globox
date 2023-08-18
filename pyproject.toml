@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "globox"
-version = "2.2.0"
+version = "2.3.0"
 authors = ["Louis Lac <lac.louis5@gmail.com>"]
 license = "MIT"
 packages = [{include = "globox", from = "src"}]
