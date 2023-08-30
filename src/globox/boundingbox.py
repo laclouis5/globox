@@ -336,7 +336,7 @@ class BoundingBox:
         box_format=BoxFormat.LTRB,
         relative=False,
         image_size: Optional["tuple[int, int]"] = None,
-        separator: str = " ",
+        separator: str | None = None,
         conf_last: bool = False,
     ) -> "BoundingBox":
         values = string.strip().split(separator)
@@ -377,7 +377,7 @@ class BoundingBox:
             box_format=BoxFormat.XYWH,
             relative=True,
             image_size=image_size,
-            separator=" ",
+            separator=None,
             conf_last=conf_last,
         )
 

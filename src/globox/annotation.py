@@ -104,7 +104,7 @@ class Annotation:
         box_format: BoxFormat = BoxFormat.LTRB,
         relative: bool = False,
         image_size: Optional["tuple[int, int]"] = None,
-        separator: str = " ",
+        separator: str | None = None,
         conf_last: bool = False,
     ) -> "Annotation":
         path = Path(file_path).expanduser().resolve()
@@ -153,7 +153,7 @@ class Annotation:
             box_format=BoxFormat.XYWH,
             relative=True,
             image_size=image_size,
-            separator=" ",
+            separator=None,
             conf_last=conf_last,
         )
 
