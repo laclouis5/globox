@@ -203,7 +203,7 @@ class AnnotationSet:
         relative=False,
         file_extension: str = ".txt",
         image_extension: str = ".jpg",
-        separator: str | None = None,
+        separator: Optional[str] = None,
         conf_last: bool = False,
         verbose: bool = False,
     ) -> "AnnotationSet":

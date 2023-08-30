@@ -104,7 +104,7 @@ class Annotation:
         box_format: BoxFormat = BoxFormat.LTRB,
         relative: bool = False,
         image_size: Optional["tuple[int, int]"] = None,
-        separator: str | None = None,
+        separator: Optional[str] = None,
         conf_last: bool = False,
     ) -> "Annotation":
         path = Path(file_path).expanduser().resolve()
