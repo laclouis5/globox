@@ -646,5 +646,5 @@ class BoundingBox:
     def __repr__(self) -> str:
         return (
             f"BoundingBox(label: {self.label}, xmin: {self._xmin}, ymin: {self._ymin}, "
-            "xmax: {self._xmax}, ymax: {self._ymax}, confidence: {self._confidence})"
+            f"xmax: {self._xmax}, ymax: {self._ymax}, confidence: {self._confidence})"
         )
