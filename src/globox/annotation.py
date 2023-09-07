@@ -636,5 +636,5 @@ class Annotation:
     def __repr__(self) -> str:
         return (
             f"Annotation(image_id: {self.image_id}, image_size: {self.image_size}, "
-            "boxes: {self.boxes})"
+            f"boxes: {self.boxes})"
         )
