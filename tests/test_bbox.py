@@ -169,6 +169,16 @@ def test_from_txt_conf_last():
     assert box.confidence == 0.25
 
 
+def test_from_txt_tab_sep():
+    line = "label\t10\t20\t30\t40\t0.25"
+    box = BoundingBox.from_txt(line, conf_last=True)
+    assert box.confidence == 0.25
+
+    line = "label 0.25 10 20 30 40"
+    box = BoundingBox.from_txt(line)
+    assert box.confidence == 0.25
+
+
 def test_from_yolo_v5():
     line = "label 0.25 0.25 0.5 0.5 0.25"
     bbox = BoundingBox.from_yolo_v5(line, image_size=(100, 100))
@@ -188,6 +198,23 @@ def test_from_yolo_v5():
 
 def test_from_yolo_v7():
     line = "label 0.25 0.25 0.5 0.5 0.25"
+    bbox = BoundingBox.from_yolo_v7(line, image_size=(100, 100))
+
+    assert bbox.label == "label"
+    assert bbox.confidence == 0.25
+
+    (xmin, ymin, xmax, ymax) = bbox.ltrb
+
+    assert isclose(xmin, 0.0)
+    assert isclose(ymin, 0.0)
+    assert isclose(xmax, 50.0)
+    assert isclose(ymax, 50.0)
+
+    assert isclose(bbox.confidence, 0.25)
+
+
+def test_from_yolo_v7_tab_sep():
+    line = "label 0.25\t0.25\t0.5\t0.5\t0.25"
     bbox = BoundingBox.from_yolo_v7(line, image_size=(100, 100))
 
     assert bbox.label == "label"
