@@ -197,7 +197,7 @@ ap = evaluation.ap()
 cat_ar = evaluation["cat"].ar
 ```
 
-Evaluations are cached by `(iou_threshold, max_detections, size_range)` keys. This means that you should not care about about performance, repetead queries to the evaluator are fast!
+Evaluations are cached by `(iou_threshold, max_detections, size_range)` keys. This means that repetead queries to the evaluator are fast!
 
 ## Use in Command Line
 
