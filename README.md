@@ -298,7 +298,7 @@ Saving |0.32s|0.17s|0.14s    |1.06s  |1.08s    |0.91s|0.85s
 
 ## Acknowledgement
 
-This repo is based on the work of [Rafael Padilla](https://github.com/rafaelpadilla/review_object_detection_metrics). The goal of this repo is to improve the performance and flexibility and to provide additional tools.
+This repo is based on the work of [Rafael Padilla](https://github.com/rafaelpadilla/review_object_detection_metrics).
 
 ## Contribution
 
