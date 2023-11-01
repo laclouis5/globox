@@ -23,8 +23,8 @@ keywords = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.8"
-numpy = "^1.23.5"
+python = ">=3.9,<3.13"
+numpy = "^1.26.0"
 tqdm = "^4.65.0"
 rich = "^13.3.5"
 
