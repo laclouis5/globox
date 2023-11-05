@@ -1,12 +1,13 @@
-from globox import *
 from pathlib import Path
 from timeit import timeit
 from time import perf_counter
-from rich.table import Table
-from rich import print as rich_print
 from argparse import ArgumentParser
 from tempfile import TemporaryDirectory
 
+from rich.table import Table
+from rich import print as rich_print
+
+import globox
 import constants as cst
 
 
@@ -15,14 +16,14 @@ def benchmark(repetitions: int = 5):
     coco = base / "coco.json"
     images = base / "images"
 
-    gts = AnnotationSet.from_coco(coco)
+    gts = globox.AnnotationSet.from_coco(coco)
     labels = sorted(gts._labels())
     label_to_id = {l: i for i, l in enumerate(labels)}
 
-    coco_gt = AnnotationSet.from_coco(cst.coco_gts_path)
+    coco_gt = globox.AnnotationSet.from_coco(cst.coco_gts_path)
     coco_det = coco_gt.from_results(cst.coco_results_path)
 
-    evaluator = COCOEvaluator(
+    evaluator = globox.COCOEvaluator(
         ground_truths=coco_gt,
         predictions=coco_det,
     )
@@ -53,25 +54,33 @@ def benchmark(repetitions: int = 5):
             lambda: gts.save_txt(txt, label_to_id=label_to_id), number=repetitions
         )
 
-        coco_p = timeit(lambda: AnnotationSet.from_coco(coco), number=repetitions)
-        cvat_p = timeit(lambda: AnnotationSet.from_cvat(cvat), number=repetitions)
+        coco_p = timeit(lambda: globox.AnnotationSet.from_coco(coco), number=repetitions)
+        cvat_p = timeit(lambda: globox.AnnotationSet.from_cvat(cvat), number=repetitions)
         oi_p = timeit(
-            lambda: AnnotationSet.from_openimage(oi, image_folder=images),
+            lambda: globox.AnnotationSet.from_openimage(oi, image_folder=images),
             number=repetitions,
         )
         labelme_p = timeit(
-            lambda: AnnotationSet.from_labelme(labelme), number=repetitions
+            lambda: globox.AnnotationSet.from_labelme(labelme), number=repetitions
         )
-        xml_p = timeit(lambda: AnnotationSet.from_xml(xml), number=repetitions)
+        xml_p = timeit(lambda: globox.AnnotationSet.from_xml(xml), number=repetitions)
         yolo_p = timeit(
-            lambda: AnnotationSet.from_yolo_darknet(yolo, image_folder=images),
+            lambda: globox.AnnotationSet.from_yolo_darknet(yolo, image_folder=images),
             number=repetitions,
         )
         txt_p = timeit(
-            lambda: AnnotationSet.from_txt(txt, image_folder=images), number=repetitions
+            lambda: globox.AnnotationSet.from_txt(txt, image_folder=images), number=repetitions
         )
 
-    eval_t = timeit(lambda: evaluator._evaluate_all(), number=repetitions) / repetitions
+    def _eval():
+        evaluator.clear_cache()
+        evaluator._evaluate_all()
+
+    eval_t = timeit(
+        lambda: _eval(), 
+        number=repetitions,
+    ) / repetitions
+    
     stats_t = timeit(lambda: gts.show_stats(), number=repetitions) / repetitions
 
     stop = perf_counter()

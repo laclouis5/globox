@@ -274,7 +274,7 @@ Parsing|0.22s|0.12s|0.44s    |0.60s  |0.97s    |1.45s|1.12s
 Saving |0.32s|0.17s|0.14s    |1.06s  |1.08s    |0.91s|0.85s
 
 * `AnnotationSet.show_stats()`: 0.02 s
-* Evalaution: 0.05 s
+* Evalaution: 0.30 s
 
 </details>
 
