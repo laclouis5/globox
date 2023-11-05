@@ -1,13 +1,15 @@
-from globox import AnnotationSet, Annotation, BoundingBox, COCOEvaluator
-from .constants import *
 from math import isclose
+
 import pytest
+from globox import Annotation, AnnotationSet, BoundingBox, COCOEvaluator
+
+from . import constants as C
 
 
 @pytest.fixture
 def coco_evaluator() -> COCOEvaluator:
-    coco_gt = AnnotationSet.from_coco(coco_gts_path)
-    coco_det = coco_gt.from_results(coco_results_path)
+    coco_gt = AnnotationSet.from_coco(C.coco_gts_path)
+    coco_det = coco_gt.from_results(C.coco_results_path)
 
     return COCOEvaluator(
         ground_truths=coco_gt,

@@ -1,13 +1,13 @@
-from .boundingbox import BoundingBox, BoxFormat
-from .errors import ParsingError, FileParsingError
-from .atomic import open_atomic
-from .file_utils import PathLike
-
+import json
+import xml.etree.ElementTree as et
 from pathlib import Path
 from typing import Mapping, Optional, Union
-import xml.etree.ElementTree as et
-import json
 from warnings import warn
+
+from .atomic import open_atomic
+from .boundingbox import BoundingBox, BoxFormat
+from .errors import FileParsingError, ParsingError
+from .file_utils import PathLike
 
 
 class Annotation:

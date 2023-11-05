@@ -1,9 +1,9 @@
-from .file_utils import PathLike
-
 import os
 import tempfile as tmp
 from contextlib import contextmanager
 from typing import Optional
+
+from .file_utils import PathLike
 
 
 @contextmanager

@@ -1,9 +1,9 @@
-from concurrent.futures import ThreadPoolExecutor
 import atexit
+from concurrent.futures import ThreadPoolExecutor
 from operator import length_hint
-from tqdm import tqdm
-from typing import Callable, TypeVar, Iterable, Optional
+from typing import Callable, Iterable, Optional, TypeVar
 
+from tqdm import tqdm
 
 SHARED_THREAD_POOL = ThreadPoolExecutor()
 

@@ -1,29 +1,30 @@
-from .boundingbox import BoundingBox, BoxFormat
-from .annotation import Annotation
-from .errors import UnknownImageFormat, ParsingError
-from .file_utils import glob, PathLike
-from .image_utils import get_image_size, IMAGE_EXTENSIONS
-from .atomic import open_atomic
-from .thread_utils import thread_map
-
-from typing import (
-    Dict,
-    Callable,
-    Iterator,
-    Mapping,
-    TypeVar,
-    Iterable,
-    Union,
-    Optional,
-    Any,
-)
 import csv
-from pathlib import Path
+import json
 import xml.etree.ElementTree as et
 from collections import defaultdict
-import json
-from tqdm import tqdm
+from pathlib import Path
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    Iterator,
+    Mapping,
+    Optional,
+    TypeVar,
+    Union,
+)
 from warnings import warn
+
+from tqdm import tqdm
+
+from .annotation import Annotation
+from .atomic import open_atomic
+from .boundingbox import BoundingBox, BoxFormat
+from .errors import ParsingError, UnknownImageFormat
+from .file_utils import PathLike, glob
+from .image_utils import IMAGE_EXTENSIONS, get_image_size
+from .thread_utils import thread_map
 
 T = TypeVar("T")
 
@@ -1031,8 +1032,8 @@ class AnnotationSet:
         Print in the console a synthetic view of the dataset annotations (distribution of
         bounding boxes and images by label).
         """
-        from rich.table import Table
         from rich import print as rprint
+        from rich.table import Table
 
         box_by_label = defaultdict(int)
         im_by_label = defaultdict(int)

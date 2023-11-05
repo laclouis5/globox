@@ -4,7 +4,7 @@
 # Test EvaluationItem and similar for invariants
 # Test AP computation
 
-from globox import *
+import globox
 import pytest
 
 

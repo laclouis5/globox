@@ -1,7 +1,8 @@
-from globox import BoundingBox, Annotation, BoxFormat
-import pytest
-from pathlib import Path
 from math import isclose
+from pathlib import Path
+
+import pytest
+from globox import Annotation, BoundingBox
 
 
 def test_init():

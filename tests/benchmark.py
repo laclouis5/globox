@@ -1,14 +1,14 @@
-from pathlib import Path
-from timeit import timeit
-from time import perf_counter
 from argparse import ArgumentParser
+from pathlib import Path
 from tempfile import TemporaryDirectory
-
-from rich.table import Table
-from rich import print as rich_print
+from time import perf_counter
+from timeit import timeit
 
 import globox
-import constants as cst
+from rich import print as rich_print
+from rich.table import Table
+
+from . import constants as C
 
 
 def benchmark(repetitions: int = 5):
@@ -20,8 +20,8 @@ def benchmark(repetitions: int = 5):
     labels = sorted(gts._labels())
     label_to_id = {l: i for i, l in enumerate(labels)}
 
-    coco_gt = globox.AnnotationSet.from_coco(cst.coco_gts_path)
-    coco_det = coco_gt.from_results(cst.coco_results_path)
+    coco_gt = globox.AnnotationSet.from_coco(C.coco_gts_path)
+    coco_det = coco_gt.from_results(C.coco_results_path)
 
     evaluator = globox.COCOEvaluator(
         ground_truths=coco_gt,

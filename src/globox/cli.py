@@ -1,11 +1,11 @@
-from .boundingbox import BoxFormat
-from .annotationset import AnnotationSet
-from .evaluation import COCOEvaluator
-
 import argparse
+import sys
 from pathlib import Path
 from typing import Optional
-import sys
+
+from .annotationset import AnnotationSet
+from .boundingbox import BoxFormat
+from .evaluation import COCOEvaluator
 
 PARSE_CHOICES = {
     "coco",

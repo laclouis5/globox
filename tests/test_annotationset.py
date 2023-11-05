@@ -1,9 +1,12 @@
-from globox import Annotation, AnnotationSet, BoundingBox, BoxFormat
-from globox.file_utils import glob
-from .constants import *
-import pytest
-from PIL import Image
 from math import isclose
+from pathlib import Path
+
+import pytest
+from globox import Annotation, AnnotationSet, BoundingBox
+from globox.file_utils import glob
+from PIL import Image
+
+from . import constants as C
 
 
 def test_annotationset():
@@ -35,7 +38,7 @@ def test_annotationset():
 
 
 def test_annotation_set_2():
-    files = list(glob(pascal_path, ".xml"))
+    files = list(glob(C.pascal_path, ".xml"))
     set1 = AnnotationSet(Annotation.from_xml(f) for f in files[:50])
     set2 = AnnotationSet(Annotation.from_xml(f) for f in files[50:])
     set3 = set1 | set2
@@ -164,7 +167,7 @@ def test_from_txt_conf_last(tmp_path: Path):
 
 
 def test_from_coco_id_string():
-    gts = AnnotationSet.from_coco(coco_str_id_path)
+    gts = AnnotationSet.from_coco(C.coco_str_id_path)
 
     assert len(gts) == 100  # images defined in coco_file
     assert gts["2007_001585.jpg"] is not None

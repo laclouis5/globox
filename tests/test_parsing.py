@@ -1,36 +1,36 @@
-from globox import BoxFormat, AnnotationSet
+from globox import AnnotationSet, BoxFormat
 from globox.utils import all_equal
 
-from .constants import *
+from . import constants as C
 
 
 def tests_parsing():
-    coco1_set = AnnotationSet.from_coco(coco1_path)
-    coco2_set = AnnotationSet.from_coco(coco2_path)
-    coco3_set = AnnotationSet.from_coco(coco_str_id_path)
-    coco_gts_set = AnnotationSet.from_coco(coco_gts_path)
+    coco1_set = AnnotationSet.from_coco(C.coco1_path)
+    coco2_set = AnnotationSet.from_coco(C.coco2_path)
+    coco3_set = AnnotationSet.from_coco(C.coco_str_id_path)
+    coco_gts_set = AnnotationSet.from_coco(C.coco_gts_path)
     yolo_set = AnnotationSet.from_yolo_darknet(
-        yolo_path, image_folder=image_folder
-    ).map_labels(id_to_label)
-    cvat_set = AnnotationSet.from_cvat(cvat_path)
-    imagenet_set = AnnotationSet.from_imagenet(imagenet_path)
-    labelme_set = AnnotationSet.from_labelme(labelme_path)
+        C.yolo_path, image_folder=C.image_folder
+    ).map_labels(C.id_to_label)
+    cvat_set = AnnotationSet.from_cvat(C.cvat_path)
+    imagenet_set = AnnotationSet.from_imagenet(C.imagenet_path)
+    labelme_set = AnnotationSet.from_labelme(C.labelme_path)
     openimage_set = AnnotationSet.from_openimage(
-        openimage_path, image_folder=image_folder
+        C.openimage_path, image_folder=C.image_folder
     )
-    pascal_set = AnnotationSet.from_pascal_voc(pascal_path)
-    via_json_set = AnnotationSet.from_via_json(via_json_path, image_folder=image_folder)
+    pascal_set = AnnotationSet.from_pascal_voc(C.pascal_path)
+    via_json_set = AnnotationSet.from_via_json(C.via_json_path, image_folder=C.image_folder)
 
     abs_ltrb_set = AnnotationSet.from_txt(
-        abs_ltrb, image_folder=image_folder
-    ).map_labels(id_to_label)
+        C.abs_ltrb, image_folder=C.image_folder
+    ).map_labels(C.id_to_label)
     abs_ltwh_set = AnnotationSet.from_txt(
-        abs_ltwh, image_folder=image_folder, box_format=BoxFormat.LTWH
-    ).map_labels(id_to_label)
+        C.abs_ltwh, image_folder=C.image_folder, box_format=BoxFormat.LTWH
+    ).map_labels(C.id_to_label)
     rel_ltwh_set = AnnotationSet.from_txt(
-        rel_ltwh, image_folder=image_folder, box_format=BoxFormat.LTWH, relative=True
-    ).map_labels(id_to_label)
-    _ = coco_gts_set.from_results(coco_results_path)
+        C.rel_ltwh, image_folder=C.image_folder, box_format=BoxFormat.LTWH, relative=True
+    ).map_labels(C.id_to_label)
+    _ = coco_gts_set.from_results(C.coco_results_path)
 
     dets_sets = [abs_ltrb_set, abs_ltwh_set, rel_ltwh_set]
     gts_sets = [
@@ -59,7 +59,7 @@ def tests_parsing():
         assert all_equal(d[image_id].image_size for d in gts_sets)
 
     for i, s in enumerate(all_sets):
-        assert s._labels() == labels
+        assert s._labels() == C.labels
         for annotation in s:
             assert isinstance(annotation.image_id, str)
             assert isinstance(annotation.boxes, list)

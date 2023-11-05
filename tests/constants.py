@@ -1,6 +1,6 @@
-from globox import AnnotationSet
 from pathlib import Path
 
+from globox import AnnotationSet
 
 data_path = (Path(__file__).parent / "globox_test_data/").resolve()
 gts_path = data_path / "gts/"

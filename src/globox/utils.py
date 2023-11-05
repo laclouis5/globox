@@ -2,7 +2,6 @@ from collections import defaultdict
 from itertools import groupby
 from typing import Callable, Hashable, Iterable, TypeVar
 
-
 U = TypeVar("U")
 V = TypeVar("V", bound=Hashable)
 

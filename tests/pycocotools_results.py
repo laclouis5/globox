@@ -1,6 +1,7 @@
+from pathlib import Path
+
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
-from pathlib import Path
 
 
 def main():

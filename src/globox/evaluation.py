@@ -1,20 +1,21 @@
-from .boundingbox import BoundingBox
+import csv
+from collections import defaultdict
+from copy import copy
+from enum import Enum, auto
+from functools import lru_cache
+from itertools import chain, product
+from math import isnan
+from typing import Any, DefaultDict, Dict, Iterable, Mapping, Optional, Sequence
+
+import numpy as np
+from tqdm import tqdm
+
 from .annotation import Annotation
 from .annotationset import AnnotationSet
-from .utils import grouping, all_equal, mean
 from .atomic import open_atomic
+from .boundingbox import BoundingBox
 from .file_utils import PathLike
-
-from typing import DefaultDict, Dict, Mapping, Optional, Sequence, Iterable, Any
-from collections import defaultdict
-import numpy as np
-from copy import copy
-from math import isnan
-from enum import Enum, auto
-from itertools import chain, product
-from functools import lru_cache
-from tqdm import tqdm
-import csv
+from .utils import all_equal, grouping, mean
 
 
 class RecallSteps(Enum):
@@ -565,8 +566,8 @@ class COCOEvaluator:
 
     def show_summary(self, *, verbose: bool = False):
         """Compute and show the standard COCO metrics."""
-        from rich.table import Table
         from rich import print as pprint
+        from rich.table import Table
 
         self._evaluate_all(verbose=verbose)
 

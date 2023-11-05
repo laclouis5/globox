@@ -1,9 +1,8 @@
-from .errors import ParsingError
-
-from enum import Enum, auto
-from typing import Mapping, Union, Tuple, Optional, Any
 import xml.etree.ElementTree as et
+from enum import Enum, auto
+from typing import Any, Mapping, Optional, Tuple, Union
 
+from .errors import ParsingError
 
 Coordinates = Tuple[float, float, float, float]
 """

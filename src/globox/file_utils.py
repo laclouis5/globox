@@ -1,6 +1,5 @@
 from pathlib import Path
-from typing import Union, Iterable
-
+from typing import Iterable, Union
 
 PathLike = Union[str, Path]
 

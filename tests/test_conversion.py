@@ -1,8 +1,9 @@
-from globox import AnnotationSet
-from globox.utils import all_equal
 from pathlib import Path
 
-from .constants import coco2_path, label_to_id, id_to_label, image_folder, labels
+from globox import AnnotationSet
+from globox.utils import all_equal
+
+from .constants import coco2_path, id_to_label, image_folder, label_to_id, labels
 
 
 def test_conversion(tmp_path: Path):
