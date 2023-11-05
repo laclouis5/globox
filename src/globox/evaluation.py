@@ -474,16 +474,16 @@ class COCOEvaluator:
     ) -> PartialEvaluationItem:
         assert all(
             p.is_detection for p in predictions
-        ), f"Prediction annotations should not contain ground truth annotations."
+        ), "Prediction annotations should not contain ground truth annotations."
         assert all(
             g.is_ground_truth for g in ground_truths
-        ), f"Ground truth annotations should not contain prediction annotations."
+        ), "Ground truth annotations should not contain prediction annotations."
         assert all_equal(
             p.label for p in predictions
-        ), f"The prediction boxes should have the same label."
+        ), "The prediction boxes should have the same label."
         assert all_equal(
             g.label for g in ground_truths
-        ), f"The ground truth boxes should have the same label."
+        ), "The ground truth boxes should have the same label."
 
         cls._assert_params(iou_threshold, max_detections, size_range)
 
@@ -559,7 +559,7 @@ class COCOEvaluator:
             ),
             product(self.AP_THRESHOLDS, (1, 10), (self.ALL_RANGE,)),
         )
-
+        
         for t, d, r in tqdm(params, desc="Evaluation", total=60, disable=not verbose):
             self.evaluate(iou_threshold=t, max_detections=d, size_range=r)
 

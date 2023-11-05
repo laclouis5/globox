@@ -36,8 +36,3 @@ def thread_map(
             results.append(result)
             pbar.update()
     return results
-
-
-# TODO
-def thread_imap():
-    ...

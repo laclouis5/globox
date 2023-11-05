@@ -350,14 +350,14 @@ class BoundingBox:
             else:
                 label, confidence, *coords = values
         else:
-            raise ParsingError(f"Syntax error in txt annotation file.")
+            raise ParsingError("Syntax error in txt annotation file.")
 
         try:
             coords = tuple(float(c) for c in coords)
             if confidence is not None:
                 confidence = float(confidence)
         except ValueError:
-            raise ParsingError(f"Syntax error in txt annotation file.")
+            raise ParsingError("Syntax error in txt annotation file.")
 
         return BoundingBox.create(
             label=label,
@@ -447,12 +447,12 @@ class BoundingBox:
         l, t, r, b = node.get("xtl"), node.get("ytl"), node.get("xbr"), node.get("ybr")
 
         if (label is None) or (l is None) or (t is None) or (r is None) or (b is None):
-            raise ParsingError(f"Syntax error in CVAT annotation file.")
+            raise ParsingError("Syntax error in CVAT annotation file.")
 
         try:
             coords = tuple(float(c) for c in (l, t, r, b))
         except ValueError:
-            raise ParsingError(f"Syntax error in CVAT annotation file.")
+            raise ParsingError("Syntax error in CVAT annotation file.")
 
         return BoundingBox.create(label=label, coords=coords)
 
