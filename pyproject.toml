@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "globox"
-version = "2.4.2"
+version = "2.4.3"
 authors = ["Louis Lac <lac.louis5@gmail.com>"]
 license = "MIT"
 packages = [{include = "globox", from = "src"}]
@@ -31,7 +31,7 @@ rich = "^13.3.5"
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.3.1"
 pycocotools = "^2.0.6"
-pillow = "^10.0.1"
+pillow = "^10.2.0"
 
 [tool.poetry.scripts]
 globox = "globox.cli:main"
