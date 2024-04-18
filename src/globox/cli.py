@@ -186,7 +186,7 @@ def parse_annotations(args: argparse.Namespace) -> AnnotationSet:
             )
         elif format_in == "txt":
             format = BoxFormat.from_string(args.bb_fmt_in)
-            relative: bool = args.norm_in_dets == "rel"
+            relative: bool = args.norm_in == "rel"
             extension: str = args.ext_in
             sep: str = args.sep_in
 
@@ -265,7 +265,7 @@ def parse_dets_annotations(
             )
         elif format_dets == "txt":
             bb_fmt = BoxFormat.from_string(args.bb_fmt_dets)
-            relative: bool = args.norm_dets == "rel"
+            relative: bool = args.norm_in_dets == "rel"
             extension: str = args.ext_dets
             sep: str = args.sep_dets
 
