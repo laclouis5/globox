@@ -246,16 +246,16 @@ git clone https://github.com/laclouis5/globox --recurse-submodules=tests/globox_
 cd globox
 ```
 
-Install with Poetry:
+Install dependencies with [uv](https://github.com/astral-sh/uv):
 
 ```shell
-poetry install
+uv sync --dev
 ```
 
 Run the tests:
 
 ```shell
-poetry run pytest
+uv run pytest tests
 ```
 
 ## Speed Banchmarks
@@ -263,7 +263,7 @@ poetry run pytest
 Speed benchmark can be executed with:
 
 ```shell
-python tests/benchmark.py -n 5
+uv run python tests/benchmark.py -n 5
 ```
 
 The following speed test is performed using Python 3.11 and `timeit` with 5 iterations on a 2021 MacBook Pro 14" (M1 Pro 8 Cores and 16 GB of RAM). The dataset is COCO 2017 Validation which comprises 5k images and 36 781 bounding boxes.
