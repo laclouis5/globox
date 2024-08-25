@@ -36,8 +36,8 @@ class PartialEvaluationItem:
         self._cache: dict[str, Any] = {}
 
         assert self._npos >= 0, f"'npos' ({npos}) should be greater than or equal to 0."
-        assert len(self._tps) == len(
-            self._scores
+        assert (
+            len(self._tps) == len(self._scores)
         ), f"The number of 'tps' ({len(self._tps)}) should be equal to the number of 'scores' ({len(self._scores)})."
 
     def __iadd__(self, other: "PartialEvaluationItem") -> "PartialEvaluationItem":
@@ -560,7 +560,7 @@ class COCOEvaluator:
             ),
             product(self.AP_THRESHOLDS, (1, 10), (self.ALL_RANGE,)),
         )
-        
+
         for t, d, r in tqdm(params, desc="Evaluation", total=60, disable=not verbose):
             self.evaluate(iou_threshold=t, max_detections=d, size_range=r)
 

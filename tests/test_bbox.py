@@ -1,6 +1,7 @@
 from math import isclose
 
 import pytest
+
 from globox import BoundingBox, BoxFormat
 
 
