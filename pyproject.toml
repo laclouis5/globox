@@ -1,13 +1,19 @@
-[tool.poetry]
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
 name = "globox"
 version = "2.4.5"
-authors = ["Louis Lac <lac.louis5@gmail.com>"]
-license = "MIT"
-packages = [{include = "globox", from = "src"}]
-readme = "README.md"
+requires-python = ">= 3.9"
+dependencies = [
+    "numpy~=1.26",
+    "tqdm~=4.65",
+    "rich~=13.3",
+]
+authors = [{name = "Louis Lac", email = "lac.louis5@gmail.com"}]
 description = "Globox is a package and command line interface to read and convert object detection databases (COCO, YOLO, PascalVOC, LabelMe, CVAT, OpenImage, ...) and evaluate them with COCO and PascalVOC."
-homepage = "https://github.com/laclouis5/globox"
-repository = "https://github.com/laclouis5/globox"
+readme = "README.md"
 keywords = [
     "annotation",
     "metrics",
@@ -21,24 +27,28 @@ keywords = [
     "average precision",
     "mean average precision",
 ]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+]
 
-[tool.poetry.dependencies]
-python = ">=3.9,<3.13"
-numpy = "^1.26.0"
-tqdm = "^4.65.0"
-rich = "^13.3.5"
+[project.urls]
+Homepage = "https://github.com/laclouis5/globox"
+Repository = "https://github.com/laclouis5/globox"
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^7.3.1"
-pycocotools = "^2.0.6"
-pillow = "^10.2.0"
-
-[tool.poetry.scripts]
+[project.scripts]
 globox = "globox.cli:main"
 
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[tool.uv]
+dev-dependencies = [
+    "pytest~=7.3",
+    "pycocotools~=2.0",
+    "pillow~=10.2",
+    "ruff~=0.6",
+    "pre-commit~=3.8",
+    "twine~=5.1",
+    "hatch~=1.12",
+]
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
+[tool.hatch.build]
+packages = ["src/globox"]
