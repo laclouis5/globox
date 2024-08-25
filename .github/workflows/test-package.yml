@@ -16,7 +16,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - name: Chechout with submodules 
+      - name: Checkout with submodules 
         uses: actions/checkout@v4
         with: 
           submodules: recursive
