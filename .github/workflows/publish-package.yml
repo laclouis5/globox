@@ -12,21 +12,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Install Poetry
-        run: pipx install poetry
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
 
-      - name: Set Up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-          cache: 'poetry'
+      - name: Setup Python
+        run: uv python install 3.11
 
-      - name: Install Dependencies
-        run: poetry install --no-interaction
+      - name: Install dependencies
+        run: uv sync --dev
         
-      - name: Publish Package
-        run: |
-          poetry config pypi-token.pypi ${{ secrets.PYPI_API_TOKEN }}
-          poetry publish --build --no-interaction
+      - name: Build distributions
+        run: uvx --from build pyproject-build --installer uv
+
+      - name: Publish the package
+        run: uvx twine upload --password ${{ secrets.PYPI_API_TOKEN }} dist/*

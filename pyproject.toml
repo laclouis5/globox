@@ -34,7 +34,7 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://github.com/laclouis5/globox"
-Repository = "https://github.com/laclouis5/globox"
+Source = "https://github.com/laclouis5/globox"
 
 [project.scripts]
 globox = "globox.cli:main"
@@ -47,8 +47,8 @@ dev-dependencies = [
     "ruff~=0.6",
     "pre-commit~=3.8",
     "twine~=5.1",
-    "hatch~=1.12",
+    "build~=1.2",
 ]
 
-[tool.hatch.build]
+[tool.hatch.build.targets.sdist]
 packages = ["src/globox"]
