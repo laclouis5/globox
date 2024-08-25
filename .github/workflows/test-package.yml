@@ -21,11 +21,11 @@ jobs:
         with: 
           submodules: recursive
 
-      - name: Install uv
+      - name: Install uv (UNIX)
         if: ${{ matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest' }}
         run: curl -LsSf https://astral.sh/uv/install.sh | sh
       
-      - name: Install uv
+      - name: Install uv (Windows)
         if: ${{ matrix.os == 'windows-latest' }}
         run: irm https://astral.sh/uv/install.ps1 | iex
         shell: powershell
