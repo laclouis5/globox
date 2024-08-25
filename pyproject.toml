@@ -12,6 +12,7 @@ dependencies = [
     "rich~=13.3",
 ]
 authors = [{name = "Louis Lac", email = "lac.louis5@gmail.com"}]
+maintainers = [{name = "Louis Lac", email = "lac.louis5@gmail.com"}]
 description = "Globox is a package and command line interface to read and convert object detection databases (COCO, YOLO, PascalVOC, LabelMe, CVAT, OpenImage, ...) and evaluate them with COCO and PascalVOC."
 readme = "README.md"
 keywords = [
@@ -30,18 +31,21 @@ keywords = [
 classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
+    "PROGRAMMING LANGUAGE :: PYTHON :: 3 :: Only",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: Implementation :: CPython",
-
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 
 [project.urls]
 Homepage = "https://github.com/laclouis5/globox"
-Source = "https://github.com/laclouis5/globox"
+Repository = "https://github.com/laclouis5/globox"
+Documentation = "https://github.com/laclouis5/globox/#readme"
+Issues = "https://github.com/laclouis5/globox/issues"
 
 [project.scripts]
 globox = "globox.cli:main"
