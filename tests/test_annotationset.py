@@ -2,9 +2,10 @@ from math import isclose
 from pathlib import Path
 
 import pytest
+from PIL import Image
+
 from globox import Annotation, AnnotationSet, BoundingBox
 from globox.file_utils import glob
-from PIL import Image
 
 from . import constants as C
 

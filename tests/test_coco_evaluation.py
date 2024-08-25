@@ -1,6 +1,7 @@
 from math import isclose
 
 import pytest
+
 from globox import Annotation, AnnotationSet, BoundingBox, COCOEvaluator
 
 from . import constants as C

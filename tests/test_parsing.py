@@ -19,7 +19,9 @@ def tests_parsing():
         C.openimage_path, image_folder=C.image_folder
     )
     pascal_set = AnnotationSet.from_pascal_voc(C.pascal_path)
-    via_json_set = AnnotationSet.from_via_json(C.via_json_path, image_folder=C.image_folder)
+    via_json_set = AnnotationSet.from_via_json(
+        C.via_json_path, image_folder=C.image_folder
+    )
 
     abs_ltrb_set = AnnotationSet.from_txt(
         C.abs_ltrb, image_folder=C.image_folder
@@ -28,7 +30,10 @@ def tests_parsing():
         C.abs_ltwh, image_folder=C.image_folder, box_format=BoxFormat.LTWH
     ).map_labels(C.id_to_label)
     rel_ltwh_set = AnnotationSet.from_txt(
-        C.rel_ltwh, image_folder=C.image_folder, box_format=BoxFormat.LTWH, relative=True
+        C.rel_ltwh,
+        image_folder=C.image_folder,
+        box_format=BoxFormat.LTWH,
+        relative=True,
     ).map_labels(C.id_to_label)
     _ = coco_gts_set.from_results(C.coco_results_path)
 

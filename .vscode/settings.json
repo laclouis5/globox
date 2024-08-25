@@ -1,8 +1,14 @@
 {
-    "python.testing.pytestEnabled": true,
-    "python.testing.unittestEnabled": false,
-    "python.analysis.typeCheckingMode": "off",
-    "[python]": {
-        "editor.defaultFormatter": "ms-python.black-formatter"
+    "notebook.codeActionsOnSave": {
+      "source.fixAll": "explicit",
+      "source.organizeImports": "explicit",
     },
-}
+    "[python]": {
+      "editor.formatOnSave": true,
+      "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit"
+      },
+      "editor.defaultFormatter": "charliermarsh.ruff",
+    },
+    "notebook.formatOnSave.enabled": false,
+  }

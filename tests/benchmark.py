@@ -4,9 +4,10 @@ from tempfile import TemporaryDirectory
 from time import perf_counter
 from timeit import timeit
 
-import globox
 from rich import print as rich_print
 from rich.table import Table
+
+import globox
 
 from . import constants as C
 
@@ -18,7 +19,7 @@ def benchmark(repetitions: int = 5):
 
     gts = globox.AnnotationSet.from_coco(coco)
     labels = sorted(gts._labels())
-    label_to_id = {l: i for i, l in enumerate(labels)}
+    label_to_id = {label: i for i, label in enumerate(labels)}
 
     coco_gt = globox.AnnotationSet.from_coco(C.coco_gts_path)
     coco_det = coco_gt.from_results(C.coco_results_path)
@@ -54,8 +55,12 @@ def benchmark(repetitions: int = 5):
             lambda: gts.save_txt(txt, label_to_id=label_to_id), number=repetitions
         )
 
-        coco_p = timeit(lambda: globox.AnnotationSet.from_coco(coco), number=repetitions)
-        cvat_p = timeit(lambda: globox.AnnotationSet.from_cvat(cvat), number=repetitions)
+        coco_p = timeit(
+            lambda: globox.AnnotationSet.from_coco(coco), number=repetitions
+        )
+        cvat_p = timeit(
+            lambda: globox.AnnotationSet.from_cvat(cvat), number=repetitions
+        )
         oi_p = timeit(
             lambda: globox.AnnotationSet.from_openimage(oi, image_folder=images),
             number=repetitions,
@@ -69,18 +74,22 @@ def benchmark(repetitions: int = 5):
             number=repetitions,
         )
         txt_p = timeit(
-            lambda: globox.AnnotationSet.from_txt(txt, image_folder=images), number=repetitions
+            lambda: globox.AnnotationSet.from_txt(txt, image_folder=images),
+            number=repetitions,
         )
 
     def _eval():
         evaluator.clear_cache()
         evaluator._evaluate_all()
 
-    eval_t = timeit(
-        lambda: _eval(), 
-        number=repetitions,
-    ) / repetitions
-    
+    eval_t = (
+        timeit(
+            lambda: _eval(),
+            number=repetitions,
+        )
+        / repetitions
+    )
+
     stats_t = timeit(lambda: gts.show_stats(), number=repetitions) / repetitions
 
     stop = perf_counter()

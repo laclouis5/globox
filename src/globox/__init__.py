@@ -1,5 +1,19 @@
-from .boundingbox import BoxFormat, Coordinates, BoundingBox
 from .annotation import Annotation
 from .annotationset import AnnotationSet
-from .errors import UnknownImageFormat, ParsingError, FileParsingError
-from .evaluation import EvaluationItem, Evaluation, COCOEvaluator
+from .boundingbox import BoundingBox, BoxFormat, Coordinates
+from .errors import FileParsingError, ParsingError, UnknownImageFormat
+from .evaluation import COCOEvaluator, Evaluation, EvaluationItem
+
+__all__ = [
+    "Annotation",
+    "AnnotationSet",
+    "BoundingBox",
+    "BoxFormat",
+    "Coordinates",
+    "FileParsingError",
+    "ParsingError",
+    "UnknownImageFormat",
+    "COCOEvaluator",
+    "Evaluation",
+    "EvaluationItem",
+]
