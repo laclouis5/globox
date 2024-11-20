@@ -16,16 +16,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
-
-      - name: Setup Python
-        run: uv python install 3.11
-
-      - name: Install dependencies
-        run: uv sync --dev
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.5.4"
         
       - name: Build distributions
-        run: uvx --from build pyproject-build --installer uv
+        run: uv build
 
       - name: Publish the package
-        run: uvx twine upload --password ${{ secrets.PYPI_API_TOKEN }} dist/*
+        run: uv publish --token ${{ secrets.PYPI_API_TOKEN }}

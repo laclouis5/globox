@@ -4,12 +4,12 @@ build-backend = "hatchling.build"
 
 [project]
 name = "globox"
-version = "2.4.6"
-requires-python = ">= 3.9"
+version = "2.4.7"
+requires-python = ">=3.9"
 dependencies = [
-    "numpy~=1.26",
-    "tqdm~=4.65",
-    "rich~=13.3",
+    "numpy>=1.26",
+    "tqdm>=4.65",
+    "rich>=13.3",
 ]
 authors = [{name = "Louis Lac", email = "lac.louis5@gmail.com"}]
 maintainers = [{name = "Louis Lac", email = "lac.louis5@gmail.com"}]
@@ -50,15 +50,13 @@ Issues = "https://github.com/laclouis5/globox/issues"
 [project.scripts]
 globox = "globox.cli:main"
 
-[tool.uv]
-dev-dependencies = [
-    "pytest~=7.3",
-    "pycocotools~=2.0",
-    "pillow~=10.2",
-    "ruff~=0.6",
-    "pre-commit~=3.8",
-    "twine~=5.1",
-    "build~=1.2",
+[dependency-groups]
+dev = [
+    "pytest>=7.3",
+    "pycocotools>=2.0",
+    "pillow>=10.2",
+    "ruff>=0.6",
+    "pre-commit>=3.8",
 ]
 
 [tool.hatch.build.targets.sdist]
