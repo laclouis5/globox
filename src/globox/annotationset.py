@@ -645,6 +645,74 @@ class AnnotationSet:
 
         return annotations
 
+    @staticmethod
+    def from_yolo_seg(
+        folder: PathLike,
+        *,
+        image_folder: Optional[PathLike] = None,
+        relative=False,
+        file_extension: str = ".txt",
+        image_extension: str = ".jpg",
+        verbose: bool = False,
+    ) -> "AnnotationSet":
+        """This method won't try to retreive the image sizes by default. Specify `image_folder` if you need them.
+        `image_folder` is required when `relative` is True."""
+        # TODO: Add error handling
+
+        folder = Path(folder).expanduser().resolve()
+
+        assert folder.is_dir()
+        assert image_extension.startswith(".")
+
+        if relative:
+            assert (
+                image_folder is not None
+            ), "When `relative` is set to True, `image_folder` must be provided to read image sizes."
+
+        if image_folder is not None:
+            image_folder = Path(image_folder).expanduser().resolve()
+            assert image_folder.is_dir()
+
+        def _get_annotation(file: Path) -> Annotation:
+            if image_folder is not None:
+                image_path: Path | None = None
+
+                for image_ext in IMAGE_EXTENSIONS:
+                    image_id = file.with_suffix(image_ext).name
+                    path = image_folder / image_id  # type: ignore
+
+                    if path.is_file():
+                        image_path = path
+                        break
+
+                assert (
+                    image_path is not None
+                ), f"Image {file.name} does not exist, unable to read the image size."
+
+                image_id = image_path.name
+
+                try:
+                    image_size = get_image_size(image_path)
+                except UnknownImageFormat:
+                    raise ParsingError(
+                        f"Unable to read image size of file {image_path}. "
+                        f"The file may be corrupted or the file format not supported."
+                    )
+            else:
+                image_size = None
+                image_id = image_id = file.with_suffix(image_extension).name
+
+            return Annotation.from_yolo_seg(
+                file_path=file, image_id=image_id, image_size=image_size
+            )
+
+        return AnnotationSet.from_folder(
+            folder,
+            extension=file_extension,
+            parser=_get_annotation,
+            verbose=verbose,
+        )
+
     def save_from_it(
         self, save_fn: Callable[[Annotation], None], *, verbose: bool = False
     ):
