@@ -345,6 +345,40 @@ class Annotation:
             image_size=image_size,
             boxes=bboxes,
         )
+    
+    @staticmethod
+    def from_yolo_seg(
+        file_path: PathLike,
+        *,
+        image_id: Optional[str] = None,
+        image_extension: str = ".jpg",
+        image_size: Optional["tuple[int, int]"] = None,
+    ) -> "Annotation":
+        path = Path(file_path).expanduser().resolve()
+
+        if image_id is None:
+            assert image_extension.startswith(
+                "."
+            ), f"Image extension '{image_extension}' should start with a dot."
+            image_id = path.with_suffix(image_extension).name
+
+        try:
+            lines = path.read_text().splitlines()
+        except OSError:
+            raise FileParsingError(path, reason="cannot read file")
+
+        try:
+            boxes = [
+                BoundingBox.from_yolo_seg(
+                    l,
+                    image_size=image_size,
+                )
+                for l in lines
+            ]
+        except ParsingError as e:
+            raise FileParsingError(path, e.reason)
+
+        return Annotation(image_id, image_size, boxes)
 
     def to_txt(
         self,
