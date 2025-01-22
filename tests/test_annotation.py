@@ -133,7 +133,7 @@ def test_from_yolo_seg(tmp_path: Path):
 
     bbox = annotation.boxes[0]
 
-    assert bbox.label == 0
+    assert bbox.label == "0"
 
     (xmin, ymin, xmax, ymax) = bbox.ltrb
 
