@@ -121,6 +121,28 @@ def test_from_yolo_v5(tmp_path: Path):
     assert isclose(bbox.confidence, 0.25)
 
 
+def test_from_yolo_seg(tmp_path: Path):
+    path = tmp_path / "annotation.txt"
+    path.write_text("0 0.1 0.1 0.1 0.2 0.2 0.2 0.2 0.1")
+
+    annotation = Annotation.from_yolo_seg(path, image_size=(100, 100))
+
+    assert len(annotation.boxes) == 1
+    assert annotation.image_id == "annotation.jpg"
+    assert annotation.image_size == (100, 100)
+
+    bbox = annotation.boxes[0]
+
+    assert bbox.label == "0"
+
+    (xmin, ymin, xmax, ymax) = bbox.ltrb
+
+    assert isclose(xmin, 10.0)
+    assert isclose(ymin, 10.0)
+    assert isclose(xmax, 20.0)
+    assert isclose(ymax, 20.0)
+
+
 def test_save_txt_conf_first(tmp_path: Path):
     file_path = tmp_path / "txt_first.txt"
 
