@@ -476,7 +476,7 @@ class BoundingBox:
             confidence=confidence,
             box_format=BoxFormat.LTWH,
         )
-    
+
     @staticmethod
     def from_yolo_seg(
         string: str,
@@ -486,11 +486,15 @@ class BoundingBox:
         values = string.strip().split()
 
         if len(values) < 7:
-            raise ParsingError("Syntax error in yolo_seg annotation file. There should be at least 7 values.")
+            raise ParsingError(
+                "Syntax error in yolo_seg annotation file. There should be at least 7 values."
+            )
         elif len(values) % 2 != 1:
-            raise ParsingError("Syntax error in yolo_seg annotation file. There should be an odd number of values.")
+            raise ParsingError(
+                "Syntax error in yolo_seg annotation file. There should be an odd number of values."
+            )
         else:
-            label = int(values[0])
+            label = str(values[0])
             coords_x = tuple(float(value) for value in values[1::2])
             coords_y = tuple(float(value) for value in values[2::2])
             coords = min(coords_x), min(coords_y), max(coords_x), max(coords_y)

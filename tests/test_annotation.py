@@ -120,6 +120,7 @@ def test_from_yolo_v5(tmp_path: Path):
 
     assert isclose(bbox.confidence, 0.25)
 
+
 def test_from_yolo_seg(tmp_path: Path):
     path = tmp_path / "annotation.txt"
     path.write_text("0 0.1 0.1 0.1 0.2 0.2 0.2 0.2 0.1")

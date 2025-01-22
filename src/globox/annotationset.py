@@ -644,7 +644,7 @@ class AnnotationSet:
             annotations.add(annotation)
 
         return annotations
-    
+
     @staticmethod
     def from_yolo_seg(
         folder: PathLike,
@@ -703,9 +703,7 @@ class AnnotationSet:
                 image_id = image_id = file.with_suffix(image_extension).name
 
             return Annotation.from_yolo_seg(
-                file_path=file,
-                image_id=image_id,
-                image_size=image_size
+                file_path=file, image_id=image_id, image_size=image_size
             )
 
         return AnnotationSet.from_folder(
@@ -714,7 +712,6 @@ class AnnotationSet:
             parser=_get_annotation,
             verbose=verbose,
         )
-
 
     def save_from_it(
         self, save_fn: Callable[[Annotation], None], *, verbose: bool = False

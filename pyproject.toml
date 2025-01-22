@@ -61,3 +61,6 @@ dev = [
 
 [tool.hatch.build.targets.sdist]
 packages = ["src/globox"]
+
+[tool.ruff.lint]
+ignore = ["E741"]

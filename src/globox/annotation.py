@@ -345,7 +345,7 @@ class Annotation:
             image_size=image_size,
             boxes=bboxes,
         )
-    
+
     @staticmethod
     def from_yolo_seg(
         file_path: PathLike,
