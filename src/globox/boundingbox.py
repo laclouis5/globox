@@ -433,7 +433,9 @@ class BoundingBox:
     def from_labelme(node: dict) -> "BoundingBox":
         try:
             label = str(node["label"])
-            (xmin, ymin), (xmax, ymax) = node["points"]
+            xs, ys = zip(*node["points"])
+            xmin, ymin = min(xs), min(ys)
+            xmax, ymax = max(xs), max(ys)
             coords = tuple(float(c) for c in (xmin, ymin, xmax, ymax))
         except (ValueError, KeyError):
             raise ParsingError("Syntax error in labelme annotation file.")
