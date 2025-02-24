@@ -18,6 +18,9 @@ def tests_parsing():
     cvat_set = AnnotationSet.from_cvat(C.cvat_path)
     imagenet_set = AnnotationSet.from_imagenet(C.imagenet_path)
     labelme_set = AnnotationSet.from_labelme(C.labelme_path)
+    labelme_poly_set = AnnotationSet.from_labelme(
+        C.labelme_poly_path, include_poly=True
+    )
     openimage_set = AnnotationSet.from_openimage(
         C.openimage_path, image_folder=C.image_folder
     )
@@ -50,6 +53,7 @@ def tests_parsing():
         cvat_set,
         imagenet_set,
         labelme_set,
+        labelme_poly_set,
         openimage_set,
         pascal_set,
         via_json_set,
