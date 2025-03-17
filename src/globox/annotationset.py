@@ -253,7 +253,7 @@ class AnnotationSet:
                     )
             else:
                 image_size = None
-                image_id = image_id = file.with_suffix(image_extension).name
+                image_id = file.with_suffix(image_extension).name
 
             return Annotation.from_txt(
                 file_path=file,
@@ -700,7 +700,7 @@ class AnnotationSet:
                     )
             else:
                 image_size = None
-                image_id = image_id = file.with_suffix(image_extension).name
+                image_id = file.with_suffix(image_extension).name
 
             return Annotation.from_yolo_seg(
                 file_path=file, image_id=image_id, image_size=image_size
