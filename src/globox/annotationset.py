@@ -2,6 +2,7 @@ import csv
 import json
 import xml.etree.ElementTree as et
 from collections import defaultdict
+from functools import partial
 from pathlib import Path
 from typing import (
     Any,
@@ -433,9 +434,12 @@ class AnnotationSet:
         return annotations
 
     @staticmethod
-    def from_labelme(folder: PathLike, *, verbose: bool = False) -> "AnnotationSet":
+    def from_labelme(
+        folder: PathLike, *, include_poly: bool = False, verbose: bool = False
+    ) -> "AnnotationSet":
+        parser = partial(Annotation.from_labelme, include_poly=include_poly)
         return AnnotationSet.from_folder(
-            folder, extension=".json", parser=Annotation.from_labelme, verbose=verbose
+            folder, extension=".json", parser=parser, verbose=verbose
         )
 
     @staticmethod
