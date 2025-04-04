@@ -267,8 +267,13 @@ class Annotation:
         return Annotation.from_xml(file_path)
 
     @staticmethod
-    def from_labelme(file_path: PathLike) -> "Annotation":
+    def from_labelme(file_path: PathLike, include_poly: bool = False) -> "Annotation":
         path = Path(file_path).expanduser().resolve()
+
+        shape_types = {"rectangle"}
+        if include_poly:
+            shape_types.add("polygon")
+
         try:
             with path.open() as f:
                 content = json.load(f)
@@ -284,7 +289,7 @@ class Annotation:
             boxes = [
                 BoundingBox.from_labelme(n)
                 for n in content["shapes"]
-                if n["shape_type"] == "rectangle"
+                if n["shape_type"] in shape_types
             ]
         except (KeyError, ValueError):
             raise ParsingError("Syntax error in labelme annotation file.")

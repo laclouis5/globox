@@ -14,11 +14,15 @@ IMAGE_EXTENSIONS = [
     ".png",
     ".bmp",
     ".jpe",
+    ".tif",
+    ".tiff",
     ".JPG",
     ".JPEG",
     ".PNG",
     ".BMP",
     ".JPE",
+    ".TIF",
+    ".TIFF",
 ]
 
 
