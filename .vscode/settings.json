@@ -11,4 +11,9 @@
       "editor.defaultFormatter": "charliermarsh.ruff",
     },
     "notebook.formatOnSave.enabled": false,
+    "python.testing.pytestArgs": [
+      "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
   }
