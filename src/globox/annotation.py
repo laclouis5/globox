@@ -95,6 +95,13 @@ class Annotation:
         """The set of the different label names present in the annotation."""
         return {b.label for b in self.boxes}
 
+    def with_image_id(self, id: str) -> "Annotation":
+        """
+        Create a copy of the current annotation with the provided image id. The image size and
+        bounding boxes are kept unchanged.
+        """
+        return Annotation(image_id=id, image_size=self.image_size, boxes=self.boxes)
+
     @staticmethod
     def from_txt(
         file_path: PathLike,
