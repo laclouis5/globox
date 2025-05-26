@@ -168,6 +168,12 @@ class AnnotationSet:
         """The set of the different label names present in the dataset."""
         return {b.label for b in self.all_boxes}
 
+    def filter(self, predicate: Callable[[Annotation], bool]) -> "AnnotationSet":
+        return AnnotationSet(annotations=[a for a in self if predicate(a)])
+
+    def map(self, func: Callable[[Annotation], Annotation]) -> "AnnotationSet":
+        return AnnotationSet(annotations=[func(a) for a in self])
+
     @staticmethod
     def from_iter(
         parser: Callable[[T], Annotation],
