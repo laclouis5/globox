@@ -49,6 +49,12 @@ class Annotation:
         """The unique identifier of the image for this annotation."""
         return self._image_id
 
+    def with_image_id(self, image_id: str) -> "Annotation":
+        """Returns a new Annotation with the updated `image_id`."""
+        return Annotation(
+            image_id=image_id, image_size=self.image_size, boxes=self.boxes
+        )
+
     @property
     def image_size(self) -> "Optional[tuple[int, int]]":
         """The image size in pixels ((width, height) tuple) if present."""
