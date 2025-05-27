@@ -169,10 +169,38 @@ class AnnotationSet:
         return {b.label for b in self.all_boxes}
 
     def filter(self, predicate: Callable[[Annotation], bool]) -> "AnnotationSet":
+        """
+        Filter the dataset by a predicate function that takes an `Annotation` and returns True if the annotation should be kept.
+        """
         return AnnotationSet(annotations=[a for a in self if predicate(a)])
 
     def map(self, func: Callable[[Annotation], Annotation]) -> "AnnotationSet":
+        """
+        Transform the annotations of the annotation set by applying a function to each annotation.
+        """
         return AnnotationSet(annotations=[func(a) for a in self])
+
+    def filter_labels(
+        self, labels: Iterable[str], keep_empty: bool = False
+    ) -> "AnnotationSet":
+        """
+        Filter the annotations by keeping only the bounding boxes with labels in the provided iterable.
+        """
+        labels_to_keep = set(labels)
+
+        def filter_labels(annotation: "Annotation") -> "Annotation":
+            return Annotation(
+                annotation.image_id,
+                image_size=annotation.image_size,
+                boxes=[b for b in annotation.boxes if b.label in labels_to_keep],
+            )
+
+        annotations = self.map(filter_labels)
+
+        if keep_empty:
+            return annotations
+
+        return annotations.filter(lambda a: len(a.boxes) > 0)
 
     @staticmethod
     def from_iter(
