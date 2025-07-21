@@ -398,18 +398,28 @@ class AnnotationSet:
         )
 
     @staticmethod
-    def from_xml(folder: PathLike, *, verbose: bool = False) -> "AnnotationSet":
+    def from_xml(
+        folder: PathLike, *, recursive: bool = False, verbose: bool = False
+    ) -> "AnnotationSet":
         return AnnotationSet.from_folder(
-            folder, extension=".xml", parser=Annotation.from_xml, verbose=verbose
+            folder,
+            extension=".xml",
+            parser=Annotation.from_xml,
+            recursive=recursive,
+            verbose=verbose,
         )
 
     @staticmethod
-    def from_pascal_voc(folder: PathLike, *, verbose: bool = False) -> "AnnotationSet":
-        return AnnotationSet.from_xml(folder, verbose=verbose)
+    def from_pascal_voc(
+        folder: PathLike, *, recursive: bool = False, verbose: bool = False
+    ) -> "AnnotationSet":
+        return AnnotationSet.from_xml(folder, recursive=recursive, verbose=verbose)
 
     @staticmethod
-    def from_imagenet(folder: PathLike, *, verbose: bool = False) -> "AnnotationSet":
-        return AnnotationSet.from_xml(folder, verbose=verbose)
+    def from_imagenet(
+        folder: PathLike, *, recursive: bool = False, verbose: bool = False
+    ) -> "AnnotationSet":
+        return AnnotationSet.from_xml(folder, recursive=recursive, verbose=verbose)
 
     @staticmethod
     def from_openimage(
@@ -469,11 +479,19 @@ class AnnotationSet:
 
     @staticmethod
     def from_labelme(
-        folder: PathLike, *, include_poly: bool = False, verbose: bool = False
+        folder: PathLike,
+        *,
+        recursive: bool = False,
+        include_poly: bool = False,
+        verbose: bool = False,
     ) -> "AnnotationSet":
         parser = partial(Annotation.from_labelme, include_poly=include_poly)
         return AnnotationSet.from_folder(
-            folder, extension=".json", parser=parser, verbose=verbose
+            folder,
+            extension=".json",
+            parser=parser,
+            recursive=recursive,
+            verbose=verbose,
         )
 
     @staticmethod
