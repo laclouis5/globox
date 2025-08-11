@@ -169,10 +169,38 @@ class AnnotationSet:
         return {b.label for b in self.all_boxes}
 
     def filter(self, predicate: Callable[[Annotation], bool]) -> "AnnotationSet":
+        """
+        Filter the dataset by a predicate function that takes an `Annotation` and returns True if the annotation should be kept.
+        """
         return AnnotationSet(annotations=[a for a in self if predicate(a)])
 
     def map(self, func: Callable[[Annotation], Annotation]) -> "AnnotationSet":
+        """
+        Transform the annotations of the annotation set by applying a function to each annotation.
+        """
         return AnnotationSet(annotations=[func(a) for a in self])
+
+    def filter_labels(
+        self, labels: Iterable[str], keep_empty: bool = False
+    ) -> "AnnotationSet":
+        """
+        Filter the annotations by keeping only the bounding boxes with labels in the provided iterable.
+        """
+        labels_to_keep = set(labels)
+
+        def filter_labels(annotation: "Annotation") -> "Annotation":
+            return Annotation(
+                annotation.image_id,
+                image_size=annotation.image_size,
+                boxes=[b for b in annotation.boxes if b.label in labels_to_keep],
+            )
+
+        annotations = self.map(filter_labels)
+
+        if keep_empty:
+            return annotations
+
+        return annotations.filter(lambda a: len(a.boxes) > 0)
 
     @staticmethod
     def from_iter(
@@ -370,18 +398,28 @@ class AnnotationSet:
         )
 
     @staticmethod
-    def from_xml(folder: PathLike, *, verbose: bool = False) -> "AnnotationSet":
+    def from_xml(
+        folder: PathLike, *, recursive: bool = False, verbose: bool = False
+    ) -> "AnnotationSet":
         return AnnotationSet.from_folder(
-            folder, extension=".xml", parser=Annotation.from_xml, verbose=verbose
+            folder,
+            extension=".xml",
+            parser=Annotation.from_xml,
+            recursive=recursive,
+            verbose=verbose,
         )
 
     @staticmethod
-    def from_pascal_voc(folder: PathLike, *, verbose: bool = False) -> "AnnotationSet":
-        return AnnotationSet.from_xml(folder, verbose=verbose)
+    def from_pascal_voc(
+        folder: PathLike, *, recursive: bool = False, verbose: bool = False
+    ) -> "AnnotationSet":
+        return AnnotationSet.from_xml(folder, recursive=recursive, verbose=verbose)
 
     @staticmethod
-    def from_imagenet(folder: PathLike, *, verbose: bool = False) -> "AnnotationSet":
-        return AnnotationSet.from_xml(folder, verbose=verbose)
+    def from_imagenet(
+        folder: PathLike, *, recursive: bool = False, verbose: bool = False
+    ) -> "AnnotationSet":
+        return AnnotationSet.from_xml(folder, recursive=recursive, verbose=verbose)
 
     @staticmethod
     def from_openimage(
@@ -441,11 +479,19 @@ class AnnotationSet:
 
     @staticmethod
     def from_labelme(
-        folder: PathLike, *, include_poly: bool = False, verbose: bool = False
+        folder: PathLike,
+        *,
+        recursive: bool = False,
+        include_poly: bool = False,
+        verbose: bool = False,
     ) -> "AnnotationSet":
         parser = partial(Annotation.from_labelme, include_poly=include_poly)
         return AnnotationSet.from_folder(
-            folder, extension=".json", parser=parser, verbose=verbose
+            folder,
+            extension=".json",
+            parser=parser,
+            recursive=recursive,
+            verbose=verbose,
         )
 
     @staticmethod

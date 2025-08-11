@@ -29,28 +29,31 @@ The library has three main components:
 The `AnnotationSet` class contains static methods to read different dataset formats:
 
 ```python
+import globox as gx
+
+
 # COCO
-coco = AnnotationSet.from_coco(file_path="path/to/file.json")
+coco = gx.AnnotationSet.from_coco(file_path="path/to/file.json")
 
 # YOLOv5
-yolo = AnnotationSet.from_yolo_v5(
+yolo = gx.AnnotationSet.from_yolo_v5(
     folder="path/to/files/",
-    image_folder="path/to/images/"
+    image_folder="path/to/images/",
 )
 
 # Pascal VOC
-pascal = AnnotationSet.from_pascal_voc(folder="path/to/files/")
+pascal = gx.AnnotationSet.from_pascal_voc(folder="path/to/files/")
 ```
 
 `Annotation` offers file-level granularity for compatible datasets:
 
 ```python
-annotation = Annotation.from_labelme(file_path="path/to/file.xml")
+annotation = gx.Annotation.from_labelme(file_path="path/to/file.xml")
 ```
 
 For more specific implementations the `BoundingBox` class contains lots of utilities to parse bounding boxes in different formats, like the `create()` method.
 
-`AnnotationsSets` are set-like objects. They can be combined and annotations can be added:
+`AnnotationsSet`s are set-like objects. They can be combined and annotations can be added:
 
 ```python
 gts = coco | yolo
@@ -112,6 +115,24 @@ coco_gts.show_stats()
 └─────────────┴────────┴───────┘
 ```
 
+### Edit and Filter Datasets
+
+AnnotationSets can be filtered and mapped:
+
+```python
+# Keep annotations that are not empty.
+annotations = annotations.filter(lambda a: len(a.boxes) > 0)
+
+# Only keep training annotations.
+annotations = annotations.filter(lambda a: a.image_id in train_ids)
+
+# Replace "/" with "_" in all image ids.
+annotations = annotations.map(lambda a: a.with_image_id(a.image_id.replace("/", "_")))
+
+# Treat all animals as one class using a convenience method to map labels (in-place update).
+annotations.map_labels({"cat": "animal", "dog": "animal"})
+```
+
 ### Convert and Save to Many Formats
 
 Datasets can be converted to and saved in other formats:
@@ -123,7 +144,7 @@ gts.save_imagenet(save_dir="pascalVOC_db/")
 # YOLO Darknet
 gts.save_yolo_darknet(
     save_dir="yolo_train/", 
-    label_to_id={"cat": 0, "dog": 1, "racoon": 2}
+    label_to_id={"cat": 0, "dog": 1, "racoon": 2},
 )
 
 # YOLOv5
@@ -141,9 +162,9 @@ gts.save_cvat(path="train.xml")
 COCO Evaluation is also supported:
 
 ```python
-evaluator = COCOEvaluator(
+evaluator = gx.COCOEvaluator(
     ground_truths=gts, 
-    predictions=dets
+    predictions=dets,
 )
 
 ap = evaluator.ap()
@@ -190,7 +211,7 @@ Custom evaluations can be achieved with:
 evaluation = evaluator.evaluate(
     iou_threshold=0.33,
     max_detections=1_000,
-    size_range=(0.0, 10_000)
+    size_range=(0.0, 10_000),
 )
 
 ap = evaluation.ap()
@@ -277,24 +298,6 @@ Saving |0.32s|0.17s|0.14s    |1.06s  |1.08s    |0.91s|0.85s
 * Evalaution: 0.30 s
 
 </details>
-
-## Todo
-
-* [x] Basic data structures and utilities
-* [x] Parsers (ImageNet, COCO, YOLO, Pascal, OpenImage, CVAT, LabelMe)
-* [x] Parser tests
-* [x] Database summary and stats
-* [x] Database converters
-* [x] Visualization options
-* [x] COCO Evaluation
-* [x] Tests with a huge load (5k images)
-* [x] CLI interface
-* [x] Make `image_size` optional and raise err when required (bbox conversion)
-* [x] Make file saving atomic with a temporary to avoid file corruption
-* [x] Pip package!
-* [ ] PascalVOC Evaluation
-* [ ] Parsers for TFRecord and TensorFlow
-* [ ] UI interface?
 
 ## Acknowledgement
 

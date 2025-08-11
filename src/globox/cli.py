@@ -54,6 +54,7 @@ def add_parse_args(
         "--format", "-f", type=str, choices=PARSE_CHOICES, dest="format_in"
     )
     group.add_argument("--img_folder", "-d", type=Path, default=None)
+    group.add_argument("--recursive", "-r", action="store_true", default=False)
     group.add_argument("--mapping", "-m", type=Path, default=None, dest="mapping_in")
     group.add_argument(
         "--bb_fmt",
@@ -145,11 +146,12 @@ def parse_annotations(args: argparse.Namespace) -> AnnotationSet:
     input: Path = args.input.expanduser().resolve()
     format_in: str = args.format_in
     verbose: bool = not args.quiet
+    recursive: bool = args.recursive
 
     if format_in == "coco":
         return AnnotationSet.from_coco(input, verbose=verbose)
     elif format_in == "pascalvoc" or format_in == "imagenet":
-        return AnnotationSet.from_xml(input, verbose=verbose)
+        return AnnotationSet.from_xml(input, recursive=recursive, verbose=verbose)
     elif format_in == "openimage":
         assert (
             args.img_folder is not None
@@ -159,7 +161,7 @@ def parse_annotations(args: argparse.Namespace) -> AnnotationSet:
             input, image_folder=img_dir, verbose=verbose
         )
     elif format_in == "labelme":
-        return AnnotationSet.from_labelme(input, verbose=verbose)
+        return AnnotationSet.from_labelme(input, recursive=recursive, verbose=verbose)
     elif format_in == "cvat":
         return AnnotationSet.from_cvat(input, verbose=verbose)
     elif format_in == "via-json":
