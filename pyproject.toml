@@ -4,15 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "globox"
-version = "2.7.0"
+version = "2.8.0"
 requires-python = ">=3.9"
-dependencies = [
-    "numpy>=1.26",
-    "tqdm>=4.65",
-    "rich>=13.3",
-]
-authors = [{name = "Louis Lac", email = "lac.louis5@gmail.com"}]
-maintainers = [{name = "Louis Lac", email = "lac.louis5@gmail.com"}]
+dependencies = ["numpy>=1.26", "tqdm>=4.65", "rich>=13.3"]
+authors = [{ name = "Louis Lac", email = "lac.louis5@gmail.com" }]
+maintainers = [{ name = "Louis Lac", email = "lac.louis5@gmail.com" }]
 description = "Globox is a package and command line interface to read and convert object detection databases (COCO, YOLO, PascalVOC, LabelMe, CVAT, OpenImage, ...) and evaluate them with COCO and PascalVOC."
 readme = "README.md"
 keywords = [
