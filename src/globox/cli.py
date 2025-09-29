@@ -176,15 +176,27 @@ def parse_annotations(args: argparse.Namespace) -> AnnotationSet:
 
         if format_in == "yolo-darknet":
             annotations = AnnotationSet.from_yolo_darknet(
-                input, image_folder=image_dir, image_extension=img_ext, verbose=verbose
+                input,
+                image_folder=image_dir,
+                image_extension=img_ext,
+                recursive=recursive,
+                verbose=verbose,
             )
         elif format_in == "yolov5":
             annotations = AnnotationSet.from_yolo_v5(
-                input, image_folder=image_dir, image_extension=img_ext, verbose=verbose
+                input,
+                image_folder=image_dir,
+                image_extension=img_ext,
+                recursive=recursive,
+                verbose=verbose,
             )
         elif format_in == "yolov7":
             annotations = AnnotationSet.from_yolo_v7(
-                input, image_folder=image_dir, image_extension=img_ext, verbose=verbose
+                input,
+                image_folder=image_dir,
+                image_extension=img_ext,
+                recursive=recursive,
+                verbose=verbose,
             )
         elif format_in == "txt":
             format = BoxFormat.from_string(args.bb_fmt_in)
@@ -200,6 +212,7 @@ def parse_annotations(args: argparse.Namespace) -> AnnotationSet:
                 file_extension=extension,
                 image_extension=img_ext,
                 separator=sep,
+                recursive=recursive,
                 verbose=verbose,
             )
         else:
@@ -220,6 +233,7 @@ def parse_dets_annotations(
     input: Path = args.predictions.expanduser().resolve()
     format_dets: str = args.format_dets
     verbose: bool = not args.quiet
+    recursive: bool = args.recursive
 
     if format_dets == "coco":
         return AnnotationSet.from_coco(input, verbose=verbose)
@@ -230,7 +244,7 @@ def parse_dets_annotations(
             )
         return coco_gts.from_results(input, verbose=verbose)
     elif format_dets == "pascalvoc" or format_dets == "imagenet":
-        return AnnotationSet.from_xml(input, verbose=verbose)
+        return AnnotationSet.from_xml(input, recursive=recursive, verbose=verbose)
     elif format_dets == "openimage":
         assert (
             args.img_folder is not None
@@ -240,7 +254,7 @@ def parse_dets_annotations(
             input, image_folder=img_dir, verbose=verbose
         )
     elif format_dets == "labelme":
-        return AnnotationSet.from_labelme(input, verbose=verbose)
+        return AnnotationSet.from_labelme(input, recursive=recursive, verbose=verbose)
     elif format_dets == "cvat":
         return AnnotationSet.from_cvat(input, verbose=verbose)
     elif format_dets == "via-json":
@@ -255,15 +269,27 @@ def parse_dets_annotations(
 
         if format_dets == "yolo-darknet":
             annotations = AnnotationSet.from_yolo_darknet(
-                input, image_folder=image_dir, image_extension=img_ext, verbose=verbose
+                input,
+                image_folder=image_dir,
+                image_extension=img_ext,
+                recursive=recursive,
+                verbose=verbose,
             )
         elif format_dets == "yolov5":
             annotations = AnnotationSet.from_yolo_v5(
-                input, image_folder=image_dir, image_extension=img_ext, verbose=verbose
+                input,
+                image_folder=image_dir,
+                image_extension=img_ext,
+                recursive=recursive,
+                verbose=verbose,
             )
         elif format_dets == "yolov7":
             annotations = AnnotationSet.from_yolo_v7(
-                input, image_folder=image_dir, image_extension=img_ext, verbose=verbose
+                input,
+                image_folder=image_dir,
+                image_extension=img_ext,
+                recursive=recursive,
+                verbose=verbose,
             )
         elif format_dets == "txt":
             bb_fmt = BoxFormat.from_string(args.bb_fmt_dets)
@@ -279,6 +305,7 @@ def parse_dets_annotations(
                 file_extension=extension,
                 image_extension=img_ext,
                 separator=sep,
+                recursive=recursive,
                 verbose=verbose,
             )
         else:
