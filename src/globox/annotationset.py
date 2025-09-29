@@ -308,12 +308,12 @@ class AnnotationSet:
                 if p.suffix == image_extension
             }
 
-            def get_ann_img_size(p: Path) -> tuple[int, int] | None:
+            def get_ann_img_size(p: Path) -> Optional[tuple[int, int]]:
                 img_path = img_paths[p.stem]
                 return get_image_size(img_path)
         else:
 
-            def get_ann_img_size(p: Path) -> tuple[int, int] | None:
+            def get_ann_img_size(p: Path) -> Optional[tuple[int, int]]:
                 return None
 
         def parse_annotation(p: Path) -> Annotation:
