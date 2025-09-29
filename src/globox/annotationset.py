@@ -23,8 +23,8 @@ from .annotation import Annotation
 from .atomic import open_atomic
 from .boundingbox import BoundingBox, BoxFormat
 from .errors import ParsingError, UnknownImageFormat
-from .file_utils import PathLike, glob
-from .image_utils import IMAGE_EXTENSIONS, get_image_size
+from .file_utils import PathLike
+from .image_utils import IMAGE_EXTENSIONS, get_image_size, glob_images
 from .thread_utils import thread_map
 
 T = TypeVar("T")
@@ -216,19 +216,61 @@ class AnnotationSet:
     def from_folder(
         folder: PathLike,
         *,
-        extension: str,
         parser: Callable[[Path], Annotation],
-        recursive=False,
+        extension: Optional[str] = None,
+        is_ann_file: Optional[Callable[[Path], bool]] = None,
+        recursive: bool = False,
         verbose: bool = False,
     ) -> "AnnotationSet":
+        """Create an AnnotationSet from a folder of annotation files.
+
+        Parameters
+        ----------
+        folder : PathLike
+            The path to the folder containing the annotation files.
+        parser : Callable[[Path], Annotation]
+            A function that takes a file path and returns an Annotation object.
+        extension : Optional[str], optional
+            The file extension of the annotation files (e.g., ".json"). If provided, only files with this extension will be considered. If None, `is_ann_file` must be provided.
+        is_ann_file : Optional[Callable[[Path], bool]], optional
+            A function that takes a file path and returns True if the file is an annotation file. If provided, this function will be used to filter files. If None, `extension` must be provided.
+        recursive : bool, optional
+            Whether to search for annotation files recursively in subdirectories, by default False
+        verbose : bool, optional
+            Whether to print tqdm progress output during parsing, by default False
+
+        Returns
+        -------
+        AnnotationSet
+            A set of annotations parsed from the files in the folder.
+
+        Raises
+        ------
+        ValueError
+            If the folder is not a directory or does not exist, if both `extension` and `is_ann_file` are None and if `extension` is provided but does not start with a dot.
+        """
         folder = Path(folder).expanduser().resolve()
 
-        assert (
-            folder.is_dir()
-        ), f"Filepath '{folder}' is not a folder or does not exist."
+        if not folder.is_dir():
+            raise ValueError(f"Path '{folder}' is not a folder or does not exist.")
 
-        files = list(glob(folder, extension, recursive=recursive))
-        return AnnotationSet.from_iter(parser, files, verbose=verbose)
+        if extension is None and is_ann_file is None:
+            raise ValueError("Either `extension` or `is_ann_file` must be provided.")
+
+        if extension is not None:
+            if not extension.startswith("."):
+                raise ValueError("`extension` must start with a dot.")
+
+            def is_ann_file(p: Path) -> bool:
+                return p.suffix.lower() == extension
+
+        annotation_files = [
+            f
+            for f in (folder.glob("**/*") if recursive else folder.glob("*"))
+            if is_ann_file(f) and not f.name.startswith(".")
+        ]
+
+        return AnnotationSet.from_iter(parser, annotation_files, verbose=verbose)
 
     @staticmethod
     def from_txt(
@@ -241,69 +283,58 @@ class AnnotationSet:
         image_extension: str = ".jpg",
         separator: Optional[str] = None,
         conf_last: bool = False,
+        recursive: bool = False,
         verbose: bool = False,
     ) -> "AnnotationSet":
-        """This method won't try to retreive the image sizes by default. Specify `image_folder` if you need them.
-        `image_folder` is required when `relative` is True."""
-        # TODO: Add error handling
-
         folder = Path(folder).expanduser().resolve()
 
-        assert folder.is_dir()
-        assert image_extension.startswith(".")
-
-        if relative:
-            assert (
-                image_folder is not None
-            ), "When `relative` is set to True, `image_folder` must be provided to read image sizes."
+        if relative and not image_folder:
+            raise ParsingError(
+                "When `relative` is set to True, `image_folder` must be provided to read image sizes."
+            )
 
         if image_folder is not None:
             image_folder = Path(image_folder).expanduser().resolve()
-            assert image_folder.is_dir()
 
-        def _get_annotation(file: Path) -> Annotation:
-            if image_folder is not None:
-                image_path: Path | None = None
+            if not image_folder.is_dir():
+                raise ParsingError("Invalid `image_folder`: not a directory.")
 
-                for image_ext in IMAGE_EXTENSIONS:
-                    image_id = file.with_suffix(image_ext).name
-                    path = image_folder / image_id  # type: ignore
+            if not image_extension.startswith("."):
+                raise ParsingError("`image_extension` must start with a dot.")
 
-                    if path.is_file():
-                        image_path = path
-                        break
+            img_paths = {
+                p.stem: p
+                for p in glob_images(image_folder, recursive=recursive)
+                if p.suffix == image_extension
+            }
 
-                assert (
-                    image_path is not None
-                ), f"Image {file.name} does not exist, unable to read the image size."
+            def get_ann_img_size(p: Path) -> tuple[int, int] | None:
+                img_path = img_paths[p.stem]
+                return get_image_size(img_path)
+        else:
 
-                image_id = image_path.name
+            def get_ann_img_size(p: Path) -> tuple[int, int] | None:
+                return None
 
-                try:
-                    image_size = get_image_size(image_path)
-                except UnknownImageFormat:
-                    raise ParsingError(
-                        f"Unable to read image size of file {image_path}. "
-                        f"The file may be corrupted or the file format not supported."
-                    )
-            else:
-                image_size = None
-                image_id = file.with_suffix(image_extension).name
+        def parse_annotation(p: Path) -> Annotation:
+            image_size = get_ann_img_size(p)
+            image_id = p.with_suffix(image_extension).name
 
             return Annotation.from_txt(
-                file_path=file,
+                p,
                 image_id=image_id,
+                image_size=image_size,
                 box_format=box_format,
                 relative=relative,
-                image_size=image_size,
                 separator=separator,
                 conf_last=conf_last,
             )
 
         return AnnotationSet.from_folder(
             folder,
+            parser=parse_annotation,
             extension=file_extension,
-            parser=_get_annotation,
+            recursive=recursive,
             verbose=verbose,
         )
 
@@ -314,6 +345,7 @@ class AnnotationSet:
         image_folder: PathLike,
         image_extension=".jpg",
         conf_last: bool = False,
+        recursive: bool = False,
         verbose: bool = False,
     ) -> "AnnotationSet":
         return AnnotationSet.from_txt(
@@ -324,6 +356,7 @@ class AnnotationSet:
             image_extension=image_extension,
             separator=None,
             conf_last=conf_last,
+            recursive=recursive,
             verbose=verbose,
         )
 
@@ -334,6 +367,7 @@ class AnnotationSet:
         image_folder: PathLike,
         image_extension=".jpg",
         conf_last: bool = False,
+        recursive: bool = False,
         verbose: bool = False,
     ) -> "AnnotationSet":
         warn(
@@ -347,6 +381,7 @@ class AnnotationSet:
             image_folder=image_folder,
             image_extension=image_extension,
             conf_last=conf_last,
+            recursive=recursive,
             verbose=verbose,
         )
 
@@ -356,6 +391,7 @@ class AnnotationSet:
         *,
         image_folder: PathLike,
         image_extension=".jpg",
+        recursive: bool = False,
         verbose: bool = False,
     ) -> "AnnotationSet":
         return AnnotationSet._from_yolo(
@@ -363,6 +399,7 @@ class AnnotationSet:
             image_folder=image_folder,
             image_extension=image_extension,
             conf_last=False,
+            recursive=recursive,
             verbose=verbose,
         )
 
@@ -372,6 +409,7 @@ class AnnotationSet:
         *,
         image_folder: PathLike,
         image_extension=".jpg",
+        recursive: bool = False,
         verbose: bool = False,
     ) -> "AnnotationSet":
         return AnnotationSet._from_yolo(
@@ -379,6 +417,7 @@ class AnnotationSet:
             image_folder=image_folder,
             image_extension=image_extension,
             conf_last=True,
+            recursive=recursive,
             verbose=verbose,
         )
 
@@ -388,12 +427,14 @@ class AnnotationSet:
         *,
         image_folder: PathLike,
         image_extension=".jpg",
+        recursive: bool = False,
         verbose: bool = False,
     ) -> "AnnotationSet":
         return AnnotationSet.from_yolo_v5(
             folder,
             image_folder=image_folder,
             image_extension=image_extension,
+            recursive=recursive,
             verbose=verbose,
         )
 
