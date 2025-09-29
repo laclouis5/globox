@@ -1,29 +1,17 @@
-# Source: https://github.com/scardine/image_size
-
 from os import path
 from pathlib import Path
 from struct import error as struct_error
 from struct import unpack
+from typing import Iterable
 
 from .errors import UnknownImageFormat
-from .file_utils import PathLike
+from .file_utils import PathLike, glob
 
-IMAGE_EXTENSIONS = [
-    ".jpg",
-    ".jpeg",
-    ".png",
-    ".bmp",
-    ".jpe",
-    ".tif",
-    ".tiff",
-    ".JPG",
-    ".JPEG",
-    ".PNG",
-    ".BMP",
-    ".JPE",
-    ".TIF",
-    ".TIFF",
-]
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".jpe", ".tif", ".tiff"}
+
+
+def glob_images(directory: PathLike, recursive: bool = False) -> Iterable[Path]:
+    return glob(directory, IMAGE_EXTENSIONS, recursive=recursive)
 
 
 def get_image_size(file_path: PathLike) -> "tuple[int, int]":
@@ -50,6 +38,7 @@ def get_image_size(file_path: PathLike) -> "tuple[int, int]":
             raise UnknownImageFormat(str(e))
 
 
+# Source: https://github.com/scardine/image_size
 def _get_image_metadata_from_bytesio(input, size: int) -> "tuple[int, int]":
     """
     Args:
