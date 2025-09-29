@@ -21,4 +21,8 @@ def glob(
 
     files = path.glob("**/*") if recursive else path.glob("*")
 
-    return (f for f in files if f.suffix in extensions and not f.name.startswith("."))
+    return (
+        f
+        for f in files
+        if f.suffix.lower() in extensions and not f.name.startswith(".")
+    )
