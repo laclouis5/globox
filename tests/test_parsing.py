@@ -12,6 +12,9 @@ def tests_parsing():
     yolo_set = AnnotationSet.from_yolo_darknet(
         C.yolo_path, image_folder=C.image_folder
     ).map_labels(C.id_to_label)
+    yolo_nested_set = AnnotationSet.from_yolo_darknet(
+        C.yolo_nested_path, image_folder=C.image_folder, recursive=True
+    ).map_labels(C.id_to_label)
     yolo_seg_set = AnnotationSet.from_yolo_seg(
         folder=C.yolo_seg_path, image_folder=C.image_folder
     ).map_labels(C.id_to_label)
@@ -49,6 +52,7 @@ def tests_parsing():
         coco2_set,
         coco3_set,
         yolo_set,
+        yolo_nested_set,
         yolo_seg_set,
         cvat_set,
         imagenet_set,
