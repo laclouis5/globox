@@ -306,7 +306,13 @@ class Annotation:
     def _from_coco_partial(node: dict) -> "Annotation":
         try:
             image_id = str(node["file_name"])
-            image_size = int(node["width"]), int(node["height"])
+            width, height = node.get("width"), node.get("height")
+
+            # The image size is optional, `to_coco()` writes null when it is unknown.
+            if width is None or height is None:
+                image_size = None
+            else:
+                image_size = int(width), int(height)
         except (ValueError, KeyError):
             raise ParsingError("Syntax error in COCO annotation file.")
 
