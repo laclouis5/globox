@@ -657,7 +657,7 @@ class COCOEvaluator:
         self._evaluate_all(verbose=verbose)
         labels = self.labels or sorted(self.ap_evaluation().keys())
 
-        with open_atomic(path, "w") as f:
+        with open_atomic(path, "w", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow(COCOEvaluator.CSV_HEADERS)
 

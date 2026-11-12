@@ -484,7 +484,7 @@ class AnnotationSet:
 
         annotations = AnnotationSet()
 
-        with file_path.open(newline="") as f:
+        with file_path.open(newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f)
 
             for row in tqdm(reader, desc="Parsing", disable=not verbose):
@@ -544,7 +544,7 @@ class AnnotationSet:
 
         # TODO: Error handling.
         # OSError, JsonDecoderError, Key/ValueError
-        with file_path.open() as f:
+        with file_path.open(encoding="utf-8") as f:
             content = json.load(f)
 
         id_to_label = {d["id"]: str(d["name"]) for d in content["categories"]}
@@ -601,7 +601,7 @@ class AnnotationSet:
 
         id_to_annotation = {}
 
-        with file_path.open() as f:
+        with file_path.open(encoding="utf-8") as f:
             annotations = json.load(f)
 
         # TODO: Factorize this with `Self.from_coco()`?
@@ -651,7 +651,7 @@ class AnnotationSet:
 
         id_to_annotation = {}
 
-        with file_path.open() as f:
+        with file_path.open(encoding="utf-8") as f:
             annotations = json.load(f)
 
         # TODO: Factorize this with `Self.from_coco()`?
@@ -691,7 +691,7 @@ class AnnotationSet:
         ), f"CVAT annotation file {file_path} must be a xml file."
 
         # TODO: Error handling.
-        with file_path.open() as f:
+        with file_path.open(encoding="utf-8") as f:
             root = et.parse(f).getroot()
 
         image_nodes = list(root.iter("image"))
@@ -721,7 +721,7 @@ class AnnotationSet:
                 f"VIA JSON annotation file {file_path} must be a valid json file."
             )
 
-        with file_path.open() as f:
+        with file_path.open(encoding="utf-8") as f:
             content: dict = json.load(f)
 
         img_anns: dict = content.get("_via_img_metadata", content)
@@ -1026,7 +1026,7 @@ class AnnotationSet:
             verbose=verbose,
         )
 
-        with open_atomic(path, "w") as f:
+        with open_atomic(path, "w", encoding="utf-8") as f:
             json.dump(content, fp=f, allow_nan=False)
 
     def save_openimage(self, path: PathLike, *, verbose: bool = False):
@@ -1053,7 +1053,7 @@ class AnnotationSet:
             "IsInside",
         )
 
-        with open_atomic(path, "w", newline="") as f:
+        with open_atomic(path, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=fields, restval="")
             writer.writeheader()
 
@@ -1119,7 +1119,7 @@ class AnnotationSet:
         content = self.to_cvat(verbose=verbose)
         content = et.tostring(content, encoding="unicode")
 
-        with open_atomic(path, "w") as f:
+        with open_atomic(path, "w", encoding="utf-8") as f:
             f.write(content)
 
     def to_via_json(
@@ -1167,7 +1167,7 @@ class AnnotationSet:
             verbose=verbose,
         )
 
-        with open_atomic(path, "w") as f:
+        with open_atomic(path, "w", encoding="utf-8") as f:
             json.dump(output, fp=f)
 
     @staticmethod
@@ -1182,13 +1182,13 @@ class AnnotationSet:
         # TODO: Add error handling
         path = Path(path).expanduser().resolve()
 
-        return {str(i): v for i, v in enumerate(path.read_text().splitlines())}
+        return {str(i): v for i, v in enumerate(path.read_text(encoding="utf-8").splitlines())}
 
     @staticmethod
     def parse_mid_file(path: PathLike) -> "dict[str, str]":
         path = Path(path).expanduser().resolve()
 
-        with path.open() as f:
+        with path.open(encoding="utf-8") as f:
             reader = csv.DictReader(f, fieldnames=("LabelName", "DisplayName"))
             return {l["LabelName"]: l["DisplayName"] for l in reader}
 
