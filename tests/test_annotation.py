@@ -235,3 +235,18 @@ def test_save_yolo_v5(tmp_path: Path):
     content = path.read_text()
 
     assert content == "label 0.25 0.25 0.5 0.5 0.25"
+
+
+def test_from_txt_skips_blank_lines(tmp_path: Path):
+    path = tmp_path / "image.txt"
+    path.write_text("0 0.5 0.5 0.2 0.2\n\n1 0.3 0.3 0.1 0.1\n  \n\n")
+
+    annotation = Annotation.from_yolo_v5(path, image_size=(200, 100))
+
+    assert [box.label for box in annotation.boxes] == ["0", "1"]
+
+    path.write_text("0 0.1 0.1 0.9 0.1 0.9 0.9\n\n")
+
+    annotation = Annotation.from_yolo_seg(path, image_size=(200, 100))
+
+    assert len(annotation.boxes) == 1
