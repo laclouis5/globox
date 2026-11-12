@@ -137,6 +137,7 @@ class Annotation:
                     conf_last=conf_last,
                 )
                 for l in lines
+                if l.strip()
             ]
         except ParsingError as e:
             raise FileParsingError(path, e.reason)
@@ -385,6 +386,7 @@ class Annotation:
                     image_size=image_size,
                 )
                 for l in lines
+                if l.strip()
             ]
         except ParsingError as e:
             raise FileParsingError(path, e.reason)
