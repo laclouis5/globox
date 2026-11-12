@@ -498,7 +498,9 @@ class COCOEvaluator:
         dt_matches = {}
 
         for idx_dt, det in enumerate(dets):
-            best_iou = 0.0
+            # Only ground truths that reach the IoU threshold are candidates, so that
+            # a detection without a valid match can still match an ignored ground truth.
+            best_iou = min(iou_threshold, 1.0 - 1e-10)
             idx_best = -1
 
             for idx_gt, gt in enumerate(gts):
@@ -514,7 +516,7 @@ class COCOEvaluator:
                 best_iou = iou
                 idx_best = idx_gt
 
-            if idx_best == -1 or best_iou < iou_threshold:
+            if idx_best == -1:
                 continue
 
             dt_matches[idx_dt] = idx_best
