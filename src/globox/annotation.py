@@ -122,7 +122,7 @@ class Annotation:
             image_id = path.with_suffix(image_extension).name
 
         try:
-            lines = path.read_text().splitlines()
+            lines = path.read_text(encoding="utf-8").splitlines()
         except OSError:
             raise FileParsingError(path, reason="cannot read file")
 
@@ -238,7 +238,7 @@ class Annotation:
         path = Path(file_path).expanduser().resolve()
 
         try:
-            with path.open() as f:
+            with path.open(encoding="utf-8") as f:
                 root = et.parse(f).getroot()
         except (OSError, et.ParseError):
             raise ParsingError("Syntax error in imagenet annotation file.")
@@ -281,7 +281,7 @@ class Annotation:
             shape_types.add("polygon")
 
         try:
-            with path.open() as f:
+            with path.open(encoding="utf-8") as f:
                 content = json.load(f)
                 if "imageData" in content:
                     del content["imageData"]
@@ -374,7 +374,7 @@ class Annotation:
             image_id = path.with_suffix(image_extension).name
 
         try:
-            lines = path.read_text().splitlines()
+            lines = path.read_text(encoding="utf-8").splitlines()
         except OSError:
             raise FileParsingError(path, reason="cannot read file")
 
@@ -502,7 +502,7 @@ class Annotation:
             conf_last=conf_last,
         )
 
-        with open_atomic(path, "w") as f:
+        with open_atomic(path, "w", encoding="utf-8") as f:
             f.write(content)
 
     def _save_yolo(
@@ -517,7 +517,7 @@ class Annotation:
             label_to_id=label_to_id, image_size=image_size, conf_last=conf_last
         )
 
-        with open_atomic(path, "w") as f:
+        with open_atomic(path, "w", encoding="utf-8") as f:
             f.write(content)
 
     def save_yolo(
@@ -587,7 +587,7 @@ class Annotation:
         self, path: PathLike, *, image_size: Optional["tuple[int, int]"] = None
     ):
         content = self.to_labelme(image_size=image_size)
-        with open_atomic(path, "w") as f:
+        with open_atomic(path, "w", encoding="utf-8") as f:
             json.dump(content, fp=f, allow_nan=False)
 
     def to_xml(self, *, image_size: Optional["tuple[int, int]"] = None) -> et.Element:
@@ -624,7 +624,7 @@ class Annotation:
         content = self.to_xml(image_size=image_size)
         content = et.tostring(content, encoding="unicode")
 
-        with open_atomic(path, "w") as f:
+        with open_atomic(path, "w", encoding="utf-8") as f:
             f.write(content)
 
     def save_pascal_voc(
