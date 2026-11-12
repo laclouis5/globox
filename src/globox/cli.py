@@ -337,7 +337,7 @@ def save_annotations(args: argparse.Namespace, annotations: AnnotationSet):
 
     if format_out == "coco":
         annotations.save_coco(output, auto_ids=args.coco_auto_ids, verbose=verbose)
-    elif format_out == "pascalvoc":
+    elif format_out == "pascalvoc" or format_out == "imagenet":
         annotations.save_xml(output, verbose=verbose)
     elif format_out == "openimage":
         annotations.save_openimage(output, verbose=verbose)
