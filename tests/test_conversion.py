@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from globox import AnnotationSet
+from globox import Annotation, AnnotationSet, BoundingBox
 from globox.utils import all_equal
 
 from .constants import coco2_path, id_to_label, image_folder, label_to_id, labels
@@ -57,3 +57,17 @@ def test_conversion(tmp_path: Path):
             for box in annotation.boxes:
                 assert isinstance(box.label, str)
                 assert all(isinstance(c, float) for c in box.ltrb)
+
+
+def test_coco_without_image_size(tmp_path: Path):
+    # The image size is optional, for instance when parsing TXT files without images.
+    box = BoundingBox(label="cat", xmin=10.0, ymin=20.0, xmax=110.0, ymax=80.0)
+    annotations = AnnotationSet([Annotation(image_id="image.jpg", boxes=[box])])
+    coco_path = tmp_path / "coco.json"
+
+    annotations.save_coco(coco_path, auto_ids=True)
+    parsed = AnnotationSet.from_coco(coco_path)
+
+    annotation = parsed["image.jpg"]
+    assert annotation.image_size is None
+    assert [b.ltrb for b in annotation.boxes] == [(10.0, 20.0, 110.0, 80.0)]
