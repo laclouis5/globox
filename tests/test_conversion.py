@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from globox import AnnotationSet
+from globox import Annotation, AnnotationSet, BoundingBox
 from globox.utils import all_equal
 
 from .constants import coco2_path, id_to_label, image_folder, label_to_id, labels
@@ -57,3 +57,33 @@ def test_conversion(tmp_path: Path):
             for box in annotation.boxes:
                 assert isinstance(box.label, str)
                 assert all(isinstance(c, float) for c in box.ltrb)
+
+
+def test_save_nested_image_ids(tmp_path: Path):
+    # Image ids may contain folders, for instance COCO file names like "train/0001.jpg".
+    box = BoundingBox(label="cat", xmin=10.0, ymin=20.0, xmax=110.0, ymax=80.0)
+    annotations = AnnotationSet(
+        [
+            Annotation(image_id="train/0001.jpg", image_size=(200, 100), boxes=[box]),
+            Annotation(image_id="0002.jpg", image_size=(200, 100), boxes=[box]),
+        ]
+    )
+
+    txt_dir = tmp_path / "txt"
+    yolo_dir = tmp_path / "yolo"
+    xml_dir = tmp_path / "xml"
+    labelme_dir = tmp_path / "labelme"
+
+    annotations.save_txt(txt_dir)
+    annotations.save_yolo_v5(yolo_dir, label_to_id={"cat": 0})
+    annotations.save_xml(xml_dir)
+    annotations.save_labelme(labelme_dir)
+
+    assert (txt_dir / "train/0001.txt").is_file()
+    assert (yolo_dir / "train/0001.txt").is_file()
+    assert (xml_dir / "train/0001.xml").is_file()
+    assert (labelme_dir / "train/0001.json").is_file()
+
+    parsed = AnnotationSet.from_txt(txt_dir, recursive=True)
+    assert len(parsed) == 2
+    assert parsed.nb_boxes() == 2

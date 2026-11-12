@@ -833,6 +833,7 @@ class AnnotationSet:
         def _save(annotation: Annotation):
             image_id = annotation.image_id
             path = (save_dir / image_id).with_suffix(file_extension)
+            path.parent.mkdir(parents=True, exist_ok=True)
 
             annotation.save_txt(
                 path,
@@ -858,6 +859,7 @@ class AnnotationSet:
 
         def _save(annotation: Annotation):
             path = save_dir / Path(annotation.image_id).with_suffix(".txt")
+            path.parent.mkdir(parents=True, exist_ok=True)
             annotation._save_yolo(path, label_to_id=label_to_id, conf_last=conf_last)
 
         self.save_from_it(_save, verbose=verbose)
@@ -917,6 +919,7 @@ class AnnotationSet:
 
         def _save(annotation: Annotation):
             path = save_dir / Path(annotation.image_id).with_suffix(".json")
+            path.parent.mkdir(parents=True, exist_ok=True)
             annotation.save_labelme(path)
 
         self.save_from_it(_save, verbose=verbose)
@@ -927,6 +930,7 @@ class AnnotationSet:
 
         def _save(annotation: Annotation):
             path = save_dir / Path(annotation.image_id).with_suffix(".xml")
+            path.parent.mkdir(parents=True, exist_ok=True)
             annotation.save_xml(path)
 
         self.save_from_it(_save, verbose=verbose)
